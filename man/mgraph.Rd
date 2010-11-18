@@ -59,7 +59,8 @@ mgraph(y, x = NULL, graph, leg = NULL, xval = -1, PDF = "", PTS = -1,
   \item{data}{the training data, for plotting histograms and getting the minimum and maximum attribute ranges if not defined in ranges (only used by \code{VEC}).}
   \item{digits}{the number of digits for the axis, can also be defined as c(x-axis digits,y-axis digits) (only used by \code{VEC}).}
 
-  \item{TC}{target class (for multi-class classification class) within {1,...,\emph{Nc}}, where \emph{Nc} is the number of classes.}
+  \item{TC}{target class (for multi-class classification class) within {1,...,\emph{Nc}}, where \emph{Nc} is the number of classes. If multi-class and TC==-1 then TC is set to 
+the index of the last class.}
 
   \item{intbar}{if 95\% confidence interval bars (according to t-student distribution) should be plotted as whiskers.}
   \item{lty}{the same \code{lty} argument of the \code{\link{par}} function.}

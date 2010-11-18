@@ -1,5 +1,6 @@
 \name{rminer-internal}
 \alias{Accuracy}
+\alias{Aliftperc}
 \alias{Auc}
 \alias{Brier}
 \alias{Correlation}
@@ -9,6 +10,7 @@
 \alias{Gmse}
 \alias{INTERPOLATE}
 \alias{Kappa}
+\alias{LIFTcurve}
 \alias{MMinkowski}
 \alias{Mad}
 \alias{Mape}
@@ -21,6 +23,7 @@
 \alias{Me}
 \alias{Mrae}
 \alias{Mse}
+\alias{Nalift}
 \alias{Narec}
 \alias{Nauc}
 \alias{R2}
@@ -98,6 +101,7 @@
 \alias{one_of_c}
 \alias{output_index}
 \alias{partialcurve}
+\alias{pathlength_responses}
 \alias{plotH}
 \alias{predict.naivebayes}
 \alias{print.naivebayes}
@@ -121,7 +125,6 @@
 \alias{uniform_design}
 \alias{variance_responses}
 \alias{vaveraging}
-\alias{vecplot}
 \alias{worst}
 \alias{xmiddle_point}
 \alias{xtransform}

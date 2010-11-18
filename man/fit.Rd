@@ -26,7 +26,8 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{lr} (or \code{logistic}) -- logistic regression (classification, uses \code{\link{multinom}})
               \item \code{naivebayes} -- naive bayes (classification, very similar to \code{naiveBayes})
               \item \code{lda} -- linear discriminant analysis (classification, uses \code{\link{lda}}, requires \code{MASS} package, i.e. \code{library(MASS)})
-              \item \code{qda} -- quadratic discriminant analysis (classification, uses \code{\link{qda}}, required \code{MASS} package)
+              \item \code{qda} -- quadratic discriminant analysis (classification, uses \code{\link{qda}}, requires \code{MASS} package)
+              \item \code{dt} -- decision tree (classification and regression, uses \code{\link{rpart}})
               \item \code{mr} -- multiple regression (regression, equivalent to \code{\link{lm}} but uses \code{\link{nnet}} with zero hidden nodes and linear output function)
               \item \code{bruto} -- additive spline model (regression, uses \code{bruto}, requires \code{mda} package, i.e. \code{library(mda)})
               \item \code{mars} -- multivariate adaptive regression splines (regression, uses \code{mars}, requires \code{mda} package, i.e. \code{library(mda)})
@@ -102,6 +103,9 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
                   \itemize{ 
                            \item \code{sbs} -- standard backward selection;
                            \item \code{sabs} -- sensitivity analysis backward selection (faster);
+                           \item \code{sabsv} -- equal to \code{sabs} but uses variance for sensitivity importance measure;
+                           \item \code{sabsr} -- equal to \code{sabs} but uses range for sensitivity importance measure;
+                           \item \code{sabsg} -- equal to \code{sabs} (uses gradient for sensitivity importance measure);
                           }
                  \emph{deletions} is the maximum number of feature deletions (if -1 not used).\cr
                  \emph{Runs} is the number of runs for each feature set evaluation (e.g. 1).\cr
@@ -224,7 +228,7 @@ print(mmetric(iris$Species,P,"ACC"))
 print(mmetric(iris$Species,P,"AUC"))
 print(metrics(iris$Species,P))
 mgraph(iris$Species,P,graph="ROC",TC=2,main="versicolor ROC",
-baseline=TRUE,leg="Versicolor")
+baseline=TRUE,leg="Versicolor",Grid=10)
 
 ### classification example with discrete classes, probabilities and holdout
 H=holdout(iris$Species,ratio=2/3)
@@ -234,7 +238,8 @@ P=predict(M,iris[H$ts,])
 P2=predict(M2,iris[H$ts,])
 print(mmetric(iris$Species[H$ts],P,"CONF"))
 print(mmetric(iris$Species[H$ts],P2,"CONF"))
-print(mmetric(iris$Species[H$ts],P2,"CONF",TC=2))
+print(mmetric(iris$Species[H$ts],P,"CONF",TC=1))
+print(mmetric(iris$Species[H$ts],P2,"CONF",TC=1))
 print(mmetric(iris$Species[H$ts],P2,"AUC"))
 
 ### classification example with hyperparameter selection

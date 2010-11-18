@@ -10,7 +10,7 @@
 crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,model,task,feature="none",...)
 {
     call <- match.call()
-    outindex<-output_index(x,data)
+    outindex<-output_index(x,names(data))
     y<- data[,outindex]
     n <- length(y)
     ngroup <- trunc(ngroup)

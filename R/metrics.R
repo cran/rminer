@@ -1,29 +1,29 @@
 isbest=function(Cur,Best,metric)
 {if(is.na(Cur)) return (FALSE) 
  else{ return (switch(metric,
-                ACC=,KAPPA=,COR=,TPR=,TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUC=Cur>Best,
+                ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,KAPPA=,COR=,TPR=,TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUC=Cur>Best,
                 Cur<Best))}
 } 
 worst=function(metric)
 { return (switch(metric, 
-                 ACC=,KAPPA=,COR=,TPR=,TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,TOLERANCE=,AUC=-Inf,
+                 ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,KAPPA=,COR=,TPR=,TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,TOLERANCE=,AUC=-Inf,
                  Inf))} 
 
 # --- Error function:
 # if you want to choose a different internal model selection function, change here!
-# b - benchmark
 Error=function(y,x,metric,D=0.5,TC=-1,val=NULL)
 {
  if(class(metric)=="function") return(metric(y,x))
  else 
- { if(TC==-1 && (metric=="TPR"||metric=="TNR") ) TC=length(levels(y[1]))
+ { if(TC==-1 && (metric=="ALIFTATPERC" || metric=="ALIFT" || metric=="NALIFT" || metric=="NAUC"||metric=="TPRATFPR"||metric=="TPR"||metric=="TNR") ) TC=length(levels(y[1])) # set TC to the last class index
    return (switch(metric,
-                AUC=ROCcurve(y,x)$auc,
-                ACC=Accuracy(y,x,D,TC=TC),
-                CONF=Conf(y,x,D,TC=TC),
-                TPR=classification.metrics(y,x,D,AUC=FALSE,BRIER=FALSE)$tpr[TC],
-                TNR=classification.metrics(y,x,D,AUC=FALSE,BRIER=FALSE)$tnr[TC],
-                KAPPA=Kappa(y,x,D,TC=TC),
+                AUC=ROCcurve(y,x,TC=TC)$auc, # classification G
+                ACC=Accuracy(y,x,D,TC=TC), # classification G
+                CONF=Conf(y,x,D,TC=TC), # classification G
+                ALIFT=LIFTcurve(y,x,TC=TC)$area, # classification
+                TPR=metrics(y,x,D,AUC=FALSE,BRIER=FALSE)$tpr[TC], # classification
+                TNR=metrics(y,x,D,AUC=FALSE,BRIER=FALSE)$tnr[TC], # classification
+                KAPPA=Kappa(y,x,D,TC=TC), # classification G
                 SAD=Sad(y,x), 
                 MAD=,MAE=Mad(y,x),MdAE=Mdae(y,x),GMAE=,GMAD=Gmad(y,x),
                 RMAD=,RAE=Rae(y,x),
@@ -33,17 +33,19 @@ Error=function(y,x,metric,D=0.5,TC=-1,val=NULL)
                 RMSE=Rmse(y,x),
                 RRSE=Rrse(y,x),
                 ME=Me(y,x),
-                SMinkowski3=SMinkowski(y,x,3),
-                MMinkowski3=MMinkowski(y,x,3),
-                MdMinkowski3=MdMinkowski(y,x,3),
+                SMinkowski3=SMinkowski(y,x,3), # experimental
+                MMinkowski3=MMinkowski(y,x,3), # experimental
+                MdMinkowski3=MdMinkowski(y,x,3), # experimental
                 COR=Correlation(y,x),
                 R2=R2(y,x),
                 R22=R22(y,x),
-                BRIER=Tbrier(y,x),
+                BRIER=Tbrier(y,x,TC=TC), # classification G
                 NAREC=Narec(y,x,val=val),
                 TOLERANCE=Tolerance(y,x,val=val),
-                NAUC=Nauc(y,x,TC=TC,val=val),
-                TPRATFPR=Tprfpr(y,x,val=val,TC=TC),
+                NAUC=Nauc(y,x,TC=TC,val=val), # classification
+                NALIFT=Nalift(y,x,TC=TC,val=val), # classification
+                TPRATFPR=Tprfpr(y,x,val=val,TC=TC), # classification
+                ALIFTATPERC=Aliftperc(y,x,val=val,TC=TC), # classification
                 MdAPE=Mdape(y,x),RMSPE=Rmspe(y,x),RMdSPE=Rmdspe(y,x),
                 MAPE=Mape(y,x), SMAPE=Smape(y,x), SMdAPE=Smdape(y,x), #SMAPE2=Smape2(y,x),
 		MRAE=Mrae(y,x,ts=val),MdRAE=Mdrae(y,x,ts=val),GMRAE=Gmrae(y,x,ts=val),THEILSU2=TheilsU2(y,x,ts=val),MASE=Mase(y,x,ts=val),
@@ -57,20 +59,22 @@ Error=function(y,x,metric,D=0.5,TC=-1,val=NULL)
 # y - target factor
 # x - numeric predictions (in 0 to 1 probabilities) 
 #---------------------------------------------------------
-Brier<-function(y,x)
+Brier=function(y,x,TC=-1)
 {
-  L<-levels(y[1]); NL<-length(L); N<-length(y); MSE<-rep(FALSE,(NL+1)); 
-  PROP=table(y)[]/N; TBRIER=0 
+  L=levels(y[1]);N=length(y); 
+  if(TC>0){ NL=1;x=x[,TC];L=L[TC];MSE=1;} else{NL=length(L); PROP=table(y)[]/N; TBRIER=0;MSE=rep(FALSE,(NL+1));} 
   for(i in 1:NL) 
   {
-      T<-as.numeric(y==L[i])
-      MSE[i]<-Sse(T,x[,i])/N # Brier=MSE
-      if(PROP[i]>0) TBRIER=TBRIER+PROP[i]*MSE[i]
+      T=as.numeric(y==L[i])
+      if(is.vector(x)) MSE[i]=Sse(T,x)/N 
+      else { MSE[i]=Sse(T,x[,i])/N # Brier=MSE
+             if(PROP[i]>0) TBRIER=TBRIER+PROP[i]*MSE[i]
+           }
   }
-  MSE[(NL+1)]=TBRIER
+  if(!is.vector(x)) MSE[(NL+1)]=TBRIER
   return (MSE)
 }
-Tbrier=function(y,x){ B=Brier(y,x);return(B[length(B)])}
+Tbrier=function(y,x,TC=-1){ B=Brier(y,x,TC=TC);return(B[length(B)])}
 
 #----------------------------------------
 # RECurve by Paulo Cortez, 2006@
@@ -172,26 +176,60 @@ Ss=function(y){return (sum((y-mean(y))^2))} # sum of squares
 
 Correlation=function(y,x) { COR=suppressWarnings(cor(x,y)); if(is.na(COR)) COR=0; return(COR)}
 Narec=function(y,x,val=1){ if(is.null(val)) val=1; R=RECcurve(y,x);if(R[nrow(R),1]>val)R=partialcurve(R,val) else val=R[nrow(R),1];return(curvearea(R,val))}
-Tolerance=function(y,x,val=1){ if(is.null(val)) val=1; R=RECcurve(y,x);if(R[nrow(R),1]>val)R=partialcurve(R,val);return(R[nrow(R),2])}
-Nauc=function(y,x,val=1,TC=-1){ if(is.null(val)) val=1; RR=ROCcurve(y,x); if(is.list(RR$roc) && TC>0) RR=RR$roc[[TC]]; RR=partialcurve(RR$roc,val)
-                                return(curvearea(RR,val))}
-Tprfpr=function(y,x,val,TC=-1){ if(is.null(val)) val=0.01; RR=ROCcurve(y,x); if(is.list(RR$roc) && TC>0) RR=RR$roc[[TC]]; RR=partialcurve(RR$roc,val)
-                                return(RR[nrow(RR),2])}
-Auc=function(y,x){ return (ROCcurve(y,x)$auc) }
+Tolerance=function(y,x,val=1){ if(is.null(val)) val=1; R=RECcurve(y,x);if(R[nrow(R),1]>val)R=partialcurve(R,val);if(is.vector(R)) return (R[2]) else return(R[nrow(R),2])}
+Nauc=function(y,x,val=1,TC=-1){ if(is.null(val)) val=1; RR=ROCcurve(y,x,TC=TC); RR=partialcurve(RR$roc,val); return(curvearea(RR,val))}
+Nalift=function(y,x,val=1,TC=-1){ if(is.null(val)) val=1; RR=LIFTcurve(y,x,TC=TC); RR=partialcurve(RR$alift,val); return(curvearea(RR,val))}
+Tprfpr=function(y,x,val,TC=-1){ if(is.null(val)) val=0.01; RR=ROCcurve(y,x,TC=TC); RR=partialcurve(RR$roc,val);if(is.vector(RR)) return (RR[2]) else return(RR[nrow(RR),2])}
+Aliftperc=function(y,x,val,TC=-1){ if(is.null(val)) val=0.1; RR=LIFTcurve(y,x,TC=TC); RR=partialcurve(RR$alift,val);if(is.vector(RR)) return (RR[2]) else return(RR[nrow(RR),2])}
 
 # x - vector of predictions, y - vector of desired values  
-# MEAN - it should be the mean value of the training set 
-metrics=function(y,x,D=0.5,TC=-1,AUC=TRUE,BRIER=FALSE,task="default")
-{ if(task=="class"||task=="prob"||is.factor(y) ) return (classification.metrics(y,x,D,TC,AUC=AUC,BRIER=BRIER))
-  else return (regression.metrics(y,x))
+# MEAN - it should be the mean value of the training set, XXX 
+metrics=function(y,x=NULL,D=0.5,TC=-1,AUC=TRUE,BRIER=FALSE,Run=1,task="default")
+{ 
+  if(is.list(y) && is.null(x)) { x=y$pred[[Run]];y=y$test[[Run]];}
+  if( is.factor(y)) # || (is.list(y) && !is.null(y$task) && (y$task=="class"||y$task=="prob"))) 
+  {
+    conf=Conf(y,x,D=D,TC=TC)
+    Total=sum(conf);Diag=0;DiagR=0;C=NCOL(conf)
+    for(i in 1:C) 
+    { Diag=Diag+conf[i,i]
+      DiagR=DiagR+(sum(conf[i,])*(sum(conf[,i])/Total))
+    }
+    Kap=100*(Diag-DiagR)/(Total-DiagR)
+    Acc=c(Diag/Total)*100 # total accuracy, in percentage
+    LC=C; if(C<3) LC=1
+    acc_class=vector(length=LC);sen_class=acc_class;spe_class=acc_class;pre_class=acc_class;
+    for(k in 1:C) # class 
+ 	   {
+       	    TP<-conf[k,k]
+	    FN<-0
+ 	    for(i in 1:C) # iterator?
+		if(i!=k) FN<-FN+conf[k,i]
+            FP<-0
+ 	    for(i in 1:C) # iterator?
+		if(i!=k) FP<-FP+conf[i,k]
+            TN<-Total-TP-FN-FP
+            acc_class[k]<- 100*(TP+TN)/Total 
+            if(TP!=0) sen_class[k]<- 100*TP/(FN+TP) 
+            else sen_class[k]=0
+            if(TN!=0) spe_class[k]<- 100*TN/(TN+FP)
+            else spe_class[k]=0
+            if(TP!=0) pre_class[k]<- 100*TP/(TP+FP)
+            else pre_class[k]=0
+           }
+    tbrier=NULL;brier=NULL;auc=NULL;tauc=NULL;
+    if(!is.factor(x)){
+         if(BRIER) { brier=Brier(y,x,TC=TC);if(TC<1){tbrier=brier[C+1];brier=brier[1:C];} else {brier=c(brier,brier);tbrier=brier[1]}}
+         if(AUC){ if(C>2) {roc=multiROC(y,x);tauc=roc$auc;auc=vector(length=C); for(i in 1:C) auc[i]=roc$roc[[i]]$auc;}
+             else {tauc=twoclassROC(y,x[,TC],Positive=levels(y[1])[TC])$auc;auc=c(tauc,tauc);}
+                     }
+        }
+    return (list(conf=conf,acc=Acc,kappa=Kap,acclass=acc_class,tpr=sen_class,tnr=spe_class,precision=pre_class,tauc=tauc,auc=auc,brier=brier,tbrier=tbrier))
+  }
+  else return (list(me=Me(y,x),mad=Mad(y,x),sse=Sse(y,x),mse=Mse(y,x),rmse=Rmse(y,x),rae=Rae(y,x),rrse=Rrse(y,x),rse=Rse(y,x),
+                    mape=Mape(y,x),smape=Smape(y,x),cor=Correlation(y,x),r2=R2(y,x)
+                   ))
 }
-
-# x - vector of predictions, y - vector of desired values  
-# MEAN - it should be the mean value of the training set 
-#        if NULL, then the mean of the desired values will be used
-regression.metrics<-function(y,x,ymean=mean(y))
-{ return (list(me=Me(y,x),mad=Mad(y,x),sse=Sse(y,x),mse=Mse(y,x),rmse=Rmse(y,x),rae=Rae(y,x,ymean),rrse=Rrse(y,x),rse=Rse(y,x,ymean),mape=Mape(y,x),smape=Smape(y,x),
-        cor=Correlation(y,x),r2=R2(y,x,ymean))) }
 
 # convert matrix or data.frame into factor with major class 
 majorClass=function(x,L)
@@ -209,18 +247,23 @@ majorClass=function(x,L)
 # predict - vector of factor with the predicted values
 # D - decision thresold
 # TC - target concept class, -1 not used
-Conf<-function(target,pred,D=0.5,TC=-1)
+Conf=function(target,pred,D=0.5,TC=-1)
 {
- L=levels(target[1]); C=length(L)
+ L=levels(target[1])
  if(is.vector(pred)) 
- { if(C>2) pred<-factor(pred,levels=L)
-   else  { if(TC==-1) TC=2
+ { if(length(L)>2) pred<-factor(pred,levels=L)
+   else  { 
            if(TC==1) LB=c("TRUE","FALSE") else LB=c("FALSE","TRUE")
            pred=factor(pred>D,levels=LB); target=factor((target==L[TC]),levels=LB)
          }
  }
- else if(is.matrix(pred) || is.data.frame(pred)) 
-  { if(TC>0) { pred=factor(pred[,TC]>D,levels=c("FALSE","TRUE")); target=factor((target==L[TC]),levels=c("FALSE","TRUE")); C=2 }
+ else if(is.factor(pred) && TC>0) 
+ {
+   pred=factor(pred==L[TC],levels=c("FALSE","TRUE"))
+   target=factor((target==L[TC]),levels=c("FALSE","TRUE"))
+ }
+ else if(!is.factor(pred)) #if(is.matrix(pred) || is.data.frame(pred)) 
+  { if(TC>0) { pred=factor(pred[,TC]>D,levels=c("FALSE","TRUE")); target=factor((target==L[TC]),levels=c("FALSE","TRUE"));}
     else pred=majorClass(pred,L)
   }
  return(table(target,pred))
@@ -233,144 +276,20 @@ Conf<-function(target,pred,D=0.5,TC=-1)
 # TC - target concept class, -1 not used
 Accuracy<-function(y,x,D=0.5,TC=-1)
 {
- L<-levels(y[1]); C<-length(L)
- if(is.vector(x)) 
- { if(C>2) x<-factor(x,levels=L)
-   else  x=factor(x>D,levels=c("FALSE","TRUE")); y=factor((y==L[2]),levels=c("FALSE","TRUE"));
- }
- else if(is.matrix(x) || is.data.frame(x)) 
-  { if(TC>0) { x=factor(x[,TC]>D,levels=c("FALSE","TRUE")); y=factor((y==L[TC]),levels=c("FALSE","TRUE")); C=2 }
-    else x=majorClass(x,L)
-  }
- conf<-table(y,x)
-#print(conf)
- D<-0; for(i in 1:C) D<-D+conf[i,i]
-#print(100*D/length(y))
+ conf=Conf(y,x,TC=TC,D=D)
+ D=0; for(i in 1:NCOL(conf))D=D+conf[i,i]
  return (100*D/length(y))
 }
 
 Kappa=function(y,x,D=0.5,TC=-1)
 {
- L<-levels(y[1]); C<-length(L)
- if(is.vector(x)) 
- { if(C>2) x<-factor(x,levels=L)
-   else  x=factor(x>D,levels=c("FALSE","TRUE")); y=factor((y==L[2]),levels=c("FALSE","TRUE"));
- }else if(is.matrix(x) || is.data.frame(x)) 
- { if(TC>0) { x=factor(x[,TC]>D,levels=c("FALSE","TRUE")); y=factor((y==L[TC]),levels=c("FALSE","TRUE")); C=2 }
-    else x=majorClass(x,L)
- }
- conf<-table(y,x)
- Total<-sum(conf); Diag<-0; DiagR<-0
- for(i in 1:C) 
+ conf=Conf(y,x,D,TC);Total=sum(conf);Diag=0;DiagR=0
+ for(i in 1:NCOL(conf)) 
     {
       Diag<-Diag+conf[i,i]
       DiagR<-DiagR+(sum(conf[i,])*(sum(conf[,i])/Total))
     }
  return (100*(Diag-DiagR)/(Total-DiagR))
-}
-
-#Tnr=function(y,x,D=0.5,TC=-1)
-#{
-# L=length(levels(y[1]))
-# if(L>2) if(TC==-1) return classification.metrics(y,x,D=D,TC=TC,AUC=FALSE,BRIER=FALSE)$tnr[TC]
-# else classification.metrics(y,x,D=D,AUC=FALSE,BRIER=FALSE)$tnr[TC]
-#}
-
-# classification: 
-# y - vector of factor with the desired values 
-# x - vector of factor with the predicted values
-# D - decision thresold
-# TC - target concept class, -1 not used
-# AUC - if TRUE then AUC is computed
-# BRIER - if TRUE then BRIER is computed
-classification.metrics<-function(y,x,D=0.5,TC=-1,AUC=TRUE,BRIER=FALSE)
-{
- if(!is.factor(y[1])) {y=factor(y); if(length(levels(y))<2) levels(y)=c(0,1)}
- L<-levels(y[1]); C<-length(L); auc=NULL; tauc=NULL; brier=NULL; tbrier=NULL;
- if(is.vector(x)) 
- { if(C>2) x<-factor(x,levels=L)
-   else { 
-          if(AUC) {tauc=twoclassROC(y,x,Positive=L[2])$auc; auc=c(tauc,tauc);}
-          if(TC==-1) TC=2
-          if(TC==1) LB=c("TRUE","FALSE") else LB=c("FALSE","TRUE")
-          x=factor(x>D,levels=LB); y=factor((y==L[TC]),levels=LB)
-        }
- }
- else if(is.matrix(x) || is.data.frame(x)) 
-  { 
-    if(TC>0) { if(AUC) {tauc=twoclassROC(y,x[,TC],Positive=L[TC])$auc; auc=c(tauc,tauc);}
-               x=factor(x[,TC]>D,levels=c("FALSE","TRUE")); y=factor((y==L[TC]),levels=c("FALSE","TRUE")); C=2;}
-    else {
-           if(BRIER) { brier=Brier(y,x); tbrier=brier[C+1];brier=brier[1:C];} 
-           if(AUC){ if(C>2) {roc=multiROC(y,x);tauc=roc$auc;auc=vector(length=C); for(i in 1:C) auc[i]=roc$roc[[i]]$auc;}
-                    else {tauc=twoclassROC(y,x[,2],Positive=L[2])$auc;auc=c(tauc,tauc);}
-                  }
-           x=majorClass(x,L)
-         }
-  }
- conf<-table(y,x)
- Total<-sum(conf)
- Diag<-0
- DiagR<-0
- for(i in 1:C) 
-    {
-      Diag<-Diag+conf[i,i]
-      DiagR<-DiagR+(sum(conf[i,])*(sum(conf[,i])/Total))
-    }
- Kap<-100*(Diag-DiagR)/(Total-DiagR)
- Acc<-c(Diag/Total)*100 # total accuracy, in percentage
-
- # for each class:
- # tpr= true positive rate = sensitivity = recall = type error II 
- # tnr= true negative rate = specificity =? precision =? type error I 
- LC<-C
- if(C<3) {LC=1}
- acc_class<-vector(length=LC)
- sen_class<-vector(length=LC)
- spe_class<-vector(length=LC)
- pre_class<-vector(length=LC)
-
- #if(C>2){
-        #WERR=0
- for(k in 1:C) # class 
- 	   {
-            #print(paste("k: ",k))
-       	    TP<-conf[k,k]
-            #print(paste("TP :",TP))
-	    FN<-0
- 	    for(i in 1:C) # iterator?
-		if(i!=k) FN<-FN+conf[k,i]
-            # new XXX
- 	    #for(i in 1:C) # iterator?
-	    #	if(i!=k) WERR<-WERR+(abs(k-i))*conf[k,i]
-
-            #print(paste("FN :",FN))
-            FP<-0
- 	    for(i in 1:C) # iterator?
-		if(i!=k) FP<-FP+conf[i,k]
-            #print(paste("FP :",FP))
-            TN<-Total-TP-FN-FP
-            #print(paste("TN :",TN))
-            acc_class[k]<- 100*(TP+TN)/Total 
-            #print(paste("acc[",k,"]:",acc_class[k]))
-            if(TP!=0) sen_class[k]<- 100*TP/(FN+TP) 
-            else sen_class[k]=0
-            if(TN!=0) spe_class[k]<- 100*TN/(TN+FP)
-            else spe_class[k]=0
-            if(TP!=0) pre_class[k]<- 100*TP/(TP+FP)
-            else pre_class[k]=0
-           }
-         #WERR=100*WERR/Total
- #       }
- #else{ #print("else")
- #      TN<-conf[1,1]; FP<-conf[1,2]; FN<-conf[2,1]; TP<-conf[2,2];
- #      acc_class[1]<- 100*(TP+TN)/Total 
- #      sen_class[1]<- 100*TP/(FN+TP) 
- #      spe_class[1]<- 100*TN/(TN+FP)
- #      pre_class[1]<- 100*TP/(TP+FP)
- #      #WERR=100*(FN+FP)/Total
- #    }
- return (list(conf=conf,acc=Acc,kappa=Kap,acclass=acc_class,tpr=sen_class,tnr=spe_class,precision=pre_class,tauc=tauc,auc=auc,brier=brier,tbrier=tbrier)) #,werr=WERR))
 }
 
 # ------------------------------------------------------------------
@@ -379,16 +298,30 @@ classification.metrics<-function(y,x,D=0.5,TC=-1,AUC=TRUE,BRIER=FALSE)
 # - calls ROCcurve: else.
 # y - vector of factor or numeric (0,1) with the desired values 
 # x - vector or matriz of numeric with the predicted values
-ROCcurve<-function(y,x) #,method="int")
+# TC - target class
+ROCcurve<-function(y,x,TC=-1) #,method="int")
 {
+ if(TC>0 && !is.vector(x) ) { x=x[,TC];} else TC=2
  NC=NCOL(x)
  if(NC>2) return (multiROC(y,x)) #,method=method))
  else{
-       if(is.factor(y[1])) POS=levels(y[1])[2] else POS=1
+       if(is.factor(y[1])) POS=levels(y[1])[TC] else POS=1
        if(NC==2) x=x[,2]
        #cat(" >> POS:",POS,"lev:",levels(y),"\n")
        return (twoclassROC(y,x,Positive=POS)) #,method=method))
      }
+}
+
+# ------------------------------------------------------------------
+LIFTcurve<-function(y,x,TC)
+{
+ if(TC>0 && !is.vector(x) ) { x=x[,TC];} else TC=2
+ NC=NCOL(x)
+ if(is.factor(y[1])) POS=levels(y[1])[TC] else POS=1
+ if(NC==2) x=x[,2]
+ NR=NROW(x); if(NR>100) NR=100
+ alift=twoclassLift(y,x,Positive=POS,STEPS=NR,type=3)
+ return (list(alift=alift,area=curvearea(alift,1)))
 }
 
 # ------------------------------------------------------------------
@@ -461,6 +394,7 @@ twoclassROC<-function(y, x, Positive=1) #, method="int")
             { 
               if(FP>0) R[k,1]<-FP/Neg else R[k,1]=0
               if(TP>0) R[k,2]<-TP/Pos else R[k,2]=0 # the ROC point
+#cat("k:",k,"FP:",FP,"TP:",TP,"Neg:",Neg,"Pos:",Pos,"\n")
               if(!is.na(R[k,1])) 
               {k<-k+1
                A<-A+trap_area(FP,FPprev,TP,TPprev) #,method) # compute the AUC
@@ -474,6 +408,7 @@ twoclassROC<-function(y, x, Positive=1) #, method="int")
      }
   if(FP>0) R[k,1]<-FP/Neg else R[k,1]=0
   if(TP>0) R[k,2]<-TP/Pos else R[k,2]=1 # the ROC point
+#cat("k:",k,"FP:",FP,"TP:",TP,"Neg:",Neg,"Pos:",Pos,"\n")
   if(FP==0 && k<(Xsize+1)) {k=k+1; R[k,]=c(1,1)}
 #cat(" --- AUC:",A,"pos:",Pos,"neg:",Neg,"TP",TP,"FP",FP,"\n")
 #cat(" ---: FPprev:",FPprev,"TPprev:",TPprev,"trap:",trap_area(1,FPprev,Pos,Pos),"\n")
@@ -482,6 +417,8 @@ twoclassROC<-function(y, x, Positive=1) #, method="int")
   if(Pos>0 && Neg>0) A<-A/((1.0*Pos)*Neg) 
   else if(Neg>0) A<-A/((1.0*Neg))
   else A<-A/((1.0*Pos))
+
+#RR<<-R;RR=na.omit(RR);print(RR[])
  
   ROC<-list(roc=R[(1:k),],auc=A)
 #cat(" --- AUC:",A,"\n")
@@ -678,10 +615,11 @@ mmetric=function(y,x=NULL,metric,D=0.5,TC=-1,val=NULL) #,method="int")
 # type 1 - normal lift
 # type 2 - cumulative
 # type 3 - cumulative percentage
-twoclassLift<-function(y, x, Positive=1,STEPS=10,type=2)
+twoclassLift<-function(y, x, Positive=1,STEPS=10,type=3)
 {
 #YY<<-y;XX<<-x;PP<<-Positive;
 #y=YY;x=XX;Positive=PP;STEPS=10;type=3
+  #STEPS=11;Positive="setosa";type=3
   DIV=STEPS^2
   Xsize<-length(y)
   APos<-sum(y[]==Positive) # total actual positives
@@ -692,9 +630,10 @@ twoclassLift<-function(y, x, Positive=1,STEPS=10,type=2)
               R[1,]=c(0,0)
              }
   else R=matrix(ncol=2,nrow=STEPS)
+  Portion=Xsize/STEPS
   for(i in 1:STEPS) 
      {
-       N=(i*STEPS/100)*Xsize
+       N=round(i*Portion)
        if(type==1 || type==3) IND=1:N # total actual positives
        else if(type==2) IND=(N-STEPS+1):N
        Pos=sum(y[Ord[IND]]==Positive)

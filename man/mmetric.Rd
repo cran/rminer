@@ -19,6 +19,9 @@ Compute classification or regression error metrics.
                        \item \code{AUC} -- overall area under the curve (of ROC curve, classification).
                        \item \code{NAUC} -- normalized AUC (given a fixed \code{val=}FPR, classification).
                        \item \code{TPRATFPR} -- the TPR (given a fixed \code{val=}FPR, classification).
+                       \item \code{ALIFT} -- area of the accumulative percent of responses captured (LIFT accumulative curve, classification).
+                       \item \code{NALIFT} -- normalized ALIFT (given a fixed \code{val=}percentage of examples, classification).
+                       \item \code{ALIFTATPERC} -- ALIFT value (given a fixed \code{val=}percentage of examples, classification).
                        \item \code{ACC} -- overall classification accuracy rate (classification).
                        \item \code{BRIER} -- overall Brier score (for probabilistic classification).
                        \item \code{CONF} -- confusion matrix (classification).
@@ -55,7 +58,13 @@ Compute classification or regression error metrics.
 }
   \item{D}{decision threshold (for \code{task="prob"}, probabilistic classification) within [0,1]. The class is TRUE if \emph{prob>D}.}
   \item{TC}{target class (for multi-class classification class) within {1,...,\emph{Nc}}, where \emph{Nc} is the number of classes.
-            Note: if \code{TC==-1 && (metric=="TPR"||metric=="TNR")} then \code{TC} is set to the index of the last class.}
+            Notes: if \code{TC==-1} (the default value), then it is assumed:
+            \itemize{
+            \item if \code{metric} is "AUC", "ACC", "CONF", "KAPPA" or "BRIER" -- the global metric (for all classes) is computed.
+            \item if \code{metric} is "ALIFTATPERC", "NALIFT", "LIFT", "NAUC", "TPRATFPR", "TPR" or "TNR" -- \code{TC} is set to the index of the last class.
+                    }
+          }
+            
   \item{val}{auxiliary value, check the \code{metric} argument for details.}
 }
 \details{
@@ -69,8 +78,12 @@ Compute classification or regression error metrics:
   \item \code{task} --see \code{\link{fit}}.
                  }
          In \code{metrics}, \code{tauc} is the global AUC and \code{acc class} is the each class accuracy.\cr
-         The \code{mmetrics} usage is: \code{metrics(y, x, D = 0.5, TC = -1, AUC = TRUE, BRIER = FALSE, task = "default")}\cr
-         where if \code{AUC=TRUE} or \code{BRIER=TRUE} then AUC/BRIER statistics are also computed.
+         The \code{metrics} usage is: \code{metrics(y, x, D = 0.5, TC = -1, AUC = TRUE, BRIER = FALSE, Run=1, task = "default")}\cr
+         where:
+         \itemize{
+         \item \code{Run} -- is the Run of mining execution if \code{y} is a mining object.
+         \item if \code{AUC=TRUE} or \code{BRIER=TRUE} then AUC/BRIER statistics are also computed.
+                 }
 }
 }
 \value{
@@ -126,23 +139,45 @@ print(metrics(y,x)) # several regression metrics
 myerror=function(y,x){return (sum(abs(y-x)>(0.1*y)))}
 print(mmetric(y,x,metric=myerror))
 
-### classification 
-y=factor(c("a","a","b","b","c","c"));
-x=factor(c("a","b","b","b","b","c"));
+### binary classification 
+y=factor(c("a","a","b","b"))
+x=factor(c("a","b","b","b"))
 print(mmetric(y,x,"CONF"))
 print(mmetric(y,x,"ACC"))
-x=matrix(nrow=6,ncol=3)
-x[1:2,]=c(0.7,0.2,0.1)
-x[3:6,]=c(0.3,0.6,0.1)
-print(mmetric(y,x,"CONF"))
-print(mmetric(y,x,"CONF",TC=2))
-print(mmetric(y,x,"CONF",TC=2,D=0.7))
+print(metrics(y,x))
+px=matrix(nrow=4,ncol=2)
+px[1,]=c(0.7,0.3)
+px[2,]=c(0.4,0.6)
+px[3,]=c(0.7,0.3)
+px[4,]=c(0.3,0.7)
+print(px)
+print(mmetric(y,px,"CONF"))
+print(mmetric(y,px,"ACC"))
+print(mmetric(y,px,"CONF",D=0.7,TC=2))
+print(metrics(y,px,D=0.7,TC=2))
+px2=px[,2]
+print(px2)
+print(mmetric(y,px,"CONF"))
+print(mmetric(y,px2,"CONF",D=0.7,TC=2))
+print(mmetric(y,px,"AUC"))
+print(mmetric(y,px2,"AUC"))
+print(mmetric(y,px2,"AUC",TC=2))
 
+### multi-class classification 
 data(iris)
 M=mining(Species~.,iris,model="dt",Runs=2)
 print(mmetric(M,metric="ACC",TC=2,D=0.7))
 print(mmetric(M,metric="CONF",TC=2,D=0.7))
-print(metrics(M$test[[1]],M$pred[[1]])) # several Run 1 classification metrics
+print(mmetric(M,metric="AUC",TC=3))
+print(mmetric(M,metric="AUC",TC=1))
+print(mmetric(M,metric="TPR",TC=1))
+print(mmetric(M,metric="TPRATFPR",TC=3,val=0.05))
+print(mmetric(M,metric="NAUC",TC=3,val=0.05))
+print(mmetric(M,metric="ALIFT",TC=3))
+print(mmetric(M,metric="ALIFTATPERC",TC=3,val=0.1))
+print(mmetric(M,metric="NALIFT",TC=3,val=0.1))
+print(metrics(M,BRIER=TRUE,Run=1)) # several Run 1 classification metrics
+print(metrics(M,BRIER=TRUE,Run=1,TC=3)) # several Run 1 TC=3 classification metrics
 }
 \keyword{classif}
 \keyword{regression}

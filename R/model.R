@@ -34,10 +34,6 @@ library(kernlab)# get the ksvm
 # Things to do in the future: # - ensembles?
 #-------------------------------------------------------------------------------------------------
 
-# load other rminer files:
-###source("estimate.R")
-###source("preprocess.R")
-
 #-------------------------------------------------------------------------------------------------
 # save/load functions:
 #
@@ -98,11 +94,11 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
  #print("<ini fit>")
  if(is.null(data)) 
    { data<-model.frame(x) # only formula is used 
-     outindex=output_index(x,data)
+     outindex=output_index(x,names(data))
      x<-as.formula(paste(names(data)[outindex]," ~ .",sep=""))
    }
  #else { if(feature[1]=="aries" && length(feature)>1) outindex=as.numeric(feature[2]) 
- else outindex=output_index(x,data) #}
+ else outindex=output_index(x,names(data)) #}
  task=defaultask(task,model,data[1,outindex])
  if(model=="lr") model="logistic" else if(model=="default") model<-defaultmodel(task)
  metric=getmetric(mpar,model,task)
@@ -121,6 +117,9 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
   { 
 #print(feature)
 #print("--")
+    smeasure=switch(feature[1],sabsv="v",sabsr="r","g")
+    feature[1]=switch(feature[1],sabsv=,sabsr=,sabsg="sabs",feature[1])
+    #cat("f:",feature[1],"sm:",smeasure,"\n")
     fstop=as.numeric(feature[2]) # -1 or number of delections
     Runs=as.numeric(feature[3]) 
     vmethod=feature[4] 
@@ -130,9 +129,9 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
                           }
     else fsearch=search # this may take a long time...
        # perform both FS and parameter search at the same time...
-    RES=bssearch(x,data,algorithm=feature[1],Runs=Runs,method=c(vmethod,vpar),model=model,task=task,search=fsearch,mpar=mpar,scale=scale,transform="none",fstop=fstop)
+    RES=bssearch(x,data,algorithm=feature[1],Runs=Runs,method=c(vmethod,vpar),model=model,task=task,search=fsearch,mpar=mpar,scale=scale,transform="none",fstop=fstop,smeasure=smeasure)
     attributes=RES$attributes
-    outindex=output_index(x,data[,attributes]) # update the output index if it has changed due to the deletion of variables
+    outindex=output_index(x,names(data)[attributes]) # update the output index if it has changed due to the deletion of variables
     if(length(fsearch)>1) { LRS=length(RES$search) 
                             if(substr(model,1,3)=="mlp")
                             { if(length(mpar)==6) search=RES$search[2] # decay
@@ -359,11 +358,13 @@ defaultfeature=function(feature)
 }
 
 # ====== Feature Selection Methods (beta development =======================
+# future: put some control in feature, in order to change default smeasure = gradient???
 bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,scale,transform,smeasure="g",fstop=-1,debug=FALSE)
 { 
+ #cat("alg:",algorithm,"smeasure:",smeasure,"\n")
  #debug=TRUE; cat("debug:",debug,"\n")
  metric=getmetric(mpar,model,task)
- OUT=output_index(x,data) # output
+ OUT=output_index(x,names(data)) # output
  Z=1:NCOL(data);BZ=Z;
  LZ=length(Z); if(fstop==-1)fstop=(LZ-2);LZSTOP=min(LZ-2,fstop)
  t=0 # iteration
@@ -373,12 +374,13 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
  if(algorithm=="sabs") imethod=switch(smeasure,g="sensg",v="sensv",r="sensr")
 #cat("imethod:",imethod,"\n") 
 #print(BK)
+#debug=TRUE ###
  stop=FALSE;t=0;
  while(!stop)
  {
    if(algorithm=="sabs") 
    { 
-    M=mining(x,data[,Z],model=model,task=task,method=method,feature=c(imethod,1,"all"),search=search,mpar=mpar,scale=scale,transform=transform,Runs=Runs)
+    M=mining(x,data[,Z],model=model,task=task,method=method,feature=c(imethod),search=search,mpar=mpar,scale=scale,transform=transform,Runs=Runs)
     J=mean(M$error); K=medianminingpar(M)
     LZ=length(Z);Imp=vector(length=LZ);for(i in 1:LZ) Imp[i]=mean(M$sen[,i]);
    }
@@ -392,7 +394,11 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
    if((t==LZSTOP || notimprove==NILIM)) stop=TRUE
    else # select next attribute to be deleted 
     { 
-     if(algorithm=="sabs"){IOUT=which(Z==OUT);Zimp=setdiff(1:length(Z),IOUT);IDel=which.min(Imp[Zimp]);Del=Zimp[IDel]; Z=setdiff(Z,Del) }
+#cat("Z:",Z,"\n")
+     if(algorithm=="sabs"){IOUT=which(Z==OUT);Zimp=setdiff(1:length(Z),IOUT);IDel=which.min(Imp[Zimp]);Del=Z[Zimp[IDel]]; Z=setdiff(Z,Del) 
+#cat("imp:",round(Imp[Zimp],digits=3),"\n")
+#cat("iout:",IOUT,"Zi:",Zimp,"Idel:",IDel,"del:",Del,"Z:",Z,"\n")
+                          }
      else if(algorithm=="sbs"){
                                J=worst(metric);Zb=Z;
                                for(i in setdiff(Z,OUT))
@@ -408,6 +414,7 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
     }
    t=t+1
  }
+ #debug=TRUE
  if(debug) cat(" | t:",BT,"Best:",JBest,"BZ:",BZ,"BS:",BK,"\n",sep=" ")
  return(list(attributes=BZ,search=BK)) # attributes and search parameter
 }
@@ -470,11 +477,10 @@ svmgrid<-function(task="prob")
 }
 
 # --- the best fit internal function ---------------------------------------------------
-bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FALSE,imp="none",...)
+bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FALSE,...)
 {
- #cat("Imp:",imp,"\n")
 #print(mpar)
- outindex<-output_index(x,data)
+ outindex<-output_index(x,names(data))
  y<-data[,outindex]
 
  if(model=="randomforest") search=search[which(search<=(NCOL(data)-1))] # clean elements higher than inputs
@@ -506,17 +512,6 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
  else NLIM=(NP+1)
  notimprove=0
 
- if(substr(imp,1,4)=="simp") { FSRESP=TRUE;imp="sens"}
- else {FSRESP=FALSE}
-
- if(substr(imp,1,4)=="sens")
-   {
-     if(vmethod=="kfold") MULT=K3
-     else MULT=1
-     SEN<-matrix(ncol=NCOL(data),nrow=MULT)
-   }
- else SEN=NULL
-
  if(substr(vmethod,1,6)=="kfoldo") order=TRUE
  else order=FALSE
 
@@ -530,9 +525,6 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
                                  if(NCOL(search)>=3) mpar[2]<-search[i,3]
                                }
               M<-fit(x,data,model=model,task=task,scale=scale,search=c(search[i,1]),mpar=mpar,transform=transform,...)
-              if(!is.null(SEN)) { 
-                           SEN[1,]<-Importance(M,data,method=imp,responses=FSRESP)$imp # store sen
-                         }
             }
           P<-predict(M,data)
           TS<-y
@@ -550,8 +542,6 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
                                }
               M<-fit(x,data[H$tr,],model=model,task=task,scale=scale,search=c(search[i,1]),mpar=mpar,transform=transform,...) 
             }
-          if(!is.null(SEN)) { SEN[1,]<-Importance(M,data[H$tr,],method=imp,responses=FSRESP)$imp # store sen
-                         }
           TS<-y[H$ts]
        #if(method=="holdoutfor") P=lforecast(M,data,start=(1+nrow(data)-K3),horizon=K3) 
           #else if(method=="holdoutfor5")
@@ -573,22 +563,16 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
           else kmpar=c(K1,K2,"all",0,metric)
           if(DECAY>0) kmpar<-c(kmpar,DECAY)
          
-          if(VEC_SEARCH) KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,feature=imp,
+          if(VEC_SEARCH) KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,
                                           scale=scale,search=c(search[i]),mpar=kmpar,transform=transform,...)
           else
             { if(model=="svm") { if(NCOL(search)>=2) kmpar[1]<-search[i,2]
                                  if(NCOL(search)>=3) kmpar[2]<-search[i,3]
                                }
               
-              KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,feature=imp,
+              KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,
                                           scale=scale,search=c(search[i,1]),mpar=kmpar,transform=transform,...)
             }
-          if(!is.null(SEN)) { 
-                           #print(paste("B:",Begi,"E:",Endi,"Mult:",MULT,"ncol:",ncol(SEN)))
-                           #print(KF$sen)
-                           SEN<-KF$sen # store sen
-                         }
-
           P<-KF$cv.fit
 #cat(" <---- i:",i,"----\n")
 #print(summary(P))
@@ -600,7 +584,6 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
        if(isbest(Eval,BESTVAL,metric)) {BESTVAL<-Eval;notimprove=0;if(VEC_SEARCH) BEST<-search[i] else BEST<-search[i,]} 
        else notimprove=notimprove+1
 #cat("i",i,"at:",(ncol(data)-1),"nr:",nrow(data),"s:",search[i],"val:",Eval,"b:",BESTVAL,"best:",BEST,"\n")
-###cat(names(data),"\n")
 #print(M@object)
        i<-i+1
        if(notimprove==NLIM) stop=TRUE
@@ -608,21 +591,22 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
     } # end while 
  #print(paste("Best:",BEST))
  # refit the best model with all training data: 
- if(error) return(list(K=BEST,error=BESTVAL,sen=SEN))
+ if(error) return(list(K=BEST,error=BESTVAL))
  else return (BEST)
 }
 # -------- end of best fit -----------
 
-output_index<-function(x,data=NULL)
-{
- T<-terms(x,data=data)
- Y<-names(attr(T,"factors")[,1])[1] 
- return(which(names(data)==Y))
+output_index<-function(x,namesdata)
+{ # check also: y <- model.extract(m, response) for multi targets ? => future work?
+ #x=as.character(x)[2]
+ #T<-terms(x,data=data); Y<-names(attr(T,"factors")[,1])[1] 
+ #return(which(names(data)==Y))
+ return(which(namesdata==(as.character(x)[2])))
 }
 
 transform_needed=function(transform) { return (switch(transform,log=,logpositive=,positive=,scale=TRUE,FALSE)) }
 #param_needed=function(model) { return (switch(model,mlp=,mlpe=,svm=,knn=,randomforest=TRUE,FALSE)) }
-feature_needed=function(feature) { return (switch(feature,sbs=,sabs=TRUE,FALSE)) }
+feature_needed=function(feature) { return (switch(feature,sbs=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE)) }
 
 defaultask=function(task="default",model="default",output=1)
 { if(task=="default") { task=switch(model,logistic=,lr=,lda=,qda=,naivebayes="prob",mr=,mars=,bruto="reg","default")
@@ -778,7 +762,7 @@ svm.fit <- function(x,data,sigma=2^-6,C=NULL,epsilon=NULL,task,scale=TRUE)
  # check if ksvm has some problems with numeric output??
  #else SCALED=FALSE
 
- outindex=output_index(x,data)
+ outindex=output_index(x,names(data))
  #if(scale=="inputs") # scale the inputs 
  #  { S<-scaleinputs(data,outindex)
  #    data=S$data; cx=S$cx; sx=S$sx
@@ -863,7 +847,7 @@ mlp.fit<- function(x,data,HN=2,decay=0.0,NR=3,maxit=100,task,scale,type=1,metric
 #scale="inputs"
 #print(summary(data)); NR=1;
 #print(paste(" > mlp HN:",HN,"decay:",decay,"NR:",NR,"maxit:",maxit,"task:",task,"scale:",scale))
- outindex=output_index(x,data)
+ outindex=output_index(x,names(data))
  if(scale=="inputs" || scale=="all") # scale the inputs 
    { S<-scaleinputs(data,outindex)
      data=S$data; cx=S$cx; sx=S$sx
@@ -963,11 +947,11 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
 {
  if(is.null(data)) 
    { data<-model.frame(x) # only formula is used 
-     outindex=output_index(x,data)
+     outindex=output_index(x,names(data))
      x<-as.formula(paste(names(data)[outindex]," ~ .",sep=""))
    }
  #else { if(feature[1]=="aries" && length(feature)>1) outindex=as.numeric(feature[2]) 
- else outindex=output_index(x,data) 
+ else outindex=output_index(x,names(data)) 
 
  firstm <- proc.time()
  previoustm<-firstm
@@ -1000,7 +984,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
  metric=getmetric(mpar,model,task)
  #cat(" >> metric:",metric,"\n")
 
-#cat(" >> feature:",feature,"\n")
+ #cat(" >> feature:",feature,"\n")
  if(substr(feature[1],1,4)=="sens" || substr(feature[1],1,4)=="sabs" || substr(feature[1],1,4)=="simp") 
     { 
        if(vmethod=="kfold") MULT=vpar
@@ -1175,13 +1159,16 @@ getmetric=function(mpar,model,task)
 # PRED - new prediction function, needs to return a vector for "reg" or matrix of probabilities for "prob"
 
 # to do: think about I-D sensitivity, where I is the number of features? 
-# measure - "variance", "range", "gradient"
+# measure - "variance", "range", "gradient" (new: "lenght" !!!)
+
+# to do: check model.matrix(~ a + b, dd)
 Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="regular",baseline="mean",responses=TRUE,
                     outindex=NULL,task="default",PRED=NULL,interactions=NULL)
 {
 #model=M;data=d;RealL=6;method="sens";measure="variance";sampling="regular";responses=TRUE;outindex=NULL;task=NULL;
 
  #model<<-model;DDD<<-data;RealL<<-RealL;method<<-method;measure<<-measure;sampling<<-sampling;responses<<-responses; 
+
  if(class(M)=="model"){outindex=M@outindex; task=M@task; Attributes=M@attributes}
  else # another R supervised learning model
  { 
@@ -1243,7 +1230,6 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
        }
     MR=max(MR,length(SPREAD[[i]]))
   } #end of for cycle, SPREAD SET!
-
  if(!is.null(interactions))
  {
   LINT=length(interactions)
@@ -1278,7 +1264,6 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
          }
    }
    data=v[rep(1,MR),]
-#cat("MR:",MR,"\n")
  }
  if(is.null(interactions)) # method=="sens" || method=="sensgrad" || method=="data"
  {
@@ -1399,6 +1384,7 @@ avg_imp_1D=function(I,measure="variance")
  return(R)
 }
 
+# I, AT=attribute
 avg_imp=function(I,AT,measure="variance")
 {
  x=I$sresponses[[1]]$x
@@ -1475,6 +1461,23 @@ range_responses=function(y)
 #-- compute the gradient of response y: vector, matrix of numeric data (probabilities) or factor
 #-- ordered is only used if y is factor, true if it is an ordered factor or else false
 # XXX think here!
+# Euclidean distance: http://en.wikipedia.org/wiki/Magnitude_(mathematics)
+pathlength_responses=function(y,x=1:length(y))
+{
+ if(is.ordered(y)) return(pathlength_responses(as.numeric(y)))
+ else if(is.factor(y)) return(pathlength_responses(one_of_c(y)))
+ else{ dist=0; LY=NROW(y); CY=NCOL(y)
+       for(i in 2:LY)
+       { dy=(x[i]-x[i-1])^2 
+         if(CY>1) { for(j in 1:CY) dy=dy+(y[i,j]-y[i-1,j])^2 }
+         else dy=dy+(y[i]-y[i-1])^2 
+         dist=dist+sqrt(dy)
+       }
+     }
+ return (dist-(x[LY]-x[1]))
+}
+
+
 gradient_responses=function(y,ABS=TRUE)
 {
  if(is.ordered(y)) return(gradient_responses(as.numeric(y)))

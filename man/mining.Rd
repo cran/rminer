@@ -152,11 +152,14 @@ mgraph(M,graph="VEC",Grid=10,main="x1 VEC curve",xval=1,leg=names(sin1reg)[1])
 
 ### another classification example
 data(iris)
-M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2),model="svm",search="heuristic",mpar=c(NA,NA,"kfold",3,"AUC"),feature="s")
+M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2),model="svm",
+search="heuristic",mpar=c(NA,NA,"kfold",3,"AUC"),feature="s")
 print(mmetric(M,metric="AUC",TC=2))
 mgraph(M,graph="ROC",TC=2,baseline=TRUE,Grid=10,leg="SVM",main="ROC",intbar=FALSE)
-mgraph(M,graph="IMP",TC=2,Grid=10,main="input importances",xval=0.1,leg=names(iris),axis=1)
-mgraph(M,graph="VEC",TC=2,Grid=10,main="Petal.Width VEC curve",data=iris,xval=4)
+mgraph(M,graph="IMP",TC=2,Grid=10,main="input importances",xval=0.1,
+leg=names(iris),axis=1)
+mgraph(M,graph="VEC",TC=2,Grid=10,main="Petal.Width VEC curve",
+data=iris,xval=4)
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the

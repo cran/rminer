@@ -2,7 +2,7 @@ Package: rminer
 Type: Package
 Title: Simpler use of data mining methods (e.g. NN and SVM) in
         classification and regression.
-Version: 1.0
+Version: 1.1
 Date: 2010-11-18
 Author: Paulo Cortez
 Maintainer: Paulo Cortez <pcortez@dsi.uminho.pt>
@@ -16,6 +16,6 @@ URL: http://www3.dsi.uminho.pt/pcortez/rminer.html
 LazyLoad: yes
 Depends: nnet, kknn, kernlab, rpart, lattice, methods
 Suggests: randomForest, MASS, mda
-Packaged: 2011-01-14 12:04:27 UTC; pcortez
+Packaged: 2011-04-25 14:10:56 UTC; root
 Repository: CRAN
-Date/Publication: 2011-01-15 16:24:23
+Date/Publication: 2011-04-25 17:47:31

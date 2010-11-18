@@ -97,13 +97,13 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
                    if(xval==-1) xval=1;
                    ymax=1;DISP=(0.1/mean(PTS)) 
                    NX=NCOL(y[[1]]$pred[[1]])
-                   if(NX>2 && TC==-1) TC=1
+                   if(NX>2 && TC==-1) TC=NX # last class?
                   }
  if(graph=="LIFT") {xlab="Sample size";ylab="Responses";
                    if(xval==-1) xval=1;
                    ymax=1;DISP=(0.1/mean(PTS)) 
                    NX=NCOL(y[[1]]$pred[[1]])
-                   if(NX>2 && TC==-1) TC=1
+                   if(NX>2 && TC==-1) TC=NX # last class?
                   }
  else if(graph=="REC") { ymax=1;xlab="Absolute deviation";
                          if(xval==-1) xval= max(y[[1]]$test[[1]]) # print("Error: need to define xval\n"); return (-1);}
@@ -149,9 +149,8 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
    for(i in 1:runs) 
    { 
   #cat("j:",j,"i:",i,"\n")
-    if(graph=="ROC") { 
-                      if(NX>2) C[[i]]=(ROCcurve(y[[j]]$test[[i]],y[[j]]$pred[[i]])$roc[[TC]])$roc
-                      else C[[i]]=ROCcurve(y[[j]]$test[[i]],y[[j]]$pred[[i]])$roc
+    if(graph=="ROC") { # warning? 
+                       C[[i]]=ROCcurve(y[[j]]$test[[i]],y[[j]]$pred[[i]],TC=TC)$roc
                      }
     else if(graph=="LIFT") C[[i]]=twoclassLift(y[[j]]$test[[i]],y[[j]]$pred[[i]][,TC],Positive=POSITIVE,type=3,STEPS=(PTS-1))
     else if(graph=="REC") C[[i]]=RECcurve(y[[j]]$test[[i]]-y[[j]]$pred[[i]])
