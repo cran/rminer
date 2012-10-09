@@ -76,7 +76,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
     else if(task=="class") cv.fit=y
     else cv.fit <- rep(NA,n)
 
-    imethod=switch(feature[1],sabsv=,simpv="sensv",sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",feature[1])
+    imethod=switch(feature[1],sabsv=,simpv="sensv",sabsg=,sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",feature[1])
 
     for(j in 1:ngroup)
     {

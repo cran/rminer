@@ -210,6 +210,15 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 \examples{
+### IMPORTANT NOTE ###
+# The execution of the examples below require more few seconds.
+# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
+# Such lines are marked with: # DELETE-OR-IGNORE ...
+# If you want to test the code, please comment or ignore these 2 lines
+### END OF NOTE    ###
+
+if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
+
 ### simple regression (with a formula) example.
 x1=rnorm(200,100,20); x2=rnorm(200,100,20)
 y=0.7*sin(x1/(25*pi))+0.3*sin(x2/(25*pi))
@@ -274,6 +283,7 @@ print(M@mpar)
 search=list(smethod="2L",search=c(0,0.1,0.2));mpar=c(3,100,"holdout",3,"AUC",2) 
 M=fit(Species~.,iris,model="mlpe",search=search,mpar=mpar)
 print(M@mpar)
+
 ### regression example
 data(sin1reg)
 M=fit(y~.,data=sin1reg,model="svm",search="heuristic")
@@ -299,6 +309,9 @@ print(P)
 M=fit(y~.,data=sin1reg,model="svm",search="heuristic",transform="positive")
 P=predict(M,data.frame(x1=-1000,x2=0,x3=0,y=NA)) # P is not negative...
 print(P)
+
+} # DELETE-OR-IGNORE-THIS LINE #
+
 }
 
 \keyword{classif}

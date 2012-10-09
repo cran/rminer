@@ -1,5 +1,6 @@
 # several auxiliary plotting functions:
 library(lattice)
+library(plotrix)
 
 plotH<-function(X,Y,INT,DISP=0.3,horiz=FALSE,...)
 {
@@ -56,7 +57,7 @@ rminerhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Freque
 # xval - domain of x in "REG", if xval!=-1
 # Grid - if > 1, then a grey grid is plotted
 mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=TRUE,ranges=NULL,data=NULL,digits=NULL,TC=-1,
-                intbar=TRUE,lty=1,col="black",main="",metric="MAE",baseline=FALSE,Grid=0,axis=NULL)
+                intbar=TRUE,lty=1,col="black",main="",metric="MAE",baseline=FALSE,Grid=0,axis=NULL,cex=1.0)
 {
  if(!is.null(x)) { N=1;runs=1; 
                    TT=vector("list",1); PP=TT;
@@ -290,7 +291,7 @@ else if(graph=="IMP") # single mining graphs
 #cat("MM:",MM,"\n")
 #cat("leg:",leg,"\n")
   if(col=="black") col="white"
-  Yx=barplot(MM,names.arg=NULL,axes=FALSE,col=col,xlim=c(0,xval),horiz=TRUE,main=main,panel.first=grid(Grid,Grid))
+  Yx=barplot(MM,names.arg=NULL,axes=FALSE,col=col,xlim=c(0,xval),horiz=TRUE,main=main,panel.first=grid(Grid,Grid)) #,ylab="inputs",xlab="relative importance")
   Yx=Yx[,1]
   #D1=0.7; D2=2.1;
   #Yx=seq(D1,LMM+D2,length=LMM)
@@ -300,11 +301,11 @@ else if(graph=="IMP") # single mining graphs
   if(runs>1 && intbar) plotH(MM,Yx,II,DISP=DISP,horiz=TRUE)
   Xt=rep(XLAB,LMM)
   if(!is.null(leg)){ YDisp=0.1
-                     text(Xt,Yx+YDisp,leg,pos=4)
+                     text(Xt,Yx+YDisp,leg,pos=4,cex=cex)
                    }
   #cat("TC",TC,"\n")
-  if(sum(axis==1)==1) axis(1,lty = 1,lwd=1)
-  if(sum(axis==3)==1) axis(3,lty = 1,lwd=1)
+  if(sum(axis==1)==1) axis(1,lty = 1,lwd=1,cex.axis=cex)
+  if(sum(axis==3)==1) axis(3,lty = 1,lwd=1,cex.axis=cex)
  } 
  else if(graph=="RSC")
  {
@@ -484,10 +485,26 @@ modelplot=function(FIT,main="",drawtree=FALSE,FANCY=FALSE,data=NULL,...)
 #mgraph=function(LM,X=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=TRUE,ranges=NULL,data=NULL,digits=NULL,TC=-1,
 #                intbar=TRUE,lty=1,col="black",main="",metric="MAD",baseline=FALSE,Grid=FALSE)
 
+# TC used also for metric: min, average or max
 vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1),TC=1,
                  intbar=NULL,lty=1,pch=19,col=NULL,datacol=NULL,main="",main2="",Grid=0,
-                 xlab="",ylab="",zlab="",levels=NULL,levels2=NULL,showlevels=FALSE,screen=list(z=40,x=-60),zoom=1)
+                 xlab="",ylab="",zlab="",levels=NULL,levels2=NULL,showlevels=FALSE,screen=list(z=40,x=-60),zoom=1,cex=1.0)
 {
+#if(length(TC)>1) { LTC=length(TC);
+#cat("LTC:",LTC,"\n")
+#                   par(mar=c(2.0,2.0,0.1,0.1))
+#                   par(mfrow=c(1,LTC))
+#                   for(t in 1:LTC) vecplot(I=I,graph=graph,leg=leg,xval=xval,sort=sort,data=data,digits=digits,TC=t,
+#                                           intbar=intbar,lty=lty,pch=pch,col=col,datacol=datacol,main=main,main2=main2,Grid=Grid,
+#                                           xlab=xlab,ylab=ylab,zlab=zlab,levels=levels,levels2=levels2,showlevels=showlevels,screen=screen,zoom=zoom)
+#                 }
+#else
+#{ 
+
+#I=i_1_2;graph="VEC3";xlab=n1[1];ylab=n1[2];TC=TC;zoom=1.1;screen=list(z=0,x=0,y=0)
+#leg=NULL;xval=1;sort=FALSE;data=NULL;digits=c(1,1)
+#intbar=NULL;lty=1;pch=19;col=NULL;datacol=NULL;main="";main2="";Grid=0
+#zlab="";levels=NULL;levels2=NULL;showlevels=FALSE;cex=1.0
  sort2=FALSE;decreasing=FALSE;
  if(sort=="increasing2"){sort=FALSE;sort2=TRUE}
  else if(sort=="decreasing2"){decreasing=TRUE;sort=FALSE;sort2=TRUE}
@@ -498,7 +515,27 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
  else if(LS==2) showlevels=c(showlevels,FALSE)
 
  if(!is.list(screen)) screen=switch(screen,x=list(z=0,x=-90,y=0),X=list(x=-75),y=list(z=0,x=-90,y=-90),Y=list(z=10,x=-90,y=-90),z=list(z=0,x=0,y=0),xy=list(z=10,x=-90,y=-45))
- #cat("--- ord:",sort,"ord2:",sort2,"dec:",decreasing,"showlevels:",showlevels,"col:",col,"\n")
+#cat("--- ord:",sort,"ord2:",sort2,"dec:",decreasing,"showlevels:",showlevels,"col:",col,"\n")
+
+ if(!is.null(I$method))
+ { if( I$method=="GSA") { 
+                        if(length(I$interactions)==1)
+                        {
+                         if(length(xval)>1) xval=xval[1]
+                        }
+                        else
+                        {
+                         I=aggregate_imp(I,AT=xval,measure=I$measure,Aggregation=I$agg,method=I$method,L=I$Llevels)
+                         if(length(xval)>1) xval=xval[1]
+                        }
+                       }
+   else if( (graph!="VECB" && graph!="VEC") && (I$method=="DSA"||I$method=="MSA"))
+                       {
+                        # xval with 2 attributes:
+                        I=aggregate_imp(I,AT=xval,measure=I$measure,Aggregation=I$agg,method=I$method,L=I$Llevels)
+                        if(length(xval)>1) xval=xval[1]
+                       }
+ }
 
  if(graph=="VEC")
  {
@@ -507,7 +544,7 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
   { x=I$sresponses[[xval]]$x;
     y=I$sresponses[[xval]]$y;
     if(is.factor(y)){ylevels=levels(y);y=as.numeric(y);yaxt="n"}else{ylevels=NULL;yaxt="s";}
-    if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+    if(class(y)=="matrix"||class(y)=="data.frame"){ if(I$agg==3) y=y[2,] else y=y[,TC]}
     n=I$sresponses[[xval]]$n
     if(!is.null(digits)) M=paste(n,", var: ",round(I$val[xval],digits=digits[1]),sep="") else M=paste(n,", var: ",I$val[xval],sep="")
     if(!is.null(intbar)) YLIM=c(min(y-intbar),max(y+intbar)) else YLIM=range(y)
@@ -546,17 +583,19 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
                                 if(!is.null(intbar)) YLIM=c(min(y-intbar),max(y+intbar)) else YLIM=range(y)
                                 plot(1,y[1],xlim=XLIM,ylim=YLIM,type="n",main=main,xlab=xlab,ylab=ylab,xaxt="n",yaxt=yaxt,panel.first=grid(Grid,Grid))
                                 x=seq(1,L,length.out=L);
+                                DIF2=0.01
+                                if(showlevels[1]) text(x+DIF/2,y+DIF2,levels,cex=cex)
                                 segments(x-DIF,y,x+DIF,y,lwd=2)
-                                axis(1,x,levels)
+                                axis(1,x,levels,cex.axis=cex)
                               }
     else plot(x,y,xlim=XLIM,ylim=YLIM,type="b",yaxt=yaxt,main=main,xlab=xlab,ylab=ylab,lwd=2,pch=pch,panel.first=grid(Grid,Grid))
-    if(yaxt=="n") axis(2,unique(y),ylevels)
+    if(yaxt=="n") axis(2,unique(y),ylevels,cex.axis=cex)
     if(!is.null(intbar)) { 
     			  DISP=0.18*min(DIF)
                           plotH(x,y,intbar,DISP=DISP,col=col,horiz=FALSE) 
                          }
   }
-  else 
+  else  # else length xval
   {
    if(length(lty)==1) lty=1:length(xval)
    if(length(pch)==1) pch=rep(pch,length(xval))
@@ -567,7 +606,8 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
                    if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
                    YMIN=min(YMIN,y);YMAX=max(YMAX,y)
                  }
-   plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),ylab=ylab,panel.first=grid(Grid,Grid))
+   #plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),ylab=ylab,panel.first=grid(Grid,Grid))
+   plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),xaxt="n",ylab=ylab,panel.first=grid(Grid,Grid))
    if(yaxt=="n") axis(2,unique(y),ylevels)
    yi=1
    for(i in xval)
@@ -578,8 +618,17 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
      n=I$sresponses[[i]]$n;LY=length(y)
      if(class(x)=="character" || is.factor(x)) 
                                { 
+                                if(sort) {SY=sort.int(y,decreasing=decreasing,index.return=TRUE);levels=x[SY$ix];y=y[SY$ix]
+                                          if(!is.null(intbar)) intbar=intbar[SY$ix]
+                                         } 
+                                #if(!is.null(levels)) x=factor(x,levels=levels) else x=factor(x)
+                                #L=length(x);levels=levels(x)
+                                #if(!is.null(data)) data[,xval]=factor(data[,xval],levels=levels)
                                 DIF=1/LY
                                 x=seq(0,1-DIF,length.out=LY);
+                                DIF2=0.01
+                                #levels[3]="dec"
+                                if(showlevels[1]) text(x+DIF/2,y+DIF2,levels,cex=cex)
                                 segments(x,y,x+DIF,y,lwd=2,lty=lty[yi])
                                }
      else { x=seq(0,1,length.out=LY)
@@ -589,30 +638,45 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
    }
    if(!is.null(leg)) { if(is.list(leg)) { cleg=leg$pos; leg=leg$leg; } 
                        else cleg="topright"
-                       if(length(cleg)==2) legend(cleg[1],cleg[2],leg,lty=lty,col=col,lwd=2) else legend(cleg,leg,lty=lty,col=col,lwd=2)
+                       if(length(cleg)==2) legend(cleg[1],cleg[2],leg,lty=lty,col=col,lwd=2,cex=cex) else legend(cleg,leg,lty=lty,col=col,lwd=2,cex=cex)
                      }
-  }
- }
+  } # endif length xval
+ } # endif "VEC"
+ else if(graph=="VECB")
+ {
+   if(is.null(col)) col="black"
+   L=I$sresponses[[xval]]$l
+   NC=ncol(I$sresponses[[xval]]$y)
+   if(I$nclasses==0) SEQ=1:L else SEQ=seq(TC,L*NC,NC)
+   B=I$sresponses[[xval]]$yy[,SEQ]
+   xlabels=I$sresponses[[xval]]$x
+   if(is.numeric(xlabels)) xlabels=round(xlabels,digits=digits[1])
+   rmboxplot(B,MEAN=TRUE,LINE=TRUE,MIN=FALSE,MAX=FALSE,ALL=FALSE,BOXPLOT=TRUE,col=col,xlabels=xlabels,main=main,cex=cex,xlab=xlab,Grid=Grid)
 
+ }
  else if(graph=="VECC" || graph=="VEC3" || graph=="VECC2")
  {
-# correct this code when I is an avg_imp!
-  if(is.null(col)) col="grayrange"
+  # encoding here!
+
+ if(is.null(col)) col="grayrange"
   #I=I5;xval=1;xlab="";ylab="";digits=c(1,1);zlab="Y";main="";main2="";TC=1;levels=NULL;decreasing=FALSE;sort=TRUE;sort2=FALSE;graph="VECC";levels2=NULL;levels2=c("D","E","C","B","A"))
   #I=I7;xval=4;xlab="";ylab="";digits=c(1,1);zlab="Y";main="";main2="";TC=1;levels=NULL;sort=TRUE;graph="VECC";levels2=NULL;levels=NULL;decreasing=FALSE
   #screen=list(z = -10,x=-60)
-  if(xlab=="") xlab=I$sresponses[[xval]]$n[1]
-  if(ylab=="") ylab=I$sresponses[[xval]]$n[2]
-  x=I$sresponses[[xval]]$x
-  y=I$sresponses[[xval]]$y
+ if(is.null(I$xy)) # normal
+  {
+   if(length(xlab)==1 && xlab=="") xlab=I$sresponses[[xval]]$n[1]
+   if(length(ylab)==1 && ylab=="") ylab=I$sresponses[[xval]]$n[2]
+   x=I$sresponses[[xval]]$x
+   y=I$sresponses[[xval]]$y
+
   if(is.factor(y)){ylevels=levels(y);y=as.numeric(y)} else {ylevels=NULL}
   if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
   n=I$sresponses[[xval]]$n
   L=I$sresponses[[xval]]$l[1]
-#cat("L:",L,"\n")
   LY=length(y)
   L2=LY/I$sresponses[[xval]]$l
   NR=L;NC=L2;TRANSPOSE=FALSE;
+  #cat("L:",L,"LY:",LY,"L2:",L2,"NC:",NC,"NR:",NR,"\n")
   if(x[1,1]==x[2,1]) { 
                        I=sort.int(as.numeric(x[,2]),index.return=TRUE)$ix
                        x=x[I,];y=y[I]
@@ -622,7 +686,6 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
   #if(is.factor(LAB1)) LAB1=1:L
   LAB2=unique(x[,2])
 #print(digits)
-#print(LAB2)
   # end of change this code below -----
   if(!is.factor(LAB1) && !is.null(digits))LAB1=round(LAB1,digits=digits[1])
   else if(!is.null(levels)) { 
@@ -650,13 +713,64 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
     x=x[I,]; y=y[I]; 
   }
 #print(LAB2)
+#YY<<-y
   A=matrix(y,nrow=NR,ncol=NC)
   if(TRANSPOSE) A=t(A) # check this better...
+
+  A=fenlarge(A,LAB1,LAB2)
+#AB<<-A
+ }
+ else{
+      TRANSPOSE=FALSE
+#cat(" >> ELSE << \n")
+      if(length(xlab)==1 && xlab=="") xlab=I$xlab
+      if(length(xlab)==1 && ylab=="") ylab=I$ylab
+      n=xlab;LAB1=I$x1;LAB2=I$x2;L=I$L;NLY=I$NLY;
+      ylevels=NULL;
+      #if(!is.factor(LAB1) && !is.null(digits))LAB1=round(LAB1,digits=digits[1])
+      #if(!is.factor(LAB2) && !is.null(digits))LAB2=round(LAB2,digits=digits[2])
+      if(is.numeric(LAB1) && !is.null(digits))LAB1=round(LAB1,digits=digits[1])
+      if(is.numeric(LAB2) && !is.null(digits))LAB2=round(LAB2,digits=digits[2])
+      if(showlevels[1]){xlab=paste(xlab,": ",round(I$value[TC],digits=2),sep="") }
+      if(showlevels[2]){ylab=paste(ylab,": ",round(I$value2[TC],digits=2),sep="")}
+
+      ini=(TC-1)*L[2]+1;end=ini+L[2]-1;
+#print(ini:end)
+      NR=L[1];NC=L[2]
+      y=I$Y[,ini:end]
+#III<<-I
+if(FALSE){
+      if(sort)
+      { 
+       TRANSPOSE=TRUE;I=dforder(x,1,y=y,decreasing=decreasing);
+       LAB1=LAB1[I]; 
+       #x=x[I,]; 
+       y=y[I]; 
+      }
+      else if(sort2)
+      { 
+       I=dforder(x,2,y=y,decreasing=decreasing);
+       LAB2=LAB2[I]
+       #x=x[I,]; 
+       y=y[I]; 
+      }
+}
+
+      A=matrix(y,nrow=NR,ncol=NC)
+#AB<<-A
+      if(TRANSPOSE) A=t(A) # check this better...
+      A=fenlarge(A,LAB1,LAB2)
+#cat("TC:",TC,"L2:",L[2],"ini:",ini,"end:",end,"\n")
+      #x=seq(0,1,length.out=L[1]);ax=x;
+      #y=seq(0,1,length.out=L[2]);ay=y;
+      #A=list(z=I$Y[,ini:end],x=x,y=y,ax=ax,ay=ay)
+#AC<<-A
+     }
+
 #AA<<-A
   #A=t(matrix(y,nrow=L,ncol=L2))
   if(graph=="VEC3")
   {
-   A=fenlarge(A,LAB1,LAB2)
    if(showlevels[1]==2){ scales=list(arrows=FALSE,cex=0.4,col="black",font=3,tck=1)} 
    else {
    scales=list()
@@ -675,6 +789,7 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
 #YLEVELS<<-ylevels
 #A=AAA;col=COL;ylevels=YLEVELS;main="";xlab="x1";zlab="y";ylab="x2";scales=list();screen=list(z=40,x=-60);zoom=1;
 #   if(is.null(ylevels)) 
+   if(length(zlab)==1 && zlab=="") zlab=list(label="y",cex=cex)
 wireframe(A$z,row.values=A$x,scales=scales,column.values=A$y,xlab=xlab,ylab=ylab,zlab=zlab,screen=screen,main=main,drape=TRUE,col.regions=col,zoom=zoom)
 #   else wireframe(A$z,row.values=A$x,column.values=A$y,scales=scales,xlab=xlab,ylab=ylab,zlab=zlab,screen=screen,main=main,drape=TRUE,zoom=zoom,
 #                  col.regions=col,key.axes=axis(4,1:length(ylevels),ylevels))
@@ -687,8 +802,6 @@ wireframe(A$z,row.values=A$x,scales=scales,column.values=A$y,xlab=xlab,ylab=ylab
    #LUY=length(unique(y))
 #   GC=gray.colors(LUY,start=0.9,end=0,gamma=1)
    #GC=gray.colors(1000,start=0.9,end=0,gamma=1)
-
-   A=fenlarge(A,LAB1,LAB2)
    flevels = pretty(range(A$z,finite=TRUE),20);LFL=length(flevels)
    if(length(col)==1 && col=="grayrange") col=gray(LFL:1/LFL)
 #cat("YL:",ylevels,"\n")
@@ -696,10 +809,12 @@ wireframe(A$z,row.values=A$x,scales=scales,column.values=A$y,xlab=xlab,ylab=ylab
 #print(LAB1)
 #print(A$ay)
 #print(LAB2)
+#AY<<-A$ay;LAB2<<-LAB2
    if(is.null(ylevels)) filled.contour(A$x,A$y,A$z,col=col,plot.title=title(main=main,xlab=xlab,ylab=ylab),key.title=title(main=main2),plot.axes = {axis(1,at=A$ax,labels=LAB1);axis(2, at=A$ay,labels=LAB2);})
    else filled.contour(A$x,A$y,A$z,col=col,plot.title=title(main=main,xlab=xlab,ylab=ylab),key.axes=axis(4,1:length(ylevels),ylevels),key.title=title(main=main2),plot.axes = {axis(1,at=A$ax,labels=LAB1);axis(2, at=A$ay,labels=LAB2);})
   }
  }
+#} # special else
 }
 
 # ---- internal functions, do not use these:
@@ -740,10 +855,10 @@ enlarge=function(A,X=0,Y=0,LAB1=NULL,LAB2=NULL)
 
 fenlarge=function(A,LAB1=NULL,LAB2=NULL,DIF=0.001)
 {
- 
- if(is.factor(LAB1))
+ if(is.factor(LAB1)) LX=levels(LAB1) else if(is.character(LAB1)) LX=LAB1 else LX=""
+ if(length(LX)>1 || LX!="")
  {
-  LX=levels(LAB1);NL=length(LX);
+  NL=length(LX);
   sx=sort(c(seq(0,1,length.out=(NL+1))-DIF,seq(0,1,length.out=(NL+1))+DIF))
   I=which(sx>DIF & sx<(1-DIF));x=c(0,sx[I],1);AX=1/length(x);ax=seq(AX,1,by=2*AX) 
   NR=NROW(A);NC=NCOL(A);k=1
@@ -753,9 +868,11 @@ fenlarge=function(A,LAB1=NULL,LAB2=NULL,DIF=0.001)
   }
  }
  else {x=seq(0,1,length.out=NROW(A));ax=x;}
- if(is.factor(LAB2))
+
+ if(is.factor(LAB2)) LY=levels(LAB2) else if(is.character(LAB2)) LY=LAB2 else LY=""
+ if(length(LY)>1 || LY!="")
  {
-  LY=levels(LAB2);NL=length(LY);
+  NL=length(LY);
   sx=sort(c(seq(0,1,length.out=(NL+1))-DIF,seq(0,1,length.out=(NL+1))+DIF))
   I=which(sx>DIF & sx<(1-DIF));y=c(0,sx[I],1);AY=1/length(y);ay=seq(AY,1,by=2*AY) 
   NR=NROW(A);NC=NCOL(A);k=1
@@ -833,4 +950,91 @@ forplot=function(file="",ts,test=12,PRED,xlab="lead time",ylab="Values",disp=2,d
    else legend(leg,legend=names,lwd=2,lty=1:(N+1))
  }
  if(file!="") dev.off()
+}
+
+# experimental
+rmboxplot=function(x,MEAN=TRUE,LINE=FALSE,MIN=FALSE,MAX=FALSE,ALL=FALSE,BOXPLOT=TRUE,col="black",xlabels="",main="",cex=1.0,sort=FALSE,xlab="",ylab="",Grid=0)
+{
+ NC=NCOL(x)
+ if(NC>1){ 
+           Means=vector(length=NC);for(i in 1:NC) Means[i]=mean(x[,i]);
+           Min=vector(length=NC);for(i in 1:NC) Min[i]=min(x[,i]);
+           Max=vector(length=NC);for(i in 1:NC) Max[i]=max(x[,i]);
+           n=NC
+         } 
+ else {Means=mean(x);
+       Min=min(x)
+       MAX=max(x)
+       n=length(x);}
+
+ decreasing=FALSE
+ if(sort=="decreasing"){decreasing=TRUE;sort=TRUE} else if(sort=="increasing"){sort=TRUE}
+ if(sort){ SI=sort.int(Means,decreasing=decreasing,index.return=TRUE)
+           xlabels=xlabels[SI$ix]
+           Means=Means[SI$ix]
+           Min=Min[SI$ix]
+           Max=Max[SI$ix]
+           x=x[,SI$ix]
+         }
+ DIM=0.3
+ PCEX=2.0
+ #plot(1:n,seq(min(Min),max(Max),length.out=n),ylab="",xlim=c(1-DIM,n+DIM),ylim=c(-0.02,1.025),type="n",xaxt="n")
+ plot(1:n,seq(min(Min),max(Max),length.out=n),xlab=xlab,ylab=ylab,xlim=c(1-DIM,n+DIM),type="n",xaxt="n",yaxt="n",main=main,panel.first=grid(Grid,Grid))
+#cat("main:",main,"\n")
+ #if(main!="") text(mean(c(1,n)),1.025,main,cex=1.3)
+ if(length(xlabels)==1 && xlabels=="") xlabels=1:n
+ axis(1,1:n,xlabels,cex.axis=cex)
+ axis(2,cex.axis=cex)
+ #else plot(1:n,seq(min(Min),max(Max),length.out=n),type="n")
+ if(ALL){   
+         if(NC>1){ NR=NROW(x); for(i in 1:NR) lines(1:n,x[i,],col="gray") }
+         else    { NR=length(x); for(i in 1:NR) lines(1:n,x,col="gray")   }
+        }
+ if(BOXPLOT) boxplot(x,add=TRUE,yaxt="n",xaxt="n",range=0)
+ if(MEAN) points(1:n,Means,pch=18,cex=PCEX,col=col)
+ if(LINE>1) LWD=LINE else LWD=1
+ if(LINE) lines(1:n,Means,col=col,lwd=LWD)
+ if(MIN)  lines(1:n,Min)
+ if(MAX)  lines(1:n,Max)
+}
+
+# matrix of pair importances, x1, x2, minimum thresholds
+# min - length 1 -> percentage x ...
+cmatrixplot=function(m1,m2=NULL,threshold=c(0.1,0.1),L=7,cex=1.0)
+{
+ if(is.null(m2)) {m2=m1$m2;m1=m1$m1;}
+ #m1=bm$m1;m2=bm$m2;threshold=c(0.2,0.29);L=L=datalevels(d1[,AT],L=7);cex=1.0
+ if(length(threshold)==1) { threshold=rep(max(m1,m2)*threshold,2) }
+ #m=m/max(m)
+ NR=nrow(m1)
+ m=matrix(0,nrow=NR,ncol=NR)
+ for(i in 1:NR)
+ for(j in 1:NR)
+ {
+   if(m1[i,j]>threshold[1] && m2[i,j]>threshold[2]) m[i,j]=m1[i,j]+m2[i,j]
+ }
+ #print(m)
+ #c(bottom, left, top, right)
+ par(mar=c(2.0,2.0,0.4,6))
+# C2D=color2D.matplot(m,extremes=c("white","black"))
+ C2D=color2D.matplot(m,extremes=c("white","black"),axes=FALSE)
+# A=axTicks(1)
+#A=1:11
+ #axis(1,cex.axis=cex)
+# cat("USR:",C2D$usr[2],"\n")
+# AT=A
+# if(A[length(A)]!=C2D$usr[2]) AT=AT+(C2D$usr[2]-A[length(A)])
+# cat("ATx:",AT,"\n")
+# cat("ATy:",AT[length(AT):1],"\n")
+ DIFF=0.5
+#AAT<<-AT
+ axis(1,at=(1:NR)-DIFF,labels=(1:NR),cex.axis=cex)
+ axis(2,at=(1:NR)-DIFF,labels=(NR:1),cex.axis=cex)
+ col.labels=seq(min(m),max(m),length.out=L)
+ col.labels=round(col.labels,digits=2)
+ testcol=gray(seq(1,0,length.out=L))
+ Step=NR*0.1
+ #color.legend(NR+0.5*Step,(NC/2),NR+1.5*Step,NC,col.labels,testcol,gradient="y",align="rb")
+ color.legend(NR+0.5*Step,0,NR+1.25*Step,NR,col.labels,testcol,gradient="y",align="rb",cex=cex)
+ return(m)
 }

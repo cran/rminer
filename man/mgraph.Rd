@@ -11,7 +11,7 @@ mgraph(y, x = NULL, graph, leg = NULL, xval = -1, PDF = "", PTS = -1,
        size = c(5, 5), sort = TRUE, ranges = NULL, data = NULL,
        digits = NULL, TC = -1, intbar = TRUE, lty = 1, col = "black",
        main = "", metric = "MAE", baseline = FALSE, Grid = 0, 
-       axis = NULL)
+       axis = NULL, cex = 1)
 }
 \arguments{
   \item{y}{if there are predictions (\code{!is.null(x)}), \code{y} should be a numeric vector or factor with the target desired responses (or output values).\cr
@@ -70,6 +70,7 @@ the index of the last class.}
   \item{baseline}{if the baseline should be plotted (used by \code{ROC} and \code{LIFT}).}
   \item{Grid}{if >1 then there are GRID light gray squared grid lines in the plot.}
   \item{axis}{Currently only used by \code{IMP}: numeric vector with the axis numbers (1 -- bottom, 3 -- top). If \code{NULL} then \code{axis=c(1,3)}.}
+  \item{cex}{label font size}
 }
 \details{
 Plots a graph given a \code{\link{mining}} list, list of several mining lists or given the pair y - target and x - predictions.

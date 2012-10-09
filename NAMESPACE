@@ -1,0 +1,53 @@
+export(	
+       # rminer high level functions (most relevant):
+       "fit",
+       # predict (included in methods, check ?predict.fit)
+       "mining",
+       "Importance",
+       "mgraph",
+       "vecplot",
+       "mmetric",
+       "metrics",
+       "meanint",
+       "medianminingpar",
+       "loadmodel",
+       "savemodel",
+       "loadmining",
+       "savemining",
+       "agg_matrix_imp",
+       "cmatrixplot",
+       "imputation",
+       "delevels",
+       "factorize",
+       "svmgrid",
+
+       # time series:
+       "CasesSeries", 
+       "lforecast",
+       "forplot",
+       "tsplot",
+
+       # other functions, not that relevant:
+       "holdout",
+       "crossvaldata",
+       "datalevels",
+       "RECcurve",
+       "ROCcurve",
+       "rmboxplot",
+       "s_measure",
+       "multiROC"
+      )
+
+importFrom("plotrix","color2D.matplot","color.legend")
+importFrom("grDevices","pdf","dev.off")
+importFrom("graphics","plot","segments","hist","par","lines","points","legend","axis","abline","filled.contour","text","boxplot")
+importFrom("lattice","wireframe")
+importFrom("nnet","nnet")
+importFrom("rpart","rpart")
+
+import(methods) 
+
+exportMethods("predict")
+
+exportClasses("model")
+

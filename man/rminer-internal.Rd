@@ -1,9 +1,15 @@
 \name{rminer-internal}
+\alias{AAD_responses}
 \alias{Accuracy}
+\alias{aggregate_imp}
+\alias{agg_matrix_imp}
 \alias{Aliftperc}
 \alias{Auc}
+\alias{balanced_responses}
 \alias{Brier}
+\alias{cmatrixplot}
 \alias{Correlation}
+\alias{datalevels}
 \alias{Gmad}
 \alias{Gmean}
 \alias{Gmrae}
@@ -15,12 +21,14 @@
 \alias{Mad}
 \alias{Mape}
 \alias{Mase}
+\alias{MCrandom}
 \alias{MdMinkowski}
 \alias{Mdae}
 \alias{Mdape}
 \alias{Mdrae}
 \alias{Mdse}
 \alias{Me}
+\alias{mids}
 \alias{Mrae}
 \alias{Mse}
 \alias{Nalift}
@@ -31,6 +39,10 @@
 \alias{RECcurve}
 \alias{ROCcurve}
 \alias{Rae}
+\alias{ranges}
+\alias{rmboxplot}
+\alias{rmsample}
+\alias{rmtable}
 \alias{Rmdspe}
 \alias{Rmse}
 \alias{Rmspe}
@@ -42,6 +54,7 @@
 \alias{Smdape}
 \alias{Ss}
 \alias{Sse}
+\alias{s_measure}
 \alias{TPR_FOR_FPR}
 \alias{Tbrier}
 \alias{TheilsU2}
@@ -91,7 +104,6 @@
 \alias{modelnpar}
 \alias{modelplot}
 \alias{mostcommon}
-\alias{mpairwise}
 \alias{multiROC}
 \alias{mypause}
 \alias{naivebayes}
@@ -105,6 +117,10 @@
 \alias{plotH}
 \alias{predict.naivebayes}
 \alias{print.naivebayes}
+\alias{q1}
+\alias{q2}
+\alias{q3}
+\alias{Q2}
 \alias{randomwalk}
 \alias{range_responses}
 \alias{readts}
@@ -128,6 +144,7 @@
 \alias{worst}
 \alias{xmiddle_point}
 \alias{xtransform}
+\alias{yaggregate}
 \title{Internal rminer Functions}
 \description{Internal rminer functions
 }

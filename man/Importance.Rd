@@ -1,33 +1,38 @@
 \name{Importance}
 \alias{Importance}
 \title{
-Measure input importance given a supervised data mining model.
+Measure input importance (including sensitivity analysis) given a supervised data mining model.
 }
 \description{
-Measure input importance given a supervised data mining model.
+Measure input importance (including sensitivity analysis) given a supervised data mining model.
 }
 \usage{
-Importance(M, data, RealL = 6, method = "sens", measure = "gradient", 
+Importance(M, data, RealL = 7, method = "1D-SA", measure = "AAD", 
            sampling = "regular", baseline = "mean", responses = TRUE, 
            outindex = NULL, task = "default", PRED = NULL, 
-           interactions = NULL)
+           interactions = NULL, Aggregation = -1, LRandom = -1,
+           MRandom = "discrete", Lfactor = FALSE)
 }
 \arguments{
   \item{M}{fitted model, typically is the object returned by \code{\link{fit}}. 
            Can also be any fitted model (i.e. not from rminer), provided that the predict function PRED is defined (see examples for details).}
   \item{data}{training data (the same data.frame that was used to fit the model, currently only used to add data histogram to VEC curve).}
-  \item{RealL}{for numeric inputs, the number of sensitivity analysis levels (e.g. 6). Note: you need to use \code{RealL}>=2.}
+  \item{RealL}{the number of sensitivity analysis levels (e.g. 7). Note: you need to use \code{RealL}>=2.}
   \item{method}{input importance method. Options are:
                 \itemize{
-                         \item sens -- sensitivity analysis
-                         \item sensv -- equal to \code{sens} but sets \code{measure="variance"}.
-                         \item sensg -- equal to \code{sens} but sets \code{measure="gradient"}.
-                         \item sensr -- equal to \code{sens} but sets \code{measure="range"}.
+                         \item 1D-SA -- 1 dimensional sensitivity analysis, very fast, sets interactions to NULL.
+                         \item sens or SA -- sensitivity analysis. There are some extra variants:
+                         sensa -- equal to \code{sens} but also sets \code{measure="AAD"}; sensv -- sets \code{measure="variance"}; sensg -- sets \code{measure="gradient"}; sensr -- sets \code{measure="range"}. if interactions is not null, then GSA is assumed, else 1D-SA is assumed.
+                         \item DSA -- Data-based SA (good option if input interactions need to be detected). 
+                         \item MSA -- Monte-Carlo SA.
+                         \item CSA -- Cluster-based SA.
+                         \item GSA -- Global SA (very slow method, particularly if the number of inputs is large, should be avoided).
                          \item randomforest -- uses method of Leo Breiman (type=1), only makes sense when M is a randomRorest.
                         }
 }
   \item{measure}{sensitivity analysis measure (used to measure input importance). Options are:
                 \itemize{
+                         \item AAD -- average absolute deviation from the median.
                          \item gradient -- average absolute gradient (y_i+1-y_i) of the responses.
                          \item variance -- variance of the responses. 
                          \item range -- maximum - minimum of the responses. 
@@ -35,8 +40,7 @@ Importance(M, data, RealL = 6, method = "sens", measure = "gradient",
 }
   \item{sampling}{for numeric inputs, the sampling scan function. Options are:
                 \itemize{
-                         \item  regular -- regular sequence (uniform distribution).
-                         \item quantile -- sample values from the input that are more closer to the variable distribution in \code{data}. 
+                         \item  regular -- regular sequence (uniform distribution), do not change this value, kept here only due to compatibility issues.
                         }
 }
   \item{baseline}{baseline vector used during the sensitivity analysis. Options are:
@@ -53,7 +57,7 @@ Importance(M, data, RealL = 6, method = "sens", measure = "gradient",
               Note: this function should behave like the rminer \code{\link{predict-methods}}, i.e. return a numeric vector in case of regression;
 a matrix of examples (rows) vs probabilities (columns) (\code{task="prob"}) or a factor (\code{task="class"}) in case of classification.
     }
-  \item{interactions}{numeric vector with the attributes (columns) used by Ith-D sensitivity analysis (2-D or higher):
+  \item{interactions}{numeric vector with the attributes (columns) used by Ith-D sensitivity analysis (2-D or higher, "GSA" method):
 \itemize{
                       \item if \code{NULL} then only a 1-D sensitivity analysis is performed.
                       \item if \code{length(interactions)==1}?then a "special" 2-D sensitivity analysis is performed using the index of interactions versus
@@ -63,27 +67,48 @@ Note: Computational effort can highly increase if I is too large, i.e. O(RealL^I
 returned list (e.g. using \code{avg_imp}) to use the \code{\link{vecplot}} function (see the examples).
 }
                      }
+  \item{Aggregation}{numeric value that sets the number of multi-metric aggregation function (used only for "DSA", ""). Options are:
+                     \itemize{
+                              \item -1 -- the default value that should work in most cases (if regression, sets Aggregation=3, else if classification then sets Aggregation=1).
+                              \item 1 -- value that should work for classification (only use the average of all sensitivity values).
+                              \item 3 -- value that should work for regression (use 3 metrics, the minimum, average and maximum of all sensitivity values).
+                             }
+                    }
+  \item{LRandom}{number of samples used by DSA and MSA methods. The default value is -1, which means: use a number equal to training set size. If a different value is used (1<= value <= number of training samples), then LRandom samples are randomly selected.}
+  \item{MRandom}{sampling type used by MSA: "discrete" (default discrete uniform distribution) or "continuous" (from continuous uniform distribution).}
+  \item{Lfactor}{sets the maximum number of sensitivity levels for discrete inputs. if FALSE then a maximum of up to RealL levels are used (most frequent ones), else (TRUE) then all levels of the input are used in the SA analysis.}
+
+
 }
 \details{
-This function provides several algorithms for measuring input importance of supervised data mining models.
+This function provides several algorithms for measuring input importance of supervised data mining models and the average effect of a given input (or pair of inputs) in the model.
 A particular emphasis is given on sensitivity analysis (SA), which is a simple method that measures the effects on the output of a given model
-when the inputs are varied through their range of values. Check the reference for more details.
+when the inputs are varied through their range of values. Check the references for more details.
 }
 \value{
 A \code{list} with the components:
 \itemize{
          \item $value -- numeric vector with the computed sensitivity analysis measure for each attribute.
-         \item $imp -- numeric vector with the relative importance for each attribute.
+         \item $imp -- numeric vector with the relative importance for each attribute (only makes sense for 1-D analysis).
          \item $sresponses -- vector list as described in the Value documentation of \code{\link{mining}}.
+         \item $data -- if DSA or MSA, store the used data samples, needed for visualizations made by vecplot.
+         \item $method -- SA method
+         \item $measure -- SA measure
+         \item $agg -- Aggregation value 
+         \item $nclasses -- if task="prob" or "class", the number of output classes, else nclasses=1 
+         \item $inputs -- indexes of the input attributes
+         \item $Llevels -- sensitivity levels used for each attribute (NA means output attribute)
+         \item $interactions -- which attributes were interacted when method=GSA. 
         }
 }
 \references{
 \itemize{
 \item To cite the Importance function or sensitivity analysis method, please use:\cr
-P. Cortez and M. Embrechts.\cr
-Opening Black Box Data Mining Models Using Sensitivity Analysis.\cr
-In Proceedings of the 2011 IEEE Symposium on Computational Intelligence and Data Mining (CIDM),
-pp. 341-348, Paris, France, April, 2011.\cr
+\cr
+P. Cortez and M.J. Embrechts.\cr
+Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
+In Information Sciences, Elsevier, in press.\cr
+\cr
 \url{http://www3.dsi.uminho.pt/pcortez/}\cr
 }
 }
@@ -97,52 +122,101 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 \seealso{
 \code{\link{vecplot}}, \code{\link{fit}}, \code{\link{mining}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}.
 }
-\examples{
+\examples{ 
+### IMPORTANT NOTE ###
+# The execution of the examples below require more few seconds.
+# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
+# Such lines are marked with: # DELETE-OR-IGNORE ...
+# If you want to test the code, please comment or ignore these 2 lines
+### END OF NOTE    ###
+
+if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
+
 ### Typical use under rminer:
 # 1st example, regression, 1-D sensitivity analysis
-data(sin1reg) # x1 should account for 70%, x2 for 30% and x3 for 0%.
-M=fit(y~.,sin1reg,model="svm")
-I=Importance(M,sin1reg,method="sens",measure="gradient") # 1-D SA
-print(I)
+data(sa_ssin) # x1 should account for 55%, x2 for 27%, x3 for 18% and x4 for 0%.
+M=fit(y~.,sa_ssin,model="svm")
+I=Importance(M,sa_ssin,method="1D-SA") # 1-D SA, AAD
+print(round(I$imp,digits=2))
+
 L=list(runs=1,sen=t(I$imp),sresponses=I$sresponses)
-mgraph(L,graph="IMP",leg=names(sin1reg),col="gray",Grid=10)
-mgraph(L,graph="VEC",xval=1,Grid=10,data=sin1reg) # or:
-vecplot(I,xval=1,Grid=10,data=sin1reg,datacol="gray") # the same graph
+mgraph(L,graph="IMP",leg=names(sa_ssin),col="gray",Grid=10)
+mgraph(L,graph="VEC",xval=1,Grid=10,data=sa_ssin,
+   main="VEC curve for x1 influence on y") # or:
+vecplot(I,xval=1,Grid=10,data=sa_ssin,datacol="gray",
+   main="VEC curve for x1 influence on y") # same graph
 vecplot(I,xval=c(1,2,3),pch=c(1,2,3),Grid=10,
 leg=list(pos="bottomright",leg=c("x1","x2","x3"))) # all x1, x2 and x3 VEC curves
 
-# 2nd example, regression, 2-D sensitivity analysis with 
-# the most relevant input (x1, index 1):
-I2=Importance(M,sin1reg,method="sensg",interactions=which.max(I$imp))
+# 2nd example, regression, DSA sensitivity analysis:
+I2=Importance(M,sa_ssin,method="DSA")
 print(I2)
 # influence of x1 and x2 over y
-vecplot(I2,graph="VEC3",xval=2) # VEC surface
-vecplot(I2,graph="VECC",xval=2) # VEC contour
-# influence of x1 and x3 over y (influence of x3 is small random noise, 0%):
-vecplot(I2,graph="VEC3",xval=3)
-vecplot(I2,graph="VECC",xval=3)
+vecplot(I2,graph="VEC",xval=1) # VEC curve
+vecplot(I2,graph="VECB",xval=1) # VEC curve with boxplots
+vecplot(I2,graph="VEC3",xval=c(1,2)) # VEC surface
+vecplot(I2,graph="VECC",xval=c(1,2)) # VEC contour
 
-# 3rd example, regression, full 3-D sensitivity analysis
-I3=Importance(M,sin1reg,method="sensg",interactions=c(1,2,3))
-print(I3)
-I3_1d=avg_imp(I3,c(1)) # 1-D averaging under x1
-vecplot(I3_1d,graph="VEC",xval=1,Grid=10)
-I3_2d=avg_imp(I3,c(1,2)) # 2-D averaging under the pair x1,x2
-vecplot(I3_2d,graph="VEC3")
+# 3th example, classification (pure class labels, task="cla"), DSA:
+data(sa_int2_3c) # pair (x1,x2) is more relevant than x3, all x1,x2,x3 affect y, 
+                 # x4 has a null effect.
+M2=fit(y~.,sa_int2_3c,model="mlpe",task="cla")
+I4=Importance(M2,sa_int2_3c,method="DSA")
+# VEC curve (should present a kind of "saw" shape curve) for class B (TC=2):
+vecplot(I4,graph="VEC",xval=2,cex=1.2,TC=2,
+ main="VEC curve for x2 influence on y (class B)",xlab="x2")
+# same VEC curve but with boxplots:
+vecplot(I4,graph="VECB",xval=2,cex=1.2,TC=2,
+ main="VEC curve with box plots for x2 influence on y (class B)",xlab="x2")
 
-### If you want to use Importance over your own model:
-# 1st example, regression, uses the theoretical sin1reg function
+# 4th example, regression, DSA:
+data(sa_psin)
+# same model from Table 1 of the reference:
+M3=fit(y~.,sa_psin,model="svm",search=2^-2,mpar=c(2^6.87,2^-8))
+# in this case: Aggregation is the same as NY
+I5=Importance(M3,sa_psin,method="DSA",Aggregation=3)
+# 2D analysis (check reference for more details), RealL=L=7:
+# need to aggregate results into a matrix of SA measure
+cm=agg_matrix_imp(I5)
+print("show Table 8 DSA results (from the reference):")
+print(round(cm$m1,digits=2))
+print(round(cm$m2,digits=2))
+# show most relevant (darker) input pairs, in this case (x1,x2) > (x1,x3) > (x2,x3)
+# to build a nice plot, a fixed threshold=c(0.05,0.05) is used. note that
+# in the paper and for real data, we use threshold=0.1, 
+# which means threshold=rep(max(cm$m1,cm$m2)*threshold,2)
+fcm=cmatrixplot(cm,threshold=c(0.05,0.05)) 
+# 2D analysis using pair AT=c(x1,x2') (check reference for more details), RealL=7:
+# nice 3D VEC surface plot:
+vecplot(I5,xval=c(1,2),graph="VEC3",xlab="x1",ylab="x2",zoom=1.1,
+ main="VEC surface of (x1,x2') influence on y")
+# same influence but know shown using VEC contour:
+par(mar=c(4.0,4.0,1.0,0.3)) # change the graph window space size
+vecplot(I5,xval=c(1,2),graph="VECC",xlab="x1",ylab="x2",
+ main="VEC surface of (x1,x2') influence on y")
+# slower GSA:
+I6=Importance(M3,sa_psin,method="GSA",interactions=1:4)
+cm2=agg_matrix_imp(I6)
+# compare cm2 with cm1, almost identical:
+print(round(cm2$m1,digits=2))
+print(round(cm2$m2,digits=2))
+fcm2=cmatrixplot(cm2,threshold=0.1) 
+
+### If you want to use Importance over your own model (different than rminer ones):
+# 1st example, regression, uses the theoretical sin1reg function: x1=70% and x2=30%
+data(sin1reg)
 mypred=function(M,data)
 { return (M[1]*sin(pi*data[,1]/M[3])+M[2]*sin(pi*data[,2]/M[3])) }
 M=c(0.7,0.3,2000)
 # 4 is the column index of y
-I=Importance(M,sin1reg,method="sens",measure="gradient",PRED=mypred,outindex=4) 
+I=Importance(M,sin1reg,method="sens",measure="AAD",PRED=mypred,outindex=4) 
 print(I$imp) # x1=72.3% and x2=27.7%
 L=list(runs=1,sen=t(I$imp),sresponses=I$sresponses)
 mgraph(L,graph="IMP",leg=names(sin1reg),col="gray",Grid=10)
 mgraph(L,graph="VEC",xval=1,Grid=10) # equal to:
-vecplot(I,graph="VEC",xval=1,Grid=10)
-
+par(mar=c(2.0,2.0,1.0,0.3)) # change the graph window space size
+vecplot(I,graph="VEC",xval=1,Grid=10,main="VEC curve for x1 influence on y:")
+###
 # 2nd example, 3-class classification for iris and lda model:
 data(iris)
 library(MASS)
@@ -150,18 +224,21 @@ predlda=function(M,data) # the PRED function
 { return (predict(M,data)$posterior) }
 LDA=lda(Species ~ .,iris, prior = c(1,1,1)/3)
 # 4 is the column index of Species
-I=Importance(LDA,iris,method="sensg",PRED=predlda,outindex=4)
+I=Importance(LDA,iris,method="1D-SA",PRED=predlda,outindex=4)
 vecplot(I,graph="VEC",xval=1,Grid=10,TC=1,
 main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (prob.)")
-
+###
 # 3rd example, binary classification for setosa iris and lda model:
 iris2=iris;iris2$Species=factor(iris$Species=="setosa")
 predlda2=function(M,data) # the PRED function
 { return (predict(M,data)$class) }
 LDA2=lda(Species ~ .,iris2)
-I=Importance(LDA2,iris2,method="sensg",PRED=predlda2,outindex=4)
+I=Importance(LDA2,iris2,method="1D-SA",PRED=predlda2,outindex=4)
 vecplot(I,graph="VEC",xval=1,
 main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (class)",Grid=10)
+
+} # DELETE-OR-IGNORE-THIS LINE #
+
 }
 
 \keyword{ classif }

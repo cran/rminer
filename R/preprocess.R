@@ -1,20 +1,4 @@
 
-# experimental function: need to stop inverse repeated correlations:
-attcorrelated=function(data,threshold=0.9)
-{
- # improve later, be defining a correlation between discrete attributes?
- COR=cor(data)
- NC=ncol(COR)
- for(i in 1:NC)
- {
-  for(j in 1:NC)
-  {
-    if(i!=j && !is.na(COR[i,j]) && abs(COR[i,j])>threshold) cat("i:",i,"j:",j,"cor:",COR[i,j],"\n")
-  }
- } 
-}
-# -----end of experimental function
-
 mypause=function(text1="",text2="")
 {
  if(text1!="") print(text1)
@@ -444,8 +428,10 @@ filter_equal<-function(D,Attribute,Value,reverse=FALSE)
   else return (NULL)
 }
 
+# f is a factor or matrix with factor variables
 one_of_c=function(f)
 { 
+  
   LF=length(f)
   L=levels(f)
   LN=length(L)
@@ -453,6 +439,7 @@ one_of_c=function(f)
   for(i in 1:LN) m[(which(f==L[i])),i]=1
   return (m)
 }
+
 
 # similar to median except that when an impar number of elements returns the first of the middle and not the average:
 medianfirst=function(x)
@@ -554,4 +541,16 @@ guess_k=function(x,Max=300) # get a reasonable value for first sazonality period
     else return (DEFAULT)
  }
  else return (DEFAULT) 
+}
+
+datalevels=function(d,L=7,Lfactor=FALSE)
+{
+ NC=ncol(d)
+ res=rep(L,NC)
+ for(i in 1:NC)
+              {
+                NL=length(levels(d[1,i]))
+                if(NL>0){if(Lfactor) res[i]=NL else res[i]=min(NL,L)}
+              }
+ return(res) 
 }

@@ -39,6 +39,8 @@ Error=function(y,x,metric,D=0.5,TC=-1,val=NULL)
                 COR=Correlation(y,x),
                 R2=R2(y,x),
                 R22=R22(y,x),
+                q2=q2(y,x), # new
+                Q2=Q2(y,x), # new
                 BRIER=Tbrier(y,x,TC=TC), # classification G
                 NAREC=Narec(y,x,val=val),
                 TOLERANCE=Tolerance(y,x,val=val),
@@ -172,6 +174,9 @@ Mase=function(y,x,ts) { N=length(ts); MEAN=mean(abs(ts[2:N]-ts[1:(N-1)])); retur
 R2=function(y,x,ymean=mean(y)) { return (1-sum((y-x)^2)/sum((y-ymean)^2)) }
 R22=function(y,x,ymean=mean(y)) { return (sum((x-mean(x))^2)/sum((y-ymean)^2)) }
 Ss=function(y){return (sum((y-mean(y))^2))} # sum of squares
+# mark embrechts metrics:
+q2=function(y,x){1-Correlation(y,x)}
+Q2=function(y,x,ymean=mean(y)) {return (sum((y-x)^2)/sum((y-ymean)^2))}
 
 
 Correlation=function(y,x) { COR=suppressWarnings(cor(x,y)); if(is.na(COR)) COR=0; return(COR)}
@@ -571,16 +576,16 @@ meanint<-function(x,level=0.95)
 # --------
 
 # m - is matrix or data.frame
-mpairwise=function(m,p.adj="bonf",paired=TRUE)
-{
- NC=NCOL(m);NR=NROW(m)
- x=vector(length=NC*NR); g=x;
- for(i in 1:NC) { ini=(i-1)*NR+1;end=ini+NR-1;
-                  x[ini:end]=m[,i];g[ini:end]=rep(i,NR);}
- g=factor(g)
- P=pairwise.t.test(x,g,p.adj =p.adj,paired=paired)
- return(P)
-}
+#mpairwise=function(m,p.adj="bonf",paired=TRUE)
+#{
+# NC=NCOL(m);NR=NROW(m)
+# x=vector(length=NC*NR); g=x;
+# for(i in 1:NC) { ini=(i-1)*NR+1;end=ini+NR-1;
+#                  x[ini:end]=m[,i];g[ini:end]=rep(i,NR);}
+# g=factor(g)
+# P=pairwise.t.test(x,g,p.adjust.method =p.adj,paired=paired)
+# return(P)
+#}
 
 
 # TC - target concept class, -1 not used
@@ -641,4 +646,15 @@ twoclassLift<-function(y, x, Positive=1,STEPS=10,type=3)
        else {R[i,1]=i*STEPS/DIV; R[i,2]=Pos/(ALL*N)}
      }
   return (R)
+}
+
+# new: quantile functions:
+q1=function(x){return(quantile(x,0.25)[])}
+q3=function(x){return(quantile(x,0.75)[])}
+
+# yaggregate
+yaggregate=function(y,N=1)
+{if(N==1) return(mean(y)) 
+ else if(N==3){r=range(y);return(c(r[1],mean(y),r[2]));} 
+ else{y=quantile(y,seq(0,1,length.out=N));attr(y,"names")=NULL;return(y)}
 }

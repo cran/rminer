@@ -12,7 +12,7 @@ digits = c(1, 1), TC = 1, intbar = NULL, lty = 1, pch = 19, col = NULL,
 datacol = NULL, main = "", main2 = "", Grid = 0, 
 xlab = "", ylab = "", zlab = "", 
 levels = NULL, levels2 = NULL, showlevels = FALSE, 
-screen = list(z = 40, x = -60), zoom = 1)
+screen = list(z = 40, x = -60), zoom = 1, cex = 1)
 }
 \arguments{
   \item{I}{the output list of the \code{\link{Importance}} function.
@@ -20,6 +20,7 @@ screen = list(z = 40, x = -60), zoom = 1)
   \item{graph}{type of VEC graph:
 \itemize{
          \item \code{VEC} -- 1-D VEC curve; 
+         \item \code{VECB} -- 1-D VEC curve with box plots (only valid for SA methods: "DSA", "MSA");
          \item \code{VEC3} -- 2-D VEC surface;
          \item \code{VECC} -- 2-D VEC contour; 
 }
@@ -71,6 +72,7 @@ and \code{length(interactions)=1}, see \code{\link{Importance}}). if a vector, t
           }
 }
   \item{zoom}{zoom of the wireframe (\code{graph="VEC3"})}
+  \item{cex}{label font size}
 }
 \details{
 For examples and references check: \code{\link{Importance}}
@@ -81,10 +83,21 @@ A VEC curve/surface/contour plot.
 \author{
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
-
 \seealso{
 \code{\link{Importance}}
 }
+\references{
+\itemize{
+\item To cite the Importance function or sensitivity analysis method, please use:\cr
+\cr
+P. Cortez and M.J. Embrechts.\cr
+Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
+In Information Sciences, Elsevier, in press.\cr
+\cr
+GSA algorithm:\cr
+}
+}
+
 
 \keyword{aplot}
 \keyword{classif}

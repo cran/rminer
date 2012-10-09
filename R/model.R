@@ -1,3 +1,4 @@
+# think about the use of references: R2.13? R.oo package ?
 #-------------------------------------------------------------------------------------------------
 # "model.R" code by Paulo Cortez 2010@, Department of Information Systems, University of Minho
 #
@@ -91,7 +92,6 @@ setClass("model",representation(formula="formula",model="character",task="charac
 #setMethod("fit",signature(x="formula"),
 fit=function(x, data=NULL, model="default",task="default", search="heuristic",mpar=NULL,feature="none",scale="default", transform="none",created=NULL,...)
 {
- #print("<ini fit>")
  if(is.null(data)) 
    { data<-model.frame(x) # only formula is used 
      outindex=output_index(x,names(data))
@@ -149,7 +149,7 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
  if (model=="naive")
   { if(substr(task,1,3)=="reg") M<-mean(data[,outindex])
     else if(is.factor(data[,outindex])) 
-    { M<-data[1,outindex]; M[1]<-levels(data[1,outindex])[mostcommon(data[,outindex])] }
+    { M=data[1,outindex];M[1]=levels(data[1,outindex])[mostcommon(data[,outindex])] }
   }
  else if(model=="dt") # decision tree: based in the rpart library
   { if(task=="reg") METHOD="anova" else METHOD="class"
@@ -273,10 +273,15 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
        if(LP>=1 && !is.na(mpar[1])) C=as.numeric(mpar[1]) else C=NULL;
        if(LP>=2 && !is.na(mpar[2])) epsilon=as.numeric(mpar[2]) else epsilon=NULL;
       }
-     M<-svm.fit(x,data,sigma=sigma,C=C,epsilon=epsilon,task,scale)
-     if(substr(task,1,3)=="reg") epsilon=M$mpar[3] else if(task=="class") epsilon=0 else epsilon=1
-     if(is.null(C)) C=M$mpar[2]
-     params=c(sigma,C,epsilon)
+     M<-try(svm.fit(x,data,sigma=sigma,C=C,epsilon=epsilon,task,scale),silent=TRUE)
+     if(class(M)!="try-error")
+     { if(substr(task,1,3)=="reg") epsilon=M$mpar[3] else epsilon=0
+       if(is.null(C)) C=M$mpar[2]
+       params=c(sigma,C,epsilon)
+     }
+     else{ if(substr(task,1,3)=="reg"){M=mean(data[,outindex]);model="naive"}
+           else if(is.factor(data[,outindex])){M=data[1,outindex];M[1]=levels(data[1,outindex])[mostcommon(data[,outindex])];model="naive"}
+         }
    }
    else if(model=="randomforest")
    {
@@ -367,12 +372,13 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
  OUT=output_index(x,names(data)) # output
  Z=1:NCOL(data);BZ=Z;
  LZ=length(Z); if(fstop==-1)fstop=(LZ-2);LZSTOP=min(LZ-2,fstop)
+ #cat("LZSTOP:",LZSTOP,"\n")
  t=0 # iteration
  NILIM=LZ #convex 0 # LZ # 2 # I need to program this better, transform this parameter into a input user parameter!!!
  JBest=worst(metric);BK=search; # worst error
  notimprove=0 # iterations with improvement
- if(algorithm=="sabs") imethod=switch(smeasure,g="sensg",v="sensv",r="sensr")
-#cat("imethod:",imethod,"\n") 
+ if(algorithm=="sabs") imethod=switch(smeasure,g="sensg",v="sensv",r="sensr",a="sensa")
+#cat("smeasure:",smeasure,"imethod:",imethod,"\n") 
 #print(BK)
 #debug=TRUE ###
  stop=FALSE;t=0;
@@ -503,7 +509,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
    {K1=as.numeric(mpar[1]); K2=as.numeric(mpar[2]); vmethod=mpar[3]; K3=as.numeric(mpar[4]);
     if(LP>5 && substr(model,1,3)=="mlp") {DECAY=mpar[6]}
    }
- else {vmethod=mpar[1]; K3=as.numeric(mpar[2]);}
+ else {K1=NULL;K2=NULL;vmethod=mpar[1]; K3=as.numeric(mpar[2]);}
 
  BESTVAL=worst(metric)
 
@@ -512,7 +518,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
  else NLIM=(NP+1)
  notimprove=0
 
- if(substr(vmethod,1,6)=="kfoldo") order=TRUE
+ if(substr(vmethod,1,6)=="kfoldo") {order=TRUE;vmethod="kfold";}
  else order=FALSE
 
  while(!stop)
@@ -559,7 +565,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
        }
      else if(substr(vmethod,1,5)=="kfold")
        {
-          if(model=="knn") kmpar=c("all",0,metric)
+          if(model=="knn" || model=="randomforest") kmpar=c("all",0,metric)
           else kmpar=c(K1,K2,"all",0,metric)
           if(DECAY>0) kmpar<-c(kmpar,DECAY)
          
@@ -628,20 +634,29 @@ defaultmodel<-function(task)
 # object - a model created with fit
 # newdata - data.frame or matrix or vector or factor
 #           if formula, please use: predict(...,model.frame(data))
-setMethod("predict",signature(object= "model"),
+
+#if(!isGeneric("predict")){
+#  if (is.function("predict"))
+#    fun <- predict 
+#  else fun <- function(object) standardGeneric("predict")
+#  setGeneric("predict", fun)
+#}
+setGeneric("predict")
+setMethod("predict",signature(object="model"),
 function(object,newdata){
 
  if(NCOL(newdata)>length(object@attributes)) newdata=newdata[,object@attributes]
  
  # --- if code for the models ---
  if(substr(object@model,1,3)=="mlp"){ if(object@scale=="inputs" || object@scale=="all") newdata=scaleinputs2(newdata,object@object$cx,object@object$sx) }
+ #if(is.list(object@object) && object@object$M=="try-error")
  if(object@model=="naive")
    {
     if(object@task=="reg") P=rep(object@object,length=nrow(newdata))
     else { L=levels(object@object[1])
            P<-matrix(nrow=nrow(newdata),ncol=length(L)); P[,]=0
            P[,which(L==object@object)]=1
-           if(task=="class") P=majorClass(P,L)
+           if(object@task=="class") P=majorClass(P,L)
          }
    }
  else if(object@model=="dt")
@@ -757,7 +772,7 @@ svm.fit <- function(x,data,sigma=2^-6,C=NULL,epsilon=NULL,task,scale=TRUE)
 { 
  # to avoid this error: object "scal" not found, I will adopt SCALED=TRUE
  SCALED=TRUE; cx=NULL; sx=NULL; 
-#print(paste("svm.fit Sigma: ",sigma," C: ",C," Ep:",epsilon))
+#print(paste("Sigma: ",sigma," C: ",C," Ep:",epsilon))
  #if(scale=="all") SCALED=TRUE # XXX warning: be careful about this option. scaled by rminer of ksvm? 
  # check if ksvm has some problems with numeric output??
  #else SCALED=FALSE
@@ -978,13 +993,16 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
  task=defaultask(task,model,data[1,outindex])
 
  npar=modelnpar(model)
+ 
+ if(substr(vmethod,1,6)=="kfoldo"){order=TRUE;vmethod="kfold";}
+ else order=FALSE
+
  if(npar>0) { if(vmethod=="kfold") par=matrix(nrow=Runs*vpar,ncol=npar) else par=matrix(nrow=Runs,ncol=npar) }
  else par=NULL
 
  metric=getmetric(mpar,model,task)
  #cat(" >> metric:",metric,"\n")
 
- #cat(" >> feature:",feature,"\n")
  if(substr(feature[1],1,4)=="sens" || substr(feature[1],1,4)=="sabs" || substr(feature[1],1,4)=="simp") 
     { 
        if(vmethod=="kfold") MULT=vpar
@@ -992,7 +1010,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
        SEN<-matrix(ncol=NCOL(data),nrow=(Runs*MULT) )
        if(substr(feature[1],1,4)!="sens") { SRESP=TRUE;FSRESP=TRUE;}
        else {SRESP=NULL; FSRESP=FALSE;}
-       imethod=switch(feature[1],sabsv=,simpv="sensv",sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",feature[1])
+       imethod=switch(feature[1],sabsv=,simpv="sensv",sabsg=,sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",simpa="sensa",feature[1])
     }
  else {SEN<-NULL; SRESP=NULL;FSRESP=FALSE;imethod="none"}
 
@@ -1002,9 +1020,6 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
     else attrib=vector("list",Runs)
   }
  else attrib=NULL 
-
- if(substr(vmethod,1,6)=="kfoldo") order=TRUE
- else order=FALSE
 
  for(i in 1:Runs)
  {
@@ -1027,6 +1042,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
      ##if(method!="holdoutfor") P<-predict(L,data[H$ts,])
      ##else P=lforecast(L,data,start=(1+nrow(data)-vpar),horizon=vpar) 
        TS<-data[H$ts,outindex]
+#cat("imethod:",imethod,"\n")
        if(!is.null(SEN)) IMPORTANCE<-Importance(L,data[H$tr,],method=imethod,responses=FSRESP) # store sen
      }
   else if(substr(vmethod,1,5)=="kfold")
@@ -1136,7 +1152,7 @@ getmetric=function(mpar,model,task)
  if(L==0) {metric=switch(task,prob="AUC",class="ACC","MAD")}
  else if(L>2 && (model=="knn" || model=="randomforest") ) metric=mpar[3]
  else if(L>4 && (substr(model,1,3)=="mlp" || model=="svm")) metric=mpar[5]
- else if(L>0 && (substr(model,1,3)!="mlp" && model!="svm" && model!="knn") ) metric=mpar[1]
+ else if(L>0 && (substr(model,1,3)!="mlp" && model!="svm" && model!="knn" && model!="randomforest") ) metric=mpar[1]
  else metric=switch(task,prob="AUC",class="ACC","MAD")
  return (metric)
 }
@@ -1146,8 +1162,7 @@ getmetric=function(mpar,model,task)
 #-- type should be explicitly defined, as it depends on the predict function.
 #-- for instance: nnet - type="raw" or "class", kvsm - type ="response", "votes, etc...
 
-# method="randomforest" - Leo Breiman method; "sens","sensv", "sensg", "sensv", "sensi" - Embrechts method ; "data" - uses all data.frame
-#        "sensi" - Embrechts method extended to i-D sensitivity (with interactions) 
+# method="randomforest" - Leo Breiman method; "sens","sensv", "sensg", "sensv", Embrechts method ; "DSA" - uses all data.frame
 # sampling - "regular" - grid spread from min to max or "quantile" - based on the distribution percentiles
 # responses - if TRUE then the full response (y) values are stored
 # interactions - default NULL else is a vector of one or two variables to explore 2 variable interactions (VECC and VEC3)...
@@ -1162,14 +1177,24 @@ getmetric=function(mpar,model,task)
 # measure - "variance", "range", "gradient" (new: "lenght" !!!)
 
 # to do: check model.matrix(~ a + b, dd)
-Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="regular",baseline="mean",responses=TRUE,
-                    outindex=NULL,task="default",PRED=NULL,interactions=NULL)
+# to do: new method="shist" that uses h$mids => average(y) => sensitivity?
+# to do: input something that distinguishes between L = max levels for factor and all levels for factor are used...
+# aggregation: number of B boxplot statistics, if 1 then average, else if 3 then min, average, max!
+# LRandom: number of M montecarlo samples, -1 means all
+#
+# to do: new parameter Lfactor: FALSE - up to RealL, TRUE - up to Levels
+# method="SA" or "sens";
+#       ="DSA" 
+#       ="MSA" 
+#       ="CSA"
+# responses =TRUE, FALSE or "ALL"
+Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regular",baseline="mean",responses=TRUE,
+                    outindex=NULL,task="default",PRED=NULL,interactions=NULL,Aggregation=-1,LRandom=-1,MRandom="discrete",Lfactor=FALSE)
 {
 #model=M;data=d;RealL=6;method="sens";measure="variance";sampling="regular";responses=TRUE;outindex=NULL;task=NULL;
-
- #model<<-model;DDD<<-data;RealL<<-RealL;method<<-method;measure<<-measure;sampling<<-sampling;responses<<-responses; 
-
- if(class(M)=="model"){outindex=M@outindex; task=M@task; Attributes=M@attributes}
+#model<<-M;DDD<<-data;RealL<<-RealL;method<<-method;measure<<-measure;sampling<<-sampling;responses<<-responses; 
+ SDD=NULL
+ if(class(M)=="model"){outindex=M@outindex; task=M@task; Attributes=M@attributes} # rminer model
  else # another R supervised learning model
  { 
   task=defaultask(task,model="default",data[1,outindex])
@@ -1205,105 +1230,174 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
    ASv<-abs(Sv)
    imp=100*abs(ASv)/sum(ASv) 
    RESP=NULL
+   measure=""
  }
- else if(substring(method,1,4)=="sens" || method=="data") # set SPREAD
+ #else if(substring(method,1,4)=="sens" || method=="DSA" || method=="MSA") # set SPREAD
+ else # all other methods
  {
-  measure=switch(method,sensv="variance",sens=,sensg="gradient",sensr="range",measure)
-  if(method=="sensi") INTERACT=TRUE else INTERACT=FALSE
-  method=switch(method,sensi=,sensv=,sensg=,sensr="sens",method)
+  measure=switch(method,sensv="variance",sensg="gradient",sensr="range",sensa="AAD",measure)
+  method=switch(method,sensa=,sensv=,sensg=,sensr="sens",method)
 
-  Dsize=NCOL(data); SPREAD=vector("list",Dsize); MR=RealL;
-  if(method=="data") Lsize=NROW(data)
+  if(method=="SA") method="sens"
+  if(method=="sens" && is.null(interactions)) method="1D-SA" else if(method=="sens") method="GSA"
+
+  if(responses) YSTORE=TRUE else YSTORE=FALSE
+
+  if(method=="DSA"||method=="MSA"||method=="CSA"||method=="GSA") { if(Aggregation<1 && substr(task,1,3)=="reg") Aggregation=3 else Aggregation=1 }
+
+  #if(method=="sensi") INTERACT=TRUE else INTERACT=FALSE
+  INTERACT=FALSE
+
+  if(method=="DSA"||method=="MSA"){if(LRandom<1) Lsize=NROW(data) else Lsize=LRandom}
+  Dsize=NCOL(data); 
+  # set ML and NLY if needed
+  if(is.factor(data[1,outindex])){Lev=levels(data[1,outindex]);NLY=length(Lev);ML=table(data[,outindex])[];ML=ML/sum(ML)}
+  else{ML=NULL;NLY=0;}
   IRANGE=setdiff(Attributes,outindex)
-  for(i in IRANGE) # set the SPREAD 
-  { 
 
-    if(is.ordered(data[1,i])) { AUX=levels(data[1,i]);LNAUX=length(AUX)
-                                if(LNAUX<RealL) SPREAD[[i]]=AUX
-                                else if(sampling=="regular") { NAUX=1:LNAUX; SPREAD[[i]]=AUX[unique(round(seq(NAUX[1],NAUX[LNAUX],length.out=RealL)))] }
-                                else if(sampling=="quantile")SPREAD[[i]]=AUX[unique(quantile(as.numeric(data[,i]),seq(0,1,length.out=RealL)))]
-                              }
-    else if(is.factor(data[1,i])) SPREAD[[i]]=levels(data[1,i])
-    else # numeric 
-       { if(sampling=="regular"){ SPREAD[[i]]=seq(min(data[,i]),max(data[,i]),length.out=RealL);}
-         else if(sampling=="quantile"){ SPREAD[[i]]=unique(quantile(data[,i],seq(0,1,length.out=RealL)));attr(SPREAD[[i]],"names")=NULL;}
-       }
-    MR=max(MR,length(SPREAD[[i]]))
-  } #end of for cycle, SPREAD SET!
- if(!is.null(interactions))
- {
-  LINT=length(interactions)
-  i1=interactions[1]; L=length(SPREAD[[i1]]);
-  if(LINT==2) {Dsize=1;JDOMAIN=interactions[2];}
-  else if(LINT>2){Dsize=1; INTERACT=TRUE;}
-  else JDOMAIN=setdiff(IRANGE,i1)
- }
- else LINT=0
- if(method=="sens")
- { 
-   if(class(baseline)=="data.frame") v=baseline
-   else #--- set the average/median input
-   { v=data[1,]
-    for(i in IRANGE) 
+  if(method!="CSA") # set SPREAD and other initializations
+  { SPREAD=vector("list",Dsize); MR=0; # set SPREAD
+    for(i in IRANGE) # 
+    { L=length(levels(data[1,i])); if(L>0){if(!Lfactor) L=min(RealL,L)} else L=RealL
+#cat(">>> Factor:",Lfactor,"L:",L,"Real:",RealL,"\n")
+      SPREAD[[i]]=rmsample(data[,i],L=L,index=FALSE,sampling=sampling)$x
+      MR=max(MR,L)
+    } 
+    if(!is.null(interactions)) # set LINT and JDOMAIN
+    { LINT=length(interactions)
+      i1=interactions[1]; L=length(SPREAD[[i1]]);
+      if(LINT==2) {Dsize=1;JDOMAIN=interactions[2];}
+      else if(LINT>2){Dsize=1; INTERACT=TRUE;}
+      else JDOMAIN=setdiff(IRANGE,i1)
+    }else LINT=0
+    if(method=="1D-SA"||method=="GSA") # set the baseline if needed
     { 
-     if(is.factor(data[1,i]))  
-       { if(is.ordered(data[1,i])) ModeClass=middleclass(data[,i],method=baseline) # "mean" or "median"
-         else ModeClass=mostcommon(data[,i])
-         v[1,i]=levels(data[1,i])[ModeClass]
-       }
-     else if(baseline=="mean") v[1,i]=mean(data[,i])
-     else if(baseline=="median") v[1,i]=median(data[,i])
-    } #end of for cycle 
-   }
-   # new data frame with MR rows, for speeding up the Importance computation:
-   data=v[1,]
-   if(LINT>0) 
-   { L2=2;
-     if(!INTERACT) {for(j in JDOMAIN) L2=max(L2,length(SPREAD[[j]]));MR=L*L2}
-     else{ MR=1;for(j in 1:LINT) MR=MR*length(SPREAD[[interactions[j]]])
+      if(class(baseline)=="data.frame") v=baseline
+      else #--- set the average/median input
+      { v=data[1,]
+        for(i in IRANGE) 
+        {  
+         if(is.factor(data[1,i]))  
+         { if(is.ordered(data[1,i])) ModeClass=middleclass(data[,i],method=baseline) # "mean" or "median"
+           else ModeClass=mostcommon(data[,i])
+           v[1,i]=levels(data[1,i])[ModeClass]
          }
-   }
-   data=v[rep(1,MR),]
- }
- if(is.null(interactions)) # method=="sens" || method=="sensgrad" || method=="data"
+         else if(baseline=="mean") v[1,i]=mean(data[,i])
+         else if(baseline=="median") v[1,i]=median(data[,i])
+        } #end of for cycle 
+      }
+      # new data frame with MR rows, for speeding up the Importance computation:
+      data=v[1,]
+      if(LINT>0) 
+      { L2=2;
+         if(!INTERACT) {for(j in JDOMAIN) L2=max(L2,length(SPREAD[[j]]));MR=L*L2}
+         else{ MR=1;for(j in 1:LINT) MR=MR*length(SPREAD[[interactions[j]]])
+             }
+      }
+      data=v[rep(1,MR),]
+    }
+  } # ----------------------------------------------------------------------------
+ Llevels=rep(NA,length(Attributes))
+ if(is.null(interactions)) # method=="sens", "SA", "1D-SA" || method=="sensgrad" || method=="DSA" || method=="CSA" || method="MSA"
  {
   Sv=rep(0,Dsize)
   if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
+  YY=NULL
+  LRDATA=nrow(data)
+  DD=NULL
+  if(method=="DSA"){if(Lsize<LRDATA){S=sample(1:LRDATA,Lsize);DD=data[S,]} else DD=data}
+  else if(method=="MSA"){DD=data[1:Lsize,];DD=MCrandom(DD,IRANGE,SPREAD,mode=MRandom)}
+  else if(method=="CSA"){ if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
+                          if(is.factor(y[1]))   y=one_of_c(y)
+                        }
+  if(YSTORE){SDD=DD}
+  if(method=="DSA"||method=="MSA"||method=="CSA") value=vector(length=Aggregation)
+
   for(i in IRANGE)
    { 
-    L=length(SPREAD[[i]]);MEM=data[,i]
-    if(responses) { xinp=SPREAD[[i]];xname=names(data)[i];}
-    if(method=="data") 
-      { Y=NULL 
+    if(method=="DSA"||method=="MSA")
+      { L=length(SPREAD[[i]])
+        if(responses) { xinp=SPREAD[[i]];xname=names(DD)[i];}
+        MEM=DD[,i]
+        if(NLY==0) Y=matrix(ncol=L,nrow=Aggregation) else Y=matrix(nrow=L,ncol=Aggregation*NLY)
+        if(YSTORE) { z=1;if(NLY>0) YY=matrix(nrow=nrow(DD),ncol=(L*NLY)) else YY=matrix(nrow=nrow(DD),ncol=L)} # store all y values
         for(k in 1:L)
         {
-         if(is.factor(data[1,i])) data[,i]=factor(rep(SPREAD[[i]][k],Lsize),levels=SPREAD[[i]])
-         else data[,i]=rep(SPREAD[[i]][k],Lsize)
-         if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
-         data[,i]=MEM # restore previous values
-         Y=c(Y,mean(y))
+           if(is.factor(DD[1,i])) DD[,i]=factor(rep(SPREAD[[i]][k],Lsize),levels=levels(DD[1,i]))
+           else DD[,i]=rep(SPREAD[[i]][k],Lsize)
+           if(class(M)=="model") y=predict(M,DD) else y=PRED(M,DD)
+           if(is.factor(y[1])) y=one_of_c(y)
+           if(YSTORE){if(NLY>0) {for(j in 1:NLY) {YY[,z]=y[,j];z=z+1;} } else {YY[,z]=y;z=z+1;}}
+           if(NLY==0) Y[,k]=yaggregate(y,Aggregation)
+           else  
+           {  for(j in 1:NLY)
+              { sss=seq(j,NLY*Aggregation,NLY)
+                Y[k,sss]=yaggregate(y[,j],Aggregation)
+              }
+           }
         }
+        DD[,i]=MEM # restore previous values
+        if(NLY==0) { for(k in 1:Aggregation)  value[k]=s_measure(Y[k,],measure,x=SPREAD[[i]],Levels=ML) }
+        else { for(k in 1:Aggregation)
+                  { ini=(k-1)*NLY+1;end=ini+NLY-1
+                    value[k]=s_measure(Y[,ini:end],measure,x=SPREAD[[i]],Levels=ML) 
+                  }
+             }
+        Sv[i]=mean(value)
       }
-    else{ data[(1:L),i]=SPREAD[[i]]
+      else if(method=="CSA")
+      { L=length(levels(data[1,i])); if(L>0){if(!Lfactor)L=min(RealL,L)} else L=RealL
+        IR=rmsample(data[,i],L=L,MAX=Inf,sampling=sampling) 
+        if(responses) { xinp=IR$x; xname=names(data)[i];}
+        IR=IR$index; K=1:length(IR); LK=length(K)
+        if(NLY==0) Y=matrix(ncol=LK,nrow=Aggregation) else Y=matrix(nrow=LK,ncol=Aggregation*NLY)
+        k1=1 
+        for(k in K)
+        {
+          if(NLY==0) Y[,k1]=yaggregate(y[IR[[k]]],Aggregation)
+          else
+          {  
+             for(j in 1:NLY)
+             { sss=seq(j,NLY*Aggregation,NLY)
+               Y[k1,sss]=yaggregate(y[IR[[k]],j],Aggregation)
+             }
+          }
+          k1=k1+1
+        } 
+        if(NLY==0) { for(k in 1:Aggregation)  value[k]=s_measure(Y[k,],measure,x=xinp,Levels=ML) }
+        else { for(k in 1:Aggregation)
+                  { ini=(k-1)*NLY+1;end=ini+NLY-1
+                    value[k]=s_measure(Y[,ini:end],measure,x=xinp,Levels=ML) 
+                  }
+             }
+        Sv[i]=mean(value)
+      }
+      else # "sens"
+      {   L=length(SPREAD[[i]])
+          if(responses) {xinp=SPREAD[[i]];xname=names(data)[i];}
+          MEM=data[(1:L),i] 
+          data[(1:L),i]=SPREAD[[i]]
           if(class(M)=="model") Y=predict(M,data[(1:L),]) else Y=PRED(M,data[(1:L),])
-          data[,i]=MEM # restore previous values
-        }
-    Sv[i]=switch(measure,variance=variance_responses(Y),gradient=gradient_responses(Y),range=range_responses(Y))
-    if(responses) RESP[[i]]=list(n=xname,l=L,x=xinp,y=Y)
-   }
+          data[(1:L),i]=MEM # restore previous values
+          Sv[i]=s_measure(Y,measure,x=SPREAD[[i]],Levels=ML)
+      }
+      if(responses) RESP[[i]]=list(n=xname,l=L,x=xinp,y=Y,yy=YY)
+      Llevels[i]=L
+
+   } # cycle for?
   Sum=sum(Sv)
   if(Sum==0) # no change in the model, equal importances to all attributes
   {imp=rep(1/(Dsize-1),length=Dsize);imp[outindex]=0;}
   else imp=Sv/Sum
-  } #end of if null interactions
+  } #end of if null interactions --------------------------------------------------------------
   else if(!INTERACT) # LINT<3) # if(!is.null(interactions))
   {
    Sv=rep(0,Dsize)
    if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
-   if(method=="data") MR=NROW(data) 
+   if(method=="DSA") MR=NROW(data) 
    for(j in JDOMAIN)
     {
-     if(method=="sens")
+     if(method=="1D-SA"||method=="GSA")
      { MEM=data[,j] 
        L2=length(SPREAD[[j]]); MR=L*L2;
        for(k in 1:L2) {ini=1+(k-1)*L;end=ini+L-1;data[ini:end,i1]=SPREAD[[i1]];data[ini:end,j]=SPREAD[[j]][k];}
@@ -1311,7 +1405,7 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
        if(class(M)=="model") Y=predict(M,data[(1:MR),]) else Y=PRED(M,data[(1:MR),])
        data[,j]=MEM # restore previous values
      }
-     else if(method=="data") 
+     else if(method=="DSA") 
      { L2=length(SPREAD[[j]]);Y=NULL
        MEM=data[,c(i1,j)];
        if(responses) {xname=c(names(data)[i1],names(data)[j]);xinp=data[1:(L*L2),c(i1,j)];o=1;}
@@ -1328,8 +1422,9 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
        data[,i1]=MEM[,1];data[,j]=MEM[,2] # restore previous values
      }
      if(length(interactions)==2) k=1 else k=j
-     Sv[k]=switch(measure,variance=variance_responses(Y),gradient=gradient_responses(Y),range=range_responses(Y))
+     Sv[k]=s_measure(Y,measure,x=SPREAD[[k]])
      if(responses) RESP[[k]]=list(n=xname,l=L,x=xinp,y=Y) 
+     Llevels[k]=L
     }
 #cat("SV:",Sv,"\n")
     Sum=sum(Sv)
@@ -1347,17 +1442,21 @@ Importance=function(M,data,RealL=6,method="sens",measure="gradient",sampling="re
    for(i in 1:LINT)
    { k=interactions[[i]];LS=length(SPREAD[[k]]);T=MR/(E*LS)
 #cat("i:",i,"LS:",LS,"T:",T,"\n")
-     if(is.factor(data[,k][1])) data[,k]=rep(factor(SPREAD[[k]],levels=SPREAD[[k]]),each=E,times=T) else data[,k]=rep(SPREAD[[k]],each=E,times=T)
+     if(is.factor(data[,k][1])) data[,k]=rep(factor(SPREAD[[k]],levels=levels(data[,k])),each=E,times=T) else data[,k]=rep(SPREAD[[k]],each=E,times=T)
      E=E*LS;
      if(responses) L[i]=LS
+     Llevels[i]=L[i]
    }
    if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
-   Sv=switch(measure,variance=variance_responses(y),gradient=gradient_responses(y),range=range_responses(y))
+#rmboxplot(y,MEAN=TRUE,LINE=2,MIN=TRUE,MAX=TRUE,ALL=TRUE)
+#mypause()
+   Sv=s_measure(y,measure)
    if(responses) RESP[[1]]=list(n=names(data)[interactions],l=L,x=data[,interactions],y=y) 
    imp=1
   }
  }
- return (list(value=Sv,imp=imp,sresponses=RESP))
+ return (list(value=Sv,imp=imp,sresponses=RESP,data=SDD,method=method,measure=measure,agg=Aggregation,nclasses=NLY,inputs=setdiff(Attributes,outindex),Llevels=Llevels,
+              interactions=interactions))
 }
 
 # -- 
@@ -1375,7 +1474,7 @@ avg_imp_1D=function(I,measure="variance")
   y=I1$sresponses[[1]]$y
   R$sresponses[[i]]$y=y
 #print(y)
-  R$value[i]=switch(measure,variance=variance_responses(y),gradient=gradient_responses(y),range=range_responses(y))
+  R$value[i]=s_measure(y,measure)
  }
 #print("RVALUE:")
 #print(R$value)
@@ -1389,7 +1488,6 @@ avg_imp=function(I,AT,measure="variance")
 {
  x=I$sresponses[[1]]$x
  y=I$sresponses[[1]]$y
- CY=NCOL(y)
  X1=unique(x[,AT[1]])
 
  if(length(AT)>1)
@@ -1411,7 +1509,7 @@ avg_imp=function(I,AT,measure="variance")
       k=k+1
      }
  }
- else
+ else # length(AT)==1
  { LX=length(X1)
    if(is.matrix(y)) my=matrix(ncol=NCOL(y),nrow=LX)
    else if(is.factor(y)) my=factor(rep(levels(y)[1],LX),levels=levels(y))
@@ -1430,9 +1528,234 @@ avg_imp=function(I,AT,measure="variance")
  I$sresponses[[1]]$y=my
  I$sresponses[[1]]$n=I$sresponses[[1]]$n[AT]
  I$sresponses[[1]]$l=I$sresponses[[1]]$l[AT]
- I$value=switch(measure,variance=variance_responses(my),gradient=gradient_responses(my),range=range_responses(my))
+ I$value=s_measure(my,measure)
  return(I)
 }
+
+# experimental:
+agg_matrix_imp=function(I,INP=I$inputs,measure=I$measure,Aggregation=I$agg,method=I$method,outdata=NULL,L=I$Llevels,ameth="xy",Tolerance=0.1)
+{
+ N=length(INP)
+ m1=matrix(0,ncol=N,nrow=N)
+ m2=m1
+
+ for(i in INP)
+ for(j in INP)
+   { if(i!=j) { 
+#cat("i:",i,"j:",j,"Li:",L[i],"Lj:",L[j],"\n")  
+                II=aggregate_imp(I,AT=c(i,j),measure=measure,Aggregation=Aggregation,method=method,outdata=outdata,L=L,ameth=ameth,Tolerance=Tolerance)
+                m1[i,j]=mean(II$value); m2[i,j]=mean(II$value2)
+              }
+   }
+ return(list(m1=m1,m2=m2))
+}
+
+
+# need to improve this function:
+# I, AT=attribute
+# -----
+# remove outdata? use ML table in I$ML?
+# remove avg_imp?
+aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outdata=NULL,L,ameth="xy",Tolerance=0.1)
+{
+ if(length(AT)==1){
+ x=I$sresponses[[ AT[1] ]]$x
+ y=I$sresponses[[ AT[1] ]]$y
+                  }
+ else{
+      if(substr(method,1,4)=="sens"||method=="GSA")
+      {
+       x=I$sresponses[[ 1 ]]$x
+       y=I$sresponses[[ 1 ]]$y
+      }
+      else{
+            x=I$sresponses[[ AT[1] ]]$x
+            y=I$sresponses[[ AT[1] ]]$y # check if this is right???
+          }
+     }
+
+ if(is.factor(outdata[1])){ Lev=levels(outdata[1]);NLY=length(Lev);ML=table(outdata)[];ML=ML/sum(ML)}
+ else {ML=NULL;NLY=0;}
+
+ if(length(AT)==2)
+ { 
+   if(substr(method,1,4)=="sens"||method=="GSA"||method=="1D-SA"||method=="SA")
+   {  
+      X1=unique(x[,AT[1]])
+      LX=length(X1)
+      xlab=I$sresponses[[1]]$n[AT[1]]
+      ylab=I$sresponses[[1]]$n[AT[2]]
+      X2=unique(x[,AT[2]])
+      LY=length(X2)
+      # nao sei o que fazer aqui, testar mais tarde...
+      if(NLY==0) J=Aggregation else J=NLY
+      mm=matrix(nrow=LX,ncol=LY*J)
+      for(i in 1:LX)
+       for(j in 1:LY)
+         {
+           W=which(x[,AT[1]]==X1[i] & x[,AT[2]]==X2[j])
+           sss=seq(j,(LY*(J-1)+j),LY)
+           mm[i,sss]=yaggregate(y[W],Aggregation)
+         }
+   }
+   else # check LY e LX instead of AT 1 and 2? "MSA" / "DSA"
+   { 
+      X1=unique(x)
+      LX=length(X1)
+      xlab=I$sresponses[[AT[1]]]$n
+      ylab=I$sresponses[[AT[2]]]$n
+#cat("kmsample> xlab:",xlab,"ylab:",ylab,":\n")
+      K=rmsample(I$data[,AT[2]],L=L[AT[2]],index=TRUE,sampling="regular",Tolerance=0.1) # think about zero slots?
+      X2=K$x
+      LY=length(X2)
+#cat("X2:",X2,"\n")
+     
+      yy=I$sresponses[[AT[1]]]$yy
+      if(NLY==0) J=Aggregation else J=NLY
+      mm=matrix(nrow=LX,ncol=LY*J)
+     for(i in 1:LX)
+      for(j in 1:LY)
+       {
+         sss=seq(j,(LY*(J-1)+j),LY)
+#yy<<-yy
+#K<<-K
+         mm[i,sss]=yaggregate(yy[K$index[[j]],i],Aggregation)
+       } 
+   }  
+#cat("done kmsample\n")
+#mm<<-mm
+#NLY<<-NLY
+#ML<<-ML
+#ameth<<-ameth;measure<<-measure
+   # s_measure global OU em x + em y ?
+   value=vector(length=Aggregation)
+   value2=vector(length=Aggregation)
+value3=vector(length=Aggregation)
+    if(NLY==0) { for(k in 1:Aggregation) { ini=(k-1)*LY+1;end=ini+LY-1;
+# switch value
+#cat("ini:",ini,"end:",end,"measure:",measure,"xy:",ameth,"\n")
+                                  val=s_measure(mm[,ini:end],measure,Levels=ML,xy=ameth) 
+value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global") 
+                                  value[k]=val[2];value2[k]=val[1]
+                                }
+#cat("done\n")
+               }
+   # think better about the class case:
+   else{ for(k in 1:Aggregation)
+                  { 
+#cat(">> k:",k,"\n")
+                    ini=(k-1)*NLY+1;end=ini+NLY*(L[AT[2]])-1;
+                    val=s_measure(mm[,ini:end],measure,Levels=ML,xy=ameth) 
+                    value[k]=val[1];value2[k]=val[2]
+                  }
+       }
+   #I$sresponses[[1]]$x=x[Im,AT] # ???
+   #I$sresponses[[1]]$y=mm # ????
+   #I$sresponses[[1]]$n=I$sresponses[[1]]$n[AT]
+   #I$sresponses[[1]]$l=I$sresponses[[1]]$l[AT]
+
+   # new importance object:
+   I=list()
+   I$value=value
+   I$value2=value2
+#for(i in 1:3)cat(round(value2[i],digits=2),",",round(value[i],digits=2),"\n")
+#for(i in 1:3)cat(round(value3[i],digits=2),"\n")
+#cat("val: ",round(mean(I$value),digits=2),",",round(mean(I$value2),digits=2),"\n")
+   I$Y=mm
+   I$x1=X1
+   I$x2=X2
+   I$agg=Aggregation
+   I$NLY=NLY
+   I$xy=ameth
+   I$xlab=xlab
+   I$ylab=ylab
+#cat("L:",L,"\n")
+   I$L=c(L[AT[1]],LY)
+   return(I)
+ }
+ else # length(AT)==1 ## there are huge problems with this if code, which does not work, later i need to rethink and recode this!!!
+ { 
+   if(is.numeric(x)) X1=unique(x) else X1=unique(x[,AT[1]])
+   #X1=unique(x)
+   LX=length(X1)
+   Im=vector(length=LX); k=1;
+   Min=vector(length=LX)
+   Max=vector(length=LX)
+   z=1
+
+  if(I$method=="GSA") 
+  {
+   LY=LX
+   mm=vector(length=LX)
+   for(i in X1)
+     {
+      W=which(x[,AT[1]]==i)
+      Im[k]=W[1]
+      if(NLY==0) mm[k]=mean(y[W])
+      else{ for(j in 1:NLY) {mm[z]=mean(y[W,j]);z=z+1;}
+          }
+      k=k+1
+     }
+    value=1
+    I$method="1D-SA"
+  }
+  else
+  {
+   LY=round(length(y)/LX)
+   if(NLY==0) mm=matrix(ncol=LX,nrow=LY)
+   else mm=matrix(ncol=LX*NLY,nrow=LY)
+   for(i in X1)
+     {
+      W=which(x[,AT[1]]==i)
+      Im[k]=W[1]
+      if(NLY==0) mm[,k]=y[W]
+      else{ for(j in 1:NLY) {mm[,z]=y[W,j];z=z+1;}
+          }
+      k=k+1
+     }
+   if(NLY==0) Y=matrix(ncol=LX,nrow=Aggregation) else Y=matrix(nrow=LX,ncol=Aggregation*NLY)
+   z=1
+   for(i in 1:LX)
+   {
+    if(NLY==0) Y[,i]=yaggregate(mm[,i],Aggregation)
+    else
+    {
+      for(j in 1:NLY)
+               {
+                sss=seq(j,NLY*Aggregation,NLY)
+                Y[i,sss]=yaggregate(mm[,z],Aggregation)
+                z=z+1
+               }
+    }
+   }
+  
+   value=vector(length=Aggregation)
+   if(NLY==0) { for(k in 1:Aggregation)  value[k]=s_measure(Y[k,],measure,Levels=ML) }
+   else{ for(k in 1:Aggregation)
+                  { 
+                    ini=(k-1)*NLY+1;end=ini+NLY-1
+                    value[k]=s_measure(Y[,ini:end],measure,Levels=ML) 
+                  }
+       }
+   }
+}
+ I$sresponses[[1]]$x=x[Im,AT]
+ I$sresponses[[1]]$y=mm
+ I$sresponses[[1]]$n=I$sresponses[[1]]$n[AT]
+ I$sresponses[[1]]$l=I$sresponses[[1]]$l[AT]
+# avalue=AAD_responses(value)
+#avalue=switch(measure,AAD=AAD_responses(value),variance=variance_responses(value),gradient=gradient_responses(value),range=range_responses(value))
+#cat("min:", Min,"\n")
+#cat("max:", Max,"\n")
+#cat("area:",curvearea(cbind(Min,Max)),"minarea:",((min(Max)-min(Min))*LX),"\n")
+ #I$value=area; #-mean(Min)
+ #I$value=avalue;
+ I$value=mean(value)
+ return(I)
+}
+
+
+
 
 #----------------------------------------------------------------------------------------------------
 #-- Auxiliary private functions, in principle you should not need to use these:
@@ -1445,27 +1768,48 @@ mean_resp=function(y)
  else return (mean(y))
 }
 
+# xy = if there is a sensitivity pair and y is a matrix related with regression
+s_measure=function(y,measure,x=1:length(y),ABS=TRUE,center="median",Levels=NULL,xy=FALSE)
+{
+ if(xy=="xy")  { rx=0;N=NROW(y);for(i in 1:N) rx=rx+s_measure(y[i,],measure=measure,x=x,ABS=ABS,Levels=NULL,center=center);rx=rx/N;
+                 ry=0;N=NCOL(y);for(i in 1:N) ry=ry+s_measure(y[,i],measure=measure,x=x,ABS=ABS,Levels=NULL,center=center);ry=ry/N;
+                 return(c(rx,ry))
+               }
+ else{ 
+      if(xy=="global"){dim(y)=NULL} # convert to vector
+      return(switch(measure,range=range_responses(y,Levels=Levels),gradient=gradient_responses(y,ABS=ABS,Levels=Levels),variance=variance_responses(y,Levels),
+                            AAD=AAD_responses(y,center=center,Levels=Levels),balanced=balanced_responses(y))) 
+     }
+}
 
-range_responses=function(y)
+range_responses=function(y,Levels=NULL)
 {
   if(is.ordered(y)) return(range_responses(as.numeric(y)))
-  else if(is.factor(y)) return(range_responses(one_of_c(y)))
-  else
-  { 
-    LV=NCOL(y) 
+  else if(is.character(Levels)) return(sum(y>0)) # y is table of frequencies
+  else if(is.numeric(Levels) && is.factor(y)) return(range_responses(one_of_c(y),Levels=Levels)) 
+  else if(is.factor(y)) return((length(unique(y))-1)) # future: test in clustering?:)
+  else # matrix of probabilities
+  { LV=NCOL(y) 
     if(LV==1) return (abs(diff(range(y))))
-    else { res=0; for(i in 1:LV) res=res+abs(diff(range(y[,i]))); return(res/LV) }
+    else{
+         res=0; if(is.null(Levels)) Levels=rep(1/LV,LV)
+         for(i in 1:LV) res=res+Levels[i]*abs(diff(range(y[,i]))); 
+         return(res) 
+        }
   }
 }
 
+# deprecated....
 #-- compute the gradient of response y: vector, matrix of numeric data (probabilities) or factor
 #-- ordered is only used if y is factor, true if it is an ordered factor or else false
 # XXX think here!
 # Euclidean distance: http://en.wikipedia.org/wiki/Magnitude_(mathematics)
 pathlength_responses=function(y,x=1:length(y))
 {
- if(is.ordered(y)) return(pathlength_responses(as.numeric(y)))
- else if(is.factor(y)) return(pathlength_responses(one_of_c(y)))
+x=1:length(y)
+ if(is.factor(x)) { x=1:length(y) } # change this later to include quantile analysis? 
+ if(is.ordered(y)) return(pathlength_responses(as.numeric(y),x))
+ else if(is.factor(y)) return(pathlength_responses(one_of_c(y),x))
  else{ dist=0; LY=NROW(y); CY=NCOL(y)
        for(i in 2:LY)
        { dy=(x[i]-x[i-1])^2 
@@ -1478,27 +1822,91 @@ pathlength_responses=function(y,x=1:length(y))
 }
 
 
-gradient_responses=function(y,ABS=TRUE)
+gradient_responses=function(y,ABS=TRUE,Levels=NULL)
 {
  if(is.ordered(y)) return(gradient_responses(as.numeric(y)))
- else if(is.factor(y)) return(gradient_responses(one_of_c(y)))
+ else if(is.character(Levels)) return(sum(abs(diff(y)))/(length(y)-1)) # y table of frequencies, not adequately defined?
+ else if(is.numeric(Levels) && is.factor(y)) return(gradient_responses(one_of_c(y),ABS=ABS,Levels=Levels)) 
+ else if(is.factor(y)) 
+ { G=0;LY=length(y)
+   for(i in 2:LY)
+   { if(y[i]!=y[i-1]) G=G+1
+   } 
+   return (G/(LY-1))
+ }
  else{ if(ABS) FUNC=abs else FUNC=identity
-       G=mean(FUNC(diff(y)))
+       LV=NCOL(y) 
+       if(LV==1) return (mean(FUNC(diff(y))))
+       else{
+            if(is.null(Levels)) Levels=rep(1/LV,LV)
+            res=0
+            for(i in 1:LV) res=res+Levels[i]*abs(diff(range(y[,i]))); 
+            return (res)
+           }
      }
- return (G)
 }
  
 # compute the variance of response y (vector or matrix or data.frame)
-variance_responses=function(y)
-{ if(is.ordered(y)) return(variance_responses(as.numeric(y)))
-  else if(is.factor(y)) return(variance_responses(one_of_c(y)))
-  else
+variance_responses=function(y,Levels=NULL)
+{ 
+ if(is.ordered(y)) return(variance_responses(as.numeric(y)))
+ else if(is.factor(y)) return(variance_responses(one_of_c(y),Levels=Levels))
+ else
   { LV=NCOL(y)
     if(LV==1) return (var(y))
-    else if(LV==2) return (var(y[,1]))
     else # LV>2 
-    { res=0; for(i in 1:LV) res=res+var(y[,i]); return(res/LV) }
+    {
+      if(is.null(Levels)) Levels=rep(1/LV,LV)
+      res=0; for(i in 1:LV) res=res+Levels[i]*var(y[,i]) 
+      return(res) 
+    }
   }
+}
+
+AAD_responses=function(y,x,center="median",Levels=NULL)
+{ 
+ if(is.ordered(y)) return(AAD_responses(as.numeric(y)))
+ else if(is.character(Levels)) {t=y;L=sum(t);C=length(t);N=c(L,rep(0,C-1));return( mean(abs(t-N)) ) } # y table of frequencies, not adequately defined?
+ else if(is.numeric(Levels) && is.factor(y)) return(AAD_responses(one_of_c(y),center=center,Levels=Levels)) 
+ else if(is.factor(y)) 
+ { t=sort(table(y)[],decreasing=TRUE); L=length(y);C=length(levels(y[1]))
+   N=c(L,rep(0,C-1))
+   return( mean(abs(t-N)) )
+ }
+ else{ # matrix of probabilities
+      LV=NCOL(y)
+      if(LV==1) {
+                 center=switch(center,mode=mostcommon(y),mean=mean(y),median=,median(y))
+                 return(mean(abs(y-center)))
+                } 
+      else{
+#print(Levels)
+#print("---")
+#print(y)
+#print("===")
+      if(is.null(Levels)) Levels=rep(1/LV,LV)
+      res=0
+      for(i in 1:LV)
+        {
+         center2=switch(center,mode=mostcommon(y[,i]),mean=mean(y[,i]),median=,median(y[,i]))
+         res=res+Levels[i]*mean(abs(y[,i]-center2))
+#cat("i:",i,"lev:",Levels[i],"aad:",mean(abs(y[,i]-center2)),"AAD:",Levels[i]*mean(abs(y[,i]-center2)),"\n")
+        }
+      return(res)
+     }
+    }
+}
+
+# experimental, only for factor data!
+balanced_responses=function(y)
+{
+ t=sort(table(y)[],decreasing=TRUE)
+ C=length(levels(y[1]))
+ L=length(y);
+ S=sum(abs(diff(t)))
+ R=1*(L%%C>0);D=L-R
+ return((L-S)/D)
+ #return(L-mean(abs(diff(t))))
 }
 
 # --- auxiliary functions, do not use directly:
@@ -1516,4 +1924,185 @@ resp_to_list=function(x,TC=-1)
     }
  return (RES)
 }
+# ---
+mids=function(x,L=2,R=range(x))
+{
+ LR=R[2]-R[1];Step=LR/L;Start=R[1]+LR/(2*L)
+ return (Start+(0:(L-1)*Step))
+}
+ranges=function(x,L=2)
+{R=range(x)
+ return (seq(R[1],R[2],length.out=L+1))
+}
+
+# auxiliary function
+# x = factor, L= levels
+rmtable=function(x,Levels)
+{
+ t=table(x)
+ L=length(levels)
+ res=vector(length=L)
+ for(i in 1:length(Levels))
+ {
+  res[i]=t[][which(Levels[i]==names(t))] 
+ }
+ return(res)
+}
+
+# adapt to factor data?
+# iregular and equal may not work for ordered data?
+# need to correct this function for: X=c(1,2.1,3.3,4.0,7.0);rmsample(X,L=5,Tolerance=0.0)
+rmsample=function(x,L=2,MAX=Inf,Tolerance=1,sampling="regular",index=TRUE)
+{
+ #MAX=Inf;Tolerance=0.1;sampling="regular";index=TRUE;L=4;x=c(1,2.1,3.3,4.0,7.0)
+ IL=NULL
+ # LU=length(unique(x)); if(LU<L) L=LU ; # add this line?
+ #if(is.ordered(x)) { return (rmsample(as.numeric(x),L=L,MAX=MAX,sampling=sampling,index=index)) } # add this line?
+ if(!is.ordered(x) && is.factor(x))
+                 { t=table(x); sx=sort.int(t[],decreasing=TRUE,index.return=TRUE);
+                   MID=names(t);LI=length(MID)
+                   if(LI>L) MID=MID[ - sx$ix[(L+1):LI] ] 
+                   if(index){
+                   IL=vector("list",L)
+                   for(i in 1:L)
+                   {
+                    range=which(x==MID[i])
+                    if(length(range)>MAX) {range=range[1:MAX]}
+                    IL[[i]]=range
+                   }        }
+                 }
+ else
+ {
+ #if(is.factor(x)){OL=levels(x); x=as.numeric(x);} else OL=NULL
+ if(sampling=="equal") { 
+                            #L=5; MAX=1;
+                            sx=sort.int(x,index.return=TRUE)
+                            LX=length(sx$ix)
+                            R=trunc(LX/L)
+                            if(index) IL=vector("list",L)
+                            MID=rep(NA,L)
+                            if(R>MAX) RL=MAX else RL=R
+                            for(i in 1:(L-1)) 
+                              { 
+                                # compute mid first, choose neighbours around mid!
+                                ii=1+(i-1)*R;ie=ii+R-1
+                                range=sx$ix[ii:ie]
+                                if(R%%2==1) MID[i]=x[ range[(R-1)/2+1] ]
+                                else {R1=R/2;MID[i]=(x[range[R1]]+x[range[R1+1]])/2}
+                                if(index){ if(R>MAX){ x1=sort(abs(x[range]-MID[i]),index.return=TRUE);range=range[x1$ix[1:RL]] }
+                                           IL[[i]]=range
+                                         }
+                              }
+                            ii=1+(L-1)*R;ie=LX;R=LX-(L-1)*R
+                            range=sx$ix[ii:ie]
+                            if(R%%2==1) MID[L]=x[range[(R-1)/2+1] ]
+                            else {R1=R/2;MID[L]=(x[range[R1]]+x[range[R1+1]])/2}
+                            if(index){ if(R>MAX){ x1=sort(abs(x[range]-MID[L]),index.return=TRUE); range=range[x1$ix[1:RL]] }
+                                       IL[[L]]=range
+                                     }
+                        }
+ else if(sampling=="iregular" || sampling=="regular" || sampling=="quantile"){
+
+ #x=fo; L=3; sampling="regular"
+
+ if(is.ordered(x))
+ { LEV=levels(x[1]);LLEV=length(LEV)
+   if(L>LLEV) {MID=LEV;L=LLEV}
+   else if(sampling=="regular") { NAUX=1:LLEV; MID=LEV[unique(round(seq(NAUX[1],NAUX[LLEV],length.out=L)))] }
+   else if(sampling=="quantile"){ MID=LEV[unique(quantile(as.numeric(x),seq(0,1,length.out=L)))] }
+   if(index) 
+   { IL=vector("list",L); for(i in 1:L) {range=which(x==MID[i]);LR=length(range);if(LR>MAX) range=range[1:MAX];IL[[i]]=range} }
+ }
+ else{
+ R=range(x)
+ if(sampling=="iregular"){ MID=mids(x,L,R=R)}
+ else if(sampling=="quantile"){ MID=unique(quantile(x,seq(0,1,length.out=L)));attr(MID,"names")=NULL}
+ else if(sampling=="regular"){ MID=seq(R[1],R[2],length.out=L)}
+
+#print("MID:")
+#print(MID)
+#xxx<<-x
+ #index=TRUE;sampling="regular";L=3;
+ if(index){
+ S=seq(R[1],R[2],length.out=(L+1))
+#print("S:")
+#print(S)
+ IL=vector("list",L);Iaux=1:length(x)
+ ki=1
+ if(Tolerance<1) TTolerance=Tolerance*(MID[2]-MID[1])
+ for(i in 1:L)
+ { 
+  I=Iaux[which(x[Iaux]<=S[i+1])]
+  Iaux=setdiff(Iaux,I)
+  LI=length(I)
+  if(LI>MAX || Tolerance<1) 
+             { x1=abs(x[I]-MID[ki]) 
+               if(LI>MAX) {sx1=sort.int(x1,index.return=TRUE);
+                           I=I[sx1$ix[1:MAX]] # check?
+                          }
+               else { sx1=which(x1<=TTolerance)
+                      if(length(sx1)>0)I=I[sx1]else{I=NULL;LI=length(I);}
+                    }
+               #cat("i:",i,"tol:",TTolerance,"lsx1:",length(sx1),"sx1:",sx1,"x1:",x1,"\n")
+               #mypause()
+             }
+  if(LI>0){IL[[ki]]=I;ki=ki+1;}else{IL[[ki]]=NULL;MID=MID[-ki]}
+ }
+          }
+ }
+ }
+ else if(sampling=="kmeans"){ # || sampling=="pam"){
+
+ if(is.ordered(x))
+ { LEV=levels(x[1]);LLEV=length(LEV)
+   if(L>LLEV) {MID=LEV;L=LLEV}
+   else { 
+         if(sampling=="kmeans") {K=kmeans(as.numeric(x),centers=L);SK=sort.int(round(K$centers[,1]),index.return=TRUE)}
+         #else if(sampling=="pam") {K=pam(as.numeric(x),k=L);SK=sort.int(K$medoids[,1],index.return=TRUE)}
+         MID=LEV[as.numeric(SK$x)] 
+        }
+   if(index) 
+   { IL=vector("list",L); for(i in 1:L) {range=which(K$cluster==SK$ix[i]);LR=length(range);if(LR>MAX) range=range[1:MAX];IL[[i]]=range} }
+ }
+ else{
+ if(sampling=="kmeans"){K=kmeans(x,centers=L);SK=sort.int(K$centers[,1],index.return=TRUE); MID=as.numeric(SK$x) }
+ #else { K=pam(x,k=L); SK=sort.int(K$medoids[,1],index.return=TRUE); MID=as.numeric(SK$x) } # pam
+ if(index){
+ IL=vector("list",L)
+ for(i in 1:L)
+ { 
+  IL[[i]]= which(K$cluster==SK$ix[i])
+  LI=length(IL[[i]])
+  if(LI>MAX) { x1=abs(x[ IL[[i]] ]-MID[i]) 
+               sx1=sort.int(x1,index.return=TRUE)
+               IL[[i]]=IL[[i]][sx1$ix[1:MAX]] # check?
+             }
+ }
+          }
+ }
+ }
+ }
+ #if(!is.null(OL)) { cat("MID:",MID,"\n")
+ #                   MID=OL[MID] }
+ return (list(index=IL,x=MID))
+}
+
+# mode=="discrete" or "continuous"
+#MCrandom=function(d,IRANGE,SPREAD,mode="continous") # mode="discrete")
+MCrandom=function(d,IRANGE,SPREAD,mode="discrete")
+{
+ LR=nrow(d)
+ {
+  for(i in IRANGE)
+  {
+   if(is.factor(d[1,i])) d[,i]=sample(factor(SPREAD[[i]],levels=levels(d[1,i])),LR,replace=TRUE) 
+   else{
+        if(mode=="discrete") d[,i]=sample(SPREAD[[i]],LR,replace=TRUE) 
+        else d[,i]=runif(LR,SPREAD[[i]][1],SPREAD[[i]][length(SPREAD[[i]])])
+       }
+  }
+ }
+ return(d)
+}
 # --- end of auxiliary functions --------------
+

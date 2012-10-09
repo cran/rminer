@@ -14,45 +14,47 @@ Compute classification or regression error metrics.
            Else, \code{y} should be a list returned by the  \code{\link{mining}} function.
           }
   \item{x}{the predictions (should be a numeric vector if \code{task="reg"}, matrix if \code{task="prob"} or factor if \code{task="class"} (use if \code{y} is not a list).}
-  \item{metric}{a R function or if a character valid options are:
+  \item{metric}{a R function or if a character valid options are (">" means better error if higher value, "<" means better error if lower value):
               \itemize{
-                       \item \code{AUC} -- overall area under the curve (of ROC curve, classification).
-                       \item \code{NAUC} -- normalized AUC (given a fixed \code{val=}FPR, classification).
-                       \item \code{TPRATFPR} -- the TPR (given a fixed \code{val=}FPR, classification).
-                       \item \code{ALIFT} -- area of the accumulative percent of responses captured (LIFT accumulative curve, classification).
-                       \item \code{NALIFT} -- normalized ALIFT (given a fixed \code{val=}percentage of examples, classification).
-                       \item \code{ALIFTATPERC} -- ALIFT value (given a fixed \code{val=}percentage of examples, classification).
-                       \item \code{ACC} -- overall classification accuracy rate (classification).
-                       \item \code{BRIER} -- overall Brier score (for probabilistic classification).
+                       \item \code{AUC} -- overall area under the curve (of ROC curve, classification, ">").
+                       \item \code{NAUC} -- normalized AUC (given a fixed \code{val=}FPR, classification, ">").
+                       \item \code{TPRATFPR} -- the TPR (given a fixed \code{val=}FPR, classification, ">").
+                       \item \code{ALIFT} -- area of the accumulative percent of responses captured (LIFT accumulative curve, classification, ">").
+                       \item \code{NALIFT} -- normalized ALIFT (given a fixed \code{val=}percentage of examples, classification, ">").
+                       \item \code{ALIFTATPERC} -- ALIFT value (given a fixed \code{val=}percentage of examples, classification, ">").
+                       \item \code{ACC} -- overall classification accuracy rate (classification, ">").
+                       \item \code{BRIER} -- overall Brier score (for probabilistic classification, "<").
                        \item \code{CONF} -- confusion matrix (classification).
-                       \item \code{TPR} -- true positive rate (classification).
-                       \item \code{TNR} -- true negative rate (classification).
-                       \item \code{KAPPA} -- kappa index (classification).
-                       \item \code{SAD} -- sum absolute error (regression).
-                       \item \code{MAD} or \code{MAE} -- mean absolute error (regression).
-                       \item \code{MdAE} -- median absolute error (regression).
-                       \item \code{GMAE} or \code{GMAD} -- geometric mean absolute error (regression).
-                       \item \code{RMAD} or \code{RAE} -- relative absolute error (regression).
-                       \item \code{SSE} -- sum squared error (regression).
-                       \item \code{MSE} -- mean squared error (regression).
-                       \item \code{RSE} -- relative squared error (regression).
-                       \item \code{RMSE} -- root mean squared error (regression).
-                       \item \code{ME} -- mean error (regression).
-                       \item \code{COR} -- correlation (regression).
-                       \item \code{R2} -- R^2 (regression).
-                       \item \code{NAREC} -- normalized REC area (given a fixed \code{val=}tolerance, regression).
-                       \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve (given a fixed \code{val=}tolerance, regression).
-                       \item \code{MdAPE} -- Mean Absolute Percentage mmetric forecasting metric (regression).
-                       \item \code{RMSPE} -- Root Mean Square Percentage mmetric forecasting metric (regression).
-                       \item \code{RMdSPE} -- Root Median Square Percentage mmetric forecasting metric (regression).
-                       \item \code{MAPE} --  Mean Absolute Percentage mmetric forecasting metric (regression).
-                       \item \code{SMAPE} --  Symmetric Mean Absolute Percentage mmetric forecasting metric (regression).
-                       \item \code{SMdAPE} -- Symmetric Median Absolute Percentage mmetric forecasting metric  (regression).
-                       \item \code{MRAE} -- Mean Relative Absolute mmetric forecasting metric (\code{val} includes the time series in-samples, or training data, regression).
-                       \item \code{MdRAE} -- Median Relative Absolute mmetric forecasting metric (\code{val} includes the time series in-samples, or training data, regression).
-                       \item \code{GMRAE} -- Geometric Mean Relative Absoluate mmetric forecasting metric  (\code{val} includes the time series in-samples, or training data, regression).
-                       \item \code{THEILSU2} -- Theils'U2 forecasting metric (\code{val} includes the time series in-samples, or training data, regression).
-                       \item \code{MASE} -- MASE forecasting metric  (\code{val} includes the time series in-samples, or training data, regression).
+                       \item \code{TPR} -- true positive rate (classification, ">").
+                       \item \code{TNR} -- true negative rate (classification, ">").
+                       \item \code{KAPPA} -- kappa index (classification, "<").
+                       \item \code{SAD} -- sum absolute error (regression, "<").
+                       \item \code{MAD} or \code{MAE} -- mean absolute error (regression, "<").
+                       \item \code{MdAE} -- median absolute error (regression, "<").
+                       \item \code{GMAE} or \code{GMAD} -- geometric mean absolute error (regression, "<").
+                       \item \code{RMAD} or \code{RAE} -- relative absolute error (regression, "<").
+                       \item \code{SSE} -- sum squared error (regression, "<").
+                       \item \code{MSE} -- mean squared error (regression, "<").
+                       \item \code{RSE} -- relative squared error (regression, "<").
+                       \item \code{RMSE} -- root mean squared error (regression, "<").
+                       \item \code{ME} -- mean error (regression, "<").
+                       \item \code{COR} -- correlation (regression, ">").
+                       \item \code{R2} -- "press" R^2 (regression, ">").
+                       \item \code{q2} -- =1-correlation^2 test error metric, as used by Mark Embrechts  (regression, "<").
+                       \item \code{Q2} -- "press"/SD test error metric, as used by Mark Embrechts (regression, "<").
+                       \item \code{NAREC} -- normalized REC area (given a fixed \code{val=}tolerance, regression, ">").
+                       \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve (given a fixed \code{val=}tolerance, regression, , ">").
+                       \item \code{MdAPE} -- Mean Absolute Percentage mmetric forecasting metric (regression, "<").
+                       \item \code{RMSPE} -- Root Mean Square Percentage mmetric forecasting metric (regression, "<").
+                       \item \code{RMdSPE} -- Root Median Square Percentage mmetric forecasting metric (regression, "<").
+                       \item \code{MAPE} --  Mean Absolute Percentage mmetric forecasting metric (regression, "<").
+                       \item \code{SMAPE} --  Symmetric Mean Absolute Percentage mmetric forecasting metric (regression, "<").
+                       \item \code{SMdAPE} -- Symmetric Median Absolute Percentage mmetric forecasting metric  (regression, "<").
+                       \item \code{MRAE} -- Mean Relative Absolute mmetric forecasting metric (\code{val} includes the time series in-samples, or training data, regression, "<").
+                       \item \code{MdRAE} -- Median Relative Absolute mmetric forecasting metric (\code{val} includes the time series in-samples, or training data, regression, "<").
+                       \item \code{GMRAE} -- Geometric Mean Relative Absoluate mmetric forecasting metric  (\code{val} includes the time series in-samples, or training data, regression, "<").
+                       \item \code{THEILSU2} -- Theils'U2 forecasting metric (\code{val} includes the time series in-samples, or training data, regression, "<").
+                       \item \code{MASE} -- MASE forecasting metric  (\code{val} includes the time series in-samples, or training data, regression, "<").
                       }
 
 }
@@ -131,6 +133,9 @@ y=c(1:94,95.01,96.1,97.2,97.8,99.3,99.7);x=rnorm(100,5,0.3)+y
 print(mmetric(y,x,"MAE"))
 print(mmetric(y,x,"RMSE"))
 print(mmetric(y,x,"TOLERANCE",val=5))
+print(mmetric(y,x,"COR"))
+print(mmetric(y,x,"R2"))
+print(mmetric(y,x,"Q2"))
 print(mmetric(y[95:100],x[95:100],"THEILSU2",val=y[1:94])) # b = in-samples
 print(mmetric(y[95:100],x[95:100],"MASE",val=y[1:94])) # b = in-samples
 print(metrics(y,x)) # several regression metrics

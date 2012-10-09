@@ -114,6 +114,15 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 \examples{
+### IMPORTANT NOTE ###
+# The execution of the examples below require more few seconds.
+# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
+# Such lines are marked with: # DELETE-OR-IGNORE ...
+# If you want to test the code, please comment or ignore these 2 lines
+### END OF NOTE    ###
+
+if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
+
 ### simple regression example
 x1=rnorm(200,100,20); x2=rnorm(200,100,20)
 y=0.7*sin(x1/(25*pi))+0.3*sin(x2/(25*pi))
@@ -150,7 +159,8 @@ mgraph(M,graph="REC",Grid=10,main="sin1 MLPE REC")
 mgraph(M,graph="IMP",Grid=10,main="input importances",xval=0.1,leg=names(sin1reg))
 mgraph(M,graph="VEC",Grid=10,main="x1 VEC curve",xval=1,leg=names(sin1reg)[1])
 
-### another classification example
+### other classification examples
+## 1st example:
 data(iris)
 M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2),model="svm",
 search="heuristic",mpar=c(NA,NA,"kfold",3,"AUC"),feature="s")
@@ -160,6 +170,15 @@ mgraph(M,graph="IMP",TC=2,Grid=10,main="input importances",xval=0.1,
 leg=names(iris),axis=1)
 mgraph(M,graph="VEC",TC=2,Grid=10,main="Petal.Width VEC curve",
 data=iris,xval=4)
+## 2nd example, ordered kfold:
+M=mining(Species~.,iris,Runs=1,method=c("kfoldo",3),model="knn")
+print(mmetric(M,metric="CONF"))
+## 3rd example, use of naive method (most common class)
+M=mining(Species~.,iris,Runs=1,method=c("kfold",3),model="naive")
+print(mmetric(M,metric="CONF"))
+
+} # DELETE-OR-IGNORE-THIS LINE #
+
 }
 
 % Add one or more standard keywords, see file 'KEYWORDS' in the
