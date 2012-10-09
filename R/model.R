@@ -5,7 +5,7 @@
 # This file deals will all Data Mining models
 #
 #  - Several parts of code were gratefully copied/inspired from the kernlab source code package :)
-#  - The naiveBayes is a slightly different version of the e1071 package. It eliminates an error
+#  - The naivebayes is equal to naiveBayes but without requiring the instalation of the e1071 other sources and packages
 #  that constantly appeared when a high number of inputs was used (spam e-mail classification)
 #-------------------------------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ loadmining<-function(file)
 #         mlp: c(NR,MaxIt,validationmethod,validationpar,metric,PAR) PAR = HN if decay is used for the search or DECAY if HN is used for the search
 #         svm: c(C,Epsilon,validationmethod,validationpar,metric)  if C=NA or Epsilon=NA then heuristics are used
 #         knn: c(validationmethod,validationpar,metric)
-#              metric = "AUC", "ACC", "MAD", "SSE"
+#              metric = "AUC", "ACC", "MAE", "SSE"
 # @task - type of data mining task, one of the following: 
 # "default", "class" (or "cla" or "classification"), "prob" (or "probability") - pure class, no probabilities!, "reg" (or "regression")
 #     "default" means if is.factor(y) "class" else "reg"
@@ -182,7 +182,7 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
    if(substr(task,1,3)=="reg") print("Error: naive bayes should be used in classification\n")
    #if(model=="wnaivebayes") { WNB <- make_Weka_classifier("weka/classifiers/bayes/NaiveBayes"); M<-WNB(x,data=data,...); }
    #else 
-   M<-naivebayes(x,data=data,...)
+   M<-naivebayes(x,data=data,...) ###
    #if(length(attributes)==2) M<-NULL # model is equal to the unique input attribute
    #else M<-naiveBayes(x,data=data,...)
  }
@@ -556,7 +556,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
           #    {
           #      beg=1+nrow(data)-K3-5+kkk;
           #      P=lforecast(M,data,start=beg,horizon=K3) 
-          #      Eval[kkk]=Error(data[beg:(beg+horizon),ncol(data)],P,metric)
+          #      Eval[kkk]=mmetric(data[beg:(beg+horizon),ncol(data)],P,metric)
           #    }
           #    Eval=mean(Eval)
           # }
@@ -568,7 +568,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
           if(model=="knn" || model=="randomforest") kmpar=c("all",0,metric)
           else kmpar=c(K1,K2,"all",0,metric)
           if(DECAY>0) kmpar<-c(kmpar,DECAY)
-         
+        
           if(VEC_SEARCH) KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,
                                           scale=scale,search=c(search[i]),mpar=kmpar,transform=transform,...)
           else
@@ -586,7 +586,7 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
        }
      # get the error
        #if(method!="holdoutfor5") 
-       Eval=Error(TS,P,metric)
+       Eval=mmetric(TS,P,metric)
        if(isbest(Eval,BESTVAL,metric)) {BESTVAL<-Eval;notimprove=0;if(VEC_SEARCH) BEST<-search[i] else BEST<-search[i,]} 
        else notimprove=notimprove+1
 #cat("i",i,"at:",(ncol(data)-1),"nr:",nrow(data),"s:",search[i],"val:",Eval,"b:",BESTVAL,"best:",BEST,"\n")
@@ -991,6 +991,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
 
  feature=defaultfeature(feature)
  task=defaultask(task,model,data[1,outindex])
+ if(task!="reg" && !is.factor(data[,outindex])) data[,outindex]=factor(data[,outindex])
 
  npar=modelnpar(model)
  
@@ -1108,7 +1109,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
 #print(PRED[[i]])
 #print(TEST[[i]])
 #cat(" i:",i,"metric:",metric,"\n")
-  error[i]=Error(TS,P,metric)
+  error[i]=mmetric(TS,P,metric)
 #cat(" e:",error[i],"\n")
   curtm<- proc.time()
   time[i]<-(curtm-previoustm)[3] # execution time for run i
@@ -1149,14 +1150,15 @@ medianminingpar=function(M,parorder=NULL)
 getmetric=function(mpar,model,task)
 {
  L=length(mpar)
- if(L==0) {metric=switch(task,prob="AUC",class="ACC","MAD")}
+ if(L==0) {metric=switch(task,prob="AUC",class="ACC","MAE")}
  else if(L>2 && (model=="knn" || model=="randomforest") ) metric=mpar[3]
  else if(L>4 && (substr(model,1,3)=="mlp" || model=="svm")) metric=mpar[5]
  else if(L>0 && (substr(model,1,3)!="mlp" && model!="svm" && model!="knn" && model!="randomforest") ) metric=mpar[1]
- else metric=switch(task,prob="AUC",class="ACC","MAD")
+ else metric=switch(task,prob="AUC",class="ACC","MAE")
  return (metric)
 }
 
+# TO DO: remove sampling argument, not used!!!
 #-- example code of variant to allow direct use of models built with nnet, ksvm, randomForest, etc...
 #-- needs more coding... still in beta phase
 #-- type should be explicitly defined, as it depends on the predict function.
@@ -1533,17 +1535,17 @@ avg_imp=function(I,AT,measure="variance")
 }
 
 # experimental:
+# need to check if using the output variable at the first column produces errors in other rminer functions:
 agg_matrix_imp=function(I,INP=I$inputs,measure=I$measure,Aggregation=I$agg,method=I$method,outdata=NULL,L=I$Llevels,ameth="xy",Tolerance=0.1)
 {
  N=length(INP)
  m1=matrix(0,ncol=N,nrow=N)
  m2=m1
-
- for(i in INP)
- for(j in INP)
-   { if(i!=j) { 
-#cat("i:",i,"j:",j,"Li:",L[i],"Lj:",L[j],"\n")  
-                II=aggregate_imp(I,AT=c(i,j),measure=measure,Aggregation=Aggregation,method=method,outdata=outdata,L=L,ameth=ameth,Tolerance=Tolerance)
+ for(i in 1:N)
+  for(j in 1:N)
+   { if(INP[i]!=INP[j]) { 
+                #cat("i:",i,"j:",j,"Li:",L[i],"Lj:",L[j],"\n")  
+                II=aggregate_imp(I,AT=c(INP[i],INP[j]),measure=measure,Aggregation=Aggregation,method=method,outdata=outdata,L=L,ameth=ameth,Tolerance=Tolerance)
                 m1[i,j]=mean(II$value); m2[i,j]=mean(II$value2)
               }
    }
@@ -1911,6 +1913,8 @@ balanced_responses=function(y)
 
 # --- auxiliary functions, do not use directly:
 # x is a $sresponses object
+# problem if task="class", y is factor and not a matrix, need to adapt rminer for dealing with factors,
+# which means changing several functions, including in plots.R, metrics.R (vaveraging), etc...
 resp_to_list=function(x,TC=-1)
 {
  LX=length(x$x);lines=LX/x$l;
@@ -1918,8 +1922,17 @@ resp_to_list=function(x,TC=-1)
  for(i in 1:lines)
     { 
       ini=(i-1)*x$l+1;end=ini+x$l-1
-      if(TC==-1) M=cbind(x$x[ini:end],x$y[ini:end])
-      else M=cbind(x$x[ini:end],x$y[ini:end,TC])
+#      if(is.factor(x$y)
+#      {
+#       if(TC==-1) TC=length(
+#       M=cbind(x$x[ini:end],x$y[ini:end])
+#      }
+#      else
+#      { }
+       #if(TC==-1) M=data.frame(x=x$x[ini:end],y=x$y[ini:end])
+       if(TC==-1) M=cbind(x=x$x[ini:end],y=x$y[ini:end])
+       else M=cbind(x$x[ini:end],x$y[ini:end,TC])
+#      }
       RES[[i]]=M   
     }
  return (RES)

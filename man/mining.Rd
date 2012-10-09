@@ -115,7 +115,7 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 
 \examples{
 ### IMPORTANT NOTE ###
-# The execution of the examples below require more few seconds.
+# The execution of the examples below requires more than a few seconds.
 # Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
 # Such lines are marked with: # DELETE-OR-IGNORE ...
 # If you want to test the code, please comment or ignore these 2 lines

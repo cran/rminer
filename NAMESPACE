@@ -18,7 +18,6 @@ export(
        "cmatrixplot",
        "imputation",
        "delevels",
-       "factorize",
        "svmgrid",
 
        # time series:
@@ -28,6 +27,7 @@ export(
        "tsplot",
 
        # other functions, not that relevant:
+       "mpause",
        "holdout",
        "crossvaldata",
        "datalevels",
@@ -35,15 +35,19 @@ export(
        "ROCcurve",
        "rmboxplot",
        "s_measure",
-       "multiROC"
+       "naivebayes",
+       "factorize"
       )
 
-importFrom("plotrix","color2D.matplot","color.legend")
+#importFrom("stats","cov2cor","toeplitz","update")
+importFrom("nnet","nnet")
+importFrom("kknn","kknn")
+importFrom("kernlab","ksvm")
+importFrom("rpart","rpart")
 importFrom("grDevices","pdf","dev.off")
 importFrom("graphics","plot","segments","hist","par","lines","points","legend","axis","abline","filled.contour","text","boxplot")
+importFrom("plotrix","color2D.matplot","color.legend")
 importFrom("lattice","wireframe")
-importFrom("nnet","nnet")
-importFrom("rpart","rpart")
 
 import(methods) 
 
@@ -51,3 +55,8 @@ exportMethods("predict")
 
 exportClasses("model")
 
+S3method(naivebayes,default)
+S3method(naivebayes,formula)
+S3method(predict,naivebayes)
+
+#S3method(predict,model)

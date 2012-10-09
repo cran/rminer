@@ -24,7 +24,7 @@ See \code{\link{fit}}.
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \seealso{
-\code{\link{fit}}, \code{\link{factorize}} and \code{\link{imputation}}.
+\code{\link{fit}} and \code{\link{imputation}}.
 }
 \examples{
 f=factor(c("A","A","B","B","C","D","E"))

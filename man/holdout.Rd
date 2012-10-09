@@ -21,7 +21,7 @@ Computes indexes for holdout data split into training and test sets.
                                                    for the last batch (where it may be smaller).
                       }
 }
-  \item{iter}{iteration of the incremental retraining mode (only used when \code{mode=="incremental"}, typically \code{iter} is set within a cycle, see the example below).}
+  \item{iter}{iteration of the incremental retraining mode (only used when \code{mode==}"incremental", typically \code{iter} is set within a cycle, see the example below).}
 }
 \details{
 Computes indexes for holdout data split into training and test sets (if \code{y} is a factor then a stratified holdout is applied).

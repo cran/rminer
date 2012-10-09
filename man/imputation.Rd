@@ -32,7 +32,7 @@ In Industrial Management & Data Systems, 103(8):611-621, 2003.\cr
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \seealso{
-\code{\link{fit}}, \code{\link{factorize}} and \code{\link{delevels}}.
+\code{\link{fit}} and \code{\link{delevels}}.
 }
 \examples{
 d=matrix(ncol=5,nrow=5)

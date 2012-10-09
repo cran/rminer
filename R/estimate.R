@@ -108,9 +108,9 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
             }
          }
         if(!is.null(ATTRIB)) ATTRIB[[j]]=u@attributes
-        #print(u)
-        if(npar>0) par[j,]=as.numeric(u@mpar[1,])
-
+#print(u)
+        if(npar>0) par[j,]=as.numeric(u@mpar[1,]) 
+#print("---")
 #cat("cv fit class:",class(cv.fit),"\n")
         if(is.matrix(cv.fit)) cv.fit[ groups[[j]], ] <-  theta.predict(u,data[groups[[j]],]) # probabilities!
         else cv.fit[ groups[[j]] ] <-  theta.predict(u,data[groups[[j]],]) # regression or classification, 1 output

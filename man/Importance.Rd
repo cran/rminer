@@ -61,7 +61,7 @@ a matrix of examples (rows) vs probabilities (columns) (\code{task="prob"}) or a
 \itemize{
                       \item if \code{NULL} then only a 1-D sensitivity analysis is performed.
                       \item if \code{length(interactions)==1}?then a "special" 2-D sensitivity analysis is performed using the index of interactions versus
-all remaining inputs. Note: the $sresponses[[interactions]] will be empty (in \code{\link{vecplot}} do not use \code{xval=interactions}).
+all remaining inputs. Note: the $sresponses[[interactions]] will be empty (in \code{\link{vecplot}} do not use \code{xval} \code{=interactions}).
                       \item if \code{length(interactions)>1}?then a full Ith-D sensitivity analysis is performed, where I=length(interactions).
 Note: Computational effort can highly increase if I is too large, i.e. O(RealL^I). Also, you need to preprocess the 
 returned list (e.g. using \code{avg_imp}) to use the \code{\link{vecplot}} function (see the examples).
@@ -103,13 +103,11 @@ A \code{list} with the components:
 }
 \references{
 \itemize{
-\item To cite the Importance function or sensitivity analysis method, please use:\cr
-\cr
+\item To cite the Importance function, sensitivity analysis methods or synthetic datasets, please use:\cr
 P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
-In Information Sciences, Elsevier, in press.\cr
-\cr
-\url{http://www3.dsi.uminho.pt/pcortez/}\cr
+In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
+\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
 }
 }
 \author{
@@ -124,7 +122,7 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 \examples{ 
 ### IMPORTANT NOTE ###
-# The execution of the examples below require more few seconds.
+# The execution of the examples below requires more than a few seconds.
 # Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
 # Such lines are marked with: # DELETE-OR-IGNORE ...
 # If you want to test the code, please comment or ignore these 2 lines

@@ -36,7 +36,7 @@ rminerhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Freque
 }
 
 
-
+# todo: add xlab and ylab options?
 # mgraph
 # graph options:
 # "REC"

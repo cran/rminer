@@ -1,5 +1,6 @@
 
-mypause=function(text1="",text2="")
+# very simple function, used for demonstration purposes...
+mpause=function(text1="",text2="")
 {
  if(text1!="") print(text1)
  if(text2=="") text2="-- Pause: press enter to continue --"
@@ -58,102 +59,6 @@ scaleinputs2<-function(data,cx,sx)
  return(data)
 }
 
-
-# nominal : currently this function is not needed anymore, as nnet, ksvm and lm use
-#           already an internal similar process. Yet I will keep this function here
-#           in case I need it in the future!
-#---------------------------------------------------------
-# Performs a 1-of-C coding on the nominal (factor with 3 or more discrete values)
-# DMData - matrix or dataframe with the DM dataset
-# thresh - maximum number of labels (C) for the 1-of-C encoding?
-# positive - label for the positive value (e.g. 1)
-# negative - label for the negative value (e.g. -1 or 0)
-# warning - only works with dataframes with 2 or more attributes... need to correct this... 
-#---------------------------------------------------------
-nominal <-function(DMData, thresh = 20,positive=1,negative=-1,exclude=-1) 
-{
-   AttrNo <- NCOL(DMData)
-   result <- DMData
-   k<-1
-   for (i in 1:AttrNo) 
-   {
-       if (i!=exclude && is.factor(DMData[ , i]))
-       {
-        L<-length(levels(DMData[,i]))
-        #print(paste("i: ",i," k:", k, " L:", L))
-        if (L>2) # is nominal!!!
-        {
-          result <- substituteNV(result, k, thresh,positive,negative)
-          if(L<thresh) k<-k+L
-          else k<-k+1
-        }
-        else { 
-               BIN<-as.numeric(DMData[,i])
-               BIN[BIN==1]<-negative  
-               BIN[BIN==2]<-positive
-               result[k]<-BIN
-               k<-k+1
-             }
-       } 
-       else k<-k+1
-   } 
-   return (result)       
-}
-# ------------------------------------------------------------------
-# internal R function used by nominal: do not use this
-# by Milan Legat and Martin Gruber 2005 (very fast):
-# by Paulo Cortez 2006, some minor corrections and adaptations
-# ------------------------------------------------------------------
-"substituteNV" <-
-function(DMData, colNo, thresh = 20, positive=1,negative=-1) {
-         
-             NAMES<-names(DMData)
-             
-             result <- DMData[ , ]
-             rowCount <- nrow(DMData)
-             colF <- as.factor(DMData[ , colNo])
-             
-             levelsNo <- nlevels(colF)
-             origName <- names(DMData)[colNo]
-
-             if (levelsNo < thresh) 
-              {
-                subs <- data.frame(matrix(negative, nrow = rowCount, ncol = levelsNo))
-                for (i in 1:levelsNo) names(subs)[i] <- paste(origName, '_', levels(colF)[i], sep = '')
-                for (i in 1:levelsNo) 
-                   {
-                    replaceWhat <- which(DMData[ , colNo] == levels(colF)[i])
-                    if(length(replaceWhat>0)) subs[replaceWhat, i] <- positive 
-                   } 
-              } # if (levelsNo < thresh) {
-             else 
-              {
-                subs <- data.frame(matrix(0, nrow = rowCount, ncol = 1))
-                names(subs) <- paste(origName, '_', sep = '')
-                for (i in 1:levelsNo) 
-                  {
-                    replaceWhat <- which(DMData[ , colNo] == levels(colF)[i])
-                    if(length(replaceWhat>0))subs[replaceWhat, ] <- i
-                  } 
-              } 
-             
-             Xcol<-NCOL(result)
-             if(colNo==1) { 
-                            result <- cbind(subs, result[,(2:Xcol)])                          
-                            NAMES  <- c(names(subs),NAMES[(2:Xcol)])
-                          }
-             else if(colNo==Xcol) { result <- cbind(result[,(1:(colNo-1))], subs)                          
-                                    NAMES  <- c(NAMES[(1:(colNo-1))],names(subs))
-                                  }
-             else 
-               { 
-                result <- cbind(result[,(1:(colNo-1))], subs, result[,((colNo+1):Xcol)])
-                NAMES  <- c(NAMES[(1:(colNo-1))],names(subs),NAMES[((colNo+1):Xcol)])
-               }
-             names(result)<-NAMES
-             return (result)
-             
-} # substituteNV <- function(column) {
 
 # xtransform and not "transform" from base
 xtransform=function(x,transform,A=0,B=0,attributes=NULL)
@@ -326,33 +231,6 @@ hotdeck<-function(D,Attribute=NULL,Missing=NA,K=1)
 
 
 #---------------------------------------------------------
-# returns the variable x (vector made of a continuous/numeric values) into
-# a vector of discrete values (factor)
-# 
-#
-# Parameters:
-# x - vector of numeric values
-# levels - a vector with the limits for each vector. 
-# labels - a vector of length(levels)-1 with the labels for each 2 limits
-#     
-# Each label is assigned with level[i] <= label < level[i+1]
-#
-# example: 
-# N<-1:10
-# F<-factorize(N,c(0,5,11),c("less-than-five","higher-than-five"))
-#---------------------------------------------------------
-factorize<-function(x,limits,labels)
-{
- N<-length(labels)
- res<-vector(length=length(x))
- for(i in 1:N)
-   { 
-     Ind<-which(x>=limits[i] & x<limits[i+1])
-     res[Ind]<-labels[i]
-   }
- return(factor(res))
-}
-#---------------------------------------------------------
 # reduces the number of labels for a given factor
 # all labels not included in new reduced levels are transformed into "_OTHER"
 #---------------------------------------------------------
@@ -450,38 +328,28 @@ medianfirst=function(x)
 }
 #--- END OF AUXILIAR FUNCTIONS --------------------------------------------
 
-#--- TS functions ---
-
-# load a .ts file into a vector time series
-readts=function(name,header=FALSE)
-{
- TSNAME<-paste(name,".ts",sep="")
- t<-read.table(TSNAME,sep=";",header=header)
- return (t[,1])
-}
-
 # transform a TS intro a data.frame matrix of #W inputs and y output variables
 # W - vector with the sliding time windows
 # start - default is one
 # end - default is the length of the series
-CasesSeries<-function(t,W,start=1,end=length(t))
+CasesSeries=function(t,W,start=1,end=length(t))
 {
- LW<-length(W)
- LL<-W[LW]
- JL<-(end-start+1)-LL
- I<-matrix(ncol=(LW+1),nrow=JL)
- S<-start-1
+ LW=length(W)
+ LL=W[LW]
+ JL=(end-start+1)-LL
+ I=matrix(ncol=(LW+1),nrow=JL)
+ S=start-1
  for(j in 1:JL)
  {
   for(i in 1:LW)
-  	I[j,i]<-t[(S+LL-W[LW-i+1]+j)]
-  I[j,(LW+1)]<-t[(S+LL+j)]
+  	I[j,i]=t[(S+LL-W[LW-i+1]+j)]
+  I[j,(LW+1)]=t[(S+LL+j)]
  }
- D<-data.frame(I)
- N<-names(D)
- LN<-length(N)
+ D=data.frame(I)
+ N=names(D)
+ LN=length(N)
  for(i in 1:(LN-1)) N[LN-i]<-paste("lag",W[i],sep="")
- N[LN]<-"y"
+ N[LN]="y"
  names(D)<-N
  return (D)
 }
@@ -522,6 +390,60 @@ lforecast=function(M,data,start,horizon)
  return (F[(ML+1):(ML+horizon)])
 }
 
+# given d data, returns the number of levels for each attribute
+datalevels=function(d,L=7,Lfactor=FALSE)
+{
+ NC=ncol(d)
+ res=rep(L,NC)
+ for(i in 1:NC)
+              {
+                NL=length(levels(d[1,i]))
+                if(NL>0){if(Lfactor) res[i]=NL else res[i]=min(NL,L)}
+              }
+ return(res) 
+}
+
+factorize<-function(x,limits,labels)
+{ warning("Deprecated function, please use instead: cut(x,limits,labels)")
+ N<-length(labels)
+ res<-vector(length=length(x))
+ for(i in 1:N)
+   { 
+     Ind<-which(x>=limits[i] & x<limits[i+1])
+     res[Ind]<-labels[i]
+   }
+ return(factor(res))
+}
+
+# ----------NOT USED CURRENTLY (stored only for backup purposes): --------
+# time series: get a reasonable value for first sazonality period or DEFAULT
+# load a .ts file into a vector time series
+if(FALSE){
+
+#---------------------------------------------------------
+# equal to cut !!!
+# returns the variable x (vector made of a continuous/numeric values) into
+# a vector of discrete values (factor)
+# 
+#
+# Parameters:
+# x - vector of numeric values
+# levels - a vector with the limits for each vector. 
+# labels - a vector of length(levels)-1 with the labels for each 2 limits
+#     
+# Each label is assigned with level[i] <= label < level[i+1]
+#
+# example: 
+# N<-1:10
+# F<-factorize(N,c(0,5,11),c("less-than-five","higher-than-five"))
+#---------------------------------------------------------
+
+readts=function(filename,header=FALSE)
+{
+ TSNAME<-paste(name,".ts",sep="")
+ t<-read.table(TSNAME,sep=";",header=header)
+ return (t[,1])
+}
 
 guess_k=function(x,Max=300) # get a reasonable value for first sazonality period or DEFAULT
 {
@@ -543,14 +465,101 @@ guess_k=function(x,Max=300) # get a reasonable value for first sazonality period
  else return (DEFAULT) 
 }
 
-datalevels=function(d,L=7,Lfactor=FALSE)
+
+# nominal : currently this function is not needed anymore, as nnet, ksvm and lm use
+#           already an internal similar process. Yet I will keep this function here
+#           in case I need it in the future!
+#---------------------------------------------------------
+# Performs a 1-of-C coding on the nominal (factor with 3 or more discrete values)
+# DMData - matrix or dataframe with the DM dataset
+# thresh - maximum number of labels (C) for the 1-of-C encoding?
+# positive - label for the positive value (e.g. 1)
+# negative - label for the negative value (e.g. -1 or 0)
+# warning - only works with dataframes with 2 or more attributes... need to correct this... 
+#---------------------------------------------------------
+nominal <-function(DMData, thresh = 20,positive=1,negative=-1,exclude=-1) 
 {
- NC=ncol(d)
- res=rep(L,NC)
- for(i in 1:NC)
+   AttrNo <- NCOL(DMData)
+   result <- DMData
+   k<-1
+   for (i in 1:AttrNo) 
+   {
+       if (i!=exclude && is.factor(DMData[ , i]))
+       {
+        L<-length(levels(DMData[,i]))
+        #print(paste("i: ",i," k:", k, " L:", L))
+        if (L>2) # is nominal!!!
+        {
+          result <- substituteNV(result, k, thresh,positive,negative)
+          if(L<thresh) k<-k+L
+          else k<-k+1
+        }
+        else { 
+               BIN<-as.numeric(DMData[,i])
+               BIN[BIN==1]<-negative  
+               BIN[BIN==2]<-positive
+               result[k]<-BIN
+               k<-k+1
+             }
+       } 
+       else k<-k+1
+   } 
+   return (result)       
+}
+# ------------------------------------------------------------------
+# internal R function used by nominal: do not use this
+# by Milan Legat and Martin Gruber 2005 (very fast):
+# by Paulo Cortez 2006, some minor corrections and adaptations
+# ------------------------------------------------------------------
+"substituteNV" <-
+function(DMData, colNo, thresh = 20, positive=1,negative=-1) {
+         
+             NAMES<-names(DMData)
+             
+             result <- DMData[ , ]
+             rowCount <- nrow(DMData)
+             colF <- as.factor(DMData[ , colNo])
+             
+             levelsNo <- nlevels(colF)
+             origName <- names(DMData)[colNo]
+
+             if (levelsNo < thresh) 
               {
-                NL=length(levels(d[1,i]))
-                if(NL>0){if(Lfactor) res[i]=NL else res[i]=min(NL,L)}
-              }
- return(res) 
+                subs <- data.frame(matrix(negative, nrow = rowCount, ncol = levelsNo))
+                for (i in 1:levelsNo) names(subs)[i] <- paste(origName, '_', levels(colF)[i], sep = '')
+                for (i in 1:levelsNo) 
+                   {
+                    replaceWhat <- which(DMData[ , colNo] == levels(colF)[i])
+                    if(length(replaceWhat>0)) subs[replaceWhat, i] <- positive 
+                   } 
+              } # if (levelsNo < thresh) {
+             else 
+              {
+                subs <- data.frame(matrix(0, nrow = rowCount, ncol = 1))
+                names(subs) <- paste(origName, '_', sep = '')
+                for (i in 1:levelsNo) 
+                  {
+                    replaceWhat <- which(DMData[ , colNo] == levels(colF)[i])
+                    if(length(replaceWhat>0))subs[replaceWhat, ] <- i
+                  } 
+              } 
+             
+             Xcol<-NCOL(result)
+             if(colNo==1) { 
+                            result <- cbind(subs, result[,(2:Xcol)])                          
+                            NAMES  <- c(names(subs),NAMES[(2:Xcol)])
+                          }
+             else if(colNo==Xcol) { result <- cbind(result[,(1:(colNo-1))], subs)                          
+                                    NAMES  <- c(NAMES[(1:(colNo-1))],names(subs))
+                                  }
+             else 
+               { 
+                result <- cbind(result[,(1:(colNo-1))], subs, result[,((colNo+1):Xcol)])
+                NAMES  <- c(NAMES[(1:(colNo-1))],names(subs),NAMES[((colNo+1):Xcol)])
+               }
+             names(result)<-NAMES
+             return (result)
+             
+} # substituteNV <- function(column) {
+
 }

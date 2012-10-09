@@ -92,9 +92,10 @@ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 \cr
 P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
-In Information Sciences, Elsevier, in press.\cr
+In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
 \cr
-GSA algorithm:\cr
+\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
+
 }
 }
 

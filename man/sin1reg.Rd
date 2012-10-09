@@ -14,12 +14,11 @@ Simple synthetic dataset with 1000 points, where y=0.7*sin(pi*x1/2000)+0.3*sin(p
 \source{See references}
 \references{
 \itemize{
-\item To cite the Importance function or sensitivity analysis method, please use:\cr
-P. Cortez and M. Embrechts.\cr
-Opening Black Box Data Mining Models Using Sensitivity Analysis.\cr
-In Proceedings of the 2011 IEEE Symposium on Computational Intelligence and Data Mining (CIDM),
-pp. 341-348, Paris, France, April, 2011.\cr
-\url{http://www3.dsi.uminho.pt/pcortez/}\cr
+\item To cite the Importance function, sensitivity analysis methods or synthetic datasets, please use:\cr
+P. Cortez and M.J. Embrechts.\cr
+Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
+In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
+\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
 }
 }
 \examples{

@@ -26,11 +26,15 @@ Synthetic regression and classification datasets for measuring input importance 
 \details{
 Check reference or source for full details
 }
-\source{
+\source{See references}
+\references{
+\itemize{
+\item To cite the Importance function, sensitivity analysis methods or synthetic datasets, please use:\cr
 P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
-In Information Sciences, Elsevier, in press.\cr
-\url{http://www3.dsi.uminho.pt/pcortez/}\cr
+In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
+\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
+}
 }
 \examples{
 data(sa_fri1)
