@@ -586,7 +586,9 @@ bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FA
        }
      # get the error
        #if(method!="holdoutfor5") 
+#TS<<-TS;P<<-P
        Eval=mmetric(TS,P,metric)
+#cat("best fit eval:",Eval,"metric:",metric,"\n")
        if(isbest(Eval,BESTVAL,metric)) {BESTVAL<-Eval;notimprove=0;if(VEC_SEARCH) BEST<-search[i] else BEST<-search[i,]} 
        else notimprove=notimprove+1
 #cat("i",i,"at:",(ncol(data)-1),"nr:",nrow(data),"s:",search[i],"val:",Eval,"b:",BESTVAL,"best:",BEST,"\n")

@@ -3,7 +3,7 @@
 # to do: ranking measures?
 
 isbest=function(Cur,Best,metric)
-{if(is.na(Cur)) return (FALSE) 
+{if(length(Cur)==0 || is.na(Cur)) return (FALSE) 
  else{ return (switch(metric,
                 CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,
                 TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUC=Cur>Best,
@@ -26,7 +26,7 @@ metrics=function(y,x=NULL,D=0.5,TC=-1,val=NULL,aggregate="no")
 
 mmetric=function(y,x=NULL,metric,D=0.5,TC=-1,val=NULL,aggregate="no")
 { 
-if(is.list(y) && is.null(x)) # mining object
+ if(is.list(y) && is.null(x)) # mining object
      { # special metrics: sum all?
        if(sum(metric=="CONF")>0) CONF=TRUE else CONF=FALSE
        if(sum(metric=="ROC")>0) ROC=TRUE else ROC=FALSE
@@ -47,6 +47,7 @@ if(is.list(y) && is.null(x)) # mining object
                                       }
                               else res[i,]=mmetric(y$test[[i]],y$pred[[i]],metric=metric,D=D,TC=TC,val=val) 
                             }
+              if(length(names(aux))==0) names(aux)=metric[1] # new line
               res=data.frame(res)
               if(LM==1 && metric!="ALL" && !is.factor(y$test[[1]][1])) {C=length(aux);naux=vector(length=C);for(i in 1:C) naux[i]=paste(metric,i,sep="");names(res)=naux;}
               else names(res)=names(aux)
@@ -216,7 +217,7 @@ else if(is.factor(y)) # classification
       T=suppressWarnings(try(chisq.test(y,pred)$statistic[[1]],silent=TRUE))
       if(!is.numeric(T)) T=0
       cramerv=sqrt(T/(Total*(C-1)))
-      if(rsingle) res=cramerv else{res=c(res,cramerv);nres=c(nres,"CRAMERV")}
+      if(rsingle) return(cramerv) else{res=c(res,cramerv);nres=c(nres,"CRAMERV")}
     } else cramerv=NULL
     if(KENDALL && is.ordered(y)) 
      { 
@@ -367,7 +368,8 @@ else if(is.factor(y)) # classification
     # absolute measures:
     res=NULL;nres=NULL;LM=length(metric)
     if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE",
-                                                    "MdAPE","RMSPE","RMdSPE","MAPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
+                                                    "MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
+
     LM=length(metric)
     if(sum(metric=="SAE")>0) SAE=TRUE else SAE=FALSE
     if(sum(metric=="MAE")>0) MAE=TRUE else MAE=FALSE
@@ -411,20 +413,19 @@ else if(is.factor(y)) # classification
     if(sum(metric=="SMinkowski3")>0) SMINKOWSKI3=TRUE else SMINKOWSKI3=FALSE
     if(sum(metric=="MMinkowski3")>0) MMINKOWSKI3=TRUE else MMINKOWSKI3=FALSE
     if(sum(metric=="MdMinkowski3")>0) MdMINKOWSKI3=TRUE else MdMINKOWSKI3=FALSE
-
     if(LM==1) rsingle=TRUE else rsingle=FALSE
     if(REC) reslist=TRUE # list
     else reslist=FALSE# named vector
 
-    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||MAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||GMSE||R2||MRAE||MdRAE||GMRAE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
-    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
+    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R2||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
+    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||SMAPE||SMdAPE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
     if(SAE||RAE) {sad=sum(eabs); if(rsingle && SAE) return(sad) else if(SAE){res=c(res,sad);nres=c(nres,"SAE")}} else sad=NULL
     if(MAE) {mad=mean(eabs);     if(rsingle) return(mad) else{res=c(res,mad);nres=c(nres,"MAE")}} else mad=NULL
     if(MdAE) {mdae=median(eabs); if(rsingle) return(mdae) else{res=c(res,mdae);nres=c(nres,"MdAE")}} else mdae=NULL
     if(GMAE) {gmae=prod(eabs)^(1/(length(eabs)));  if(rsingle) return(gmae) else{res=c(res,gmae);nres=c(nres,"GMAE")}} else gmae=NULL
     if(MaxAE) {maxae=max(eabs);  if(rsingle) return(maxae) else{res=c(res,maxae);nres=c(nres,"MaxAE")}} else maxae=NULL
  
-    if(SSE||MSE||MdSE||RMSE||GMSE||RSE||RRSE||R2||THEILSU2) esqr=(err)^2
+    if(SSE||MSE||MdSE||RMSE||GMSE||RSE||RRSE||R2||LQ2||THEILSU2) esqr=(err)^2
     if(SSE||RSE||RRSE||R2||LQ2) {sse=sum(esqr);if(rsingle && SSE) return(sse) else if(SSE){res=c(res,sse);nres=c(nres,"SSE")}} else sse=NULL
     if(MSE||RMSE||THEILSU2) {mse=mean(esqr);if(rsingle && MSE) return(mse) else if(MSE){res=c(res,mse);nres=c(nres,"MSE")}} else mse=NULL
     if(RMSE||THEILSU2) {rmse=sqrt(mse);if(rsingle && RMSE) return(rmse) else if(RMSE){res=c(res,rmse);nres=c(nres,"RMSE")}} else rmse=NULL 
@@ -432,12 +433,12 @@ else if(is.factor(y)) # classification
     if(GMSE) {gmse=prod(esqr)^(1/(length(esqr)));if(rsingle) return(gmse) else{res=c(res,gmse);nres=c(nres,"GMSE")}} else gmse=NULL
     if(HRMSE) {hrmse=sqrt( mean((1-(x/y))^2) ) ;if(rsingle) return(hrmse) else{res=c(res,hrmse);nres=c(nres,"HRMSE")}} else hrmse=NULL
 
-    if(ME) { me=sum(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} else me=NULL
+    if(ME) { me=mean(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} else me=NULL
 
     if(RAE||RSE||RRSE||R2||LQ2) {ymean=mean(y)}
 
     if(RAE) {rae=100*sad/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} else rae=NULL
-    if(RSE||R2||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}
+    if(RSE||RRSE||R2||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}
     if(RSE) {rse=100*sse/sum_ym_esqr;if(rsingle) return(sse) else{res=c(res,rse);nres=c(nres,"RSE")}} else rse=NULL
     if(RRSE){rrse=100*sqrt(sse/sum_ym_esqr);if(rsingle) return(rrse) else {res=c(res,rrse);nres=c(nres,"RRSE")}} else rrse=NULL
     if(R2) {r2=1-sse/sum_ym_esqr;if(rsingle) return(r2) else {res=c(res,r2);nres=c(nres,"R2")}} else r2=NULL
@@ -484,10 +485,10 @@ else if(is.factor(y)) # classification
               if(rsingle) return(mase) else {res=c(res,mase);nres=c(nres,"MASE")}
             } else mase=NULL
 
-    if(SMINKOWSKI3){sminkowski3=sum(eabs^3);if(rsingle) return(sminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"SMINKOWSKI3")}} else sminkowski3=NULL
-    if(MMINKOWSKI3){mminkowski3=mean(eabs^3);if(rsingle) return(mminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MMINKOWSKI3")}} else mminkowski3=NULL 
-    if(MdMINKOWSKI3){mdminkowski3=median(eabs^3);if(rsingle) return(mdminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MdMINKOWSKI3")}} else mdminkowski3=NULL
- 
+    if(SMINKOWSKI3){sminkowski3=sum(eabs^3);if(rsingle) return(sminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"SMinkowski3")}} else sminkowski3=NULL
+    if(MMINKOWSKI3){mminkowski3=mean(eabs^3);if(rsingle) return(mminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MMinkowski3")}} else mminkowski3=NULL 
+    if(MdMINKOWSKI3){mdminkowski3=median(eabs^3);if(rsingle) return(mdminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MdMinkowski3")}} else mdminkowski3=NULL
+
     if(COR||q2){cor=suppressWarnings(cor(y,x));if(is.na(cor)) cor=0;
                 if(rsingle && COR) return(cor) else {res=c(res,cor);nres=c(nres,"COR")}
                } else cor=NULL

@@ -40,19 +40,17 @@ export(
       )
 
 #importFrom("stats","cov2cor","toeplitz","update")
-importFrom("nnet","nnet")
+#importFrom("Matrix","cov2cor","toeplitz","update")
+importFrom("nnet","nnet","multinom")
 importFrom("kknn","kknn")
 importFrom("kernlab","ksvm")
 importFrom("rpart","rpart")
-importFrom("grDevices","pdf","dev.off")
-importFrom("graphics","plot","segments","hist","par","lines","points","legend","axis","abline","filled.contour","text","boxplot")
+#importFrom("grDevices","pdf","dev.off")
+#importFrom("graphics","plot","segments","hist","par","lines","points","legend","axis","abline","filled.contour","text","boxplot")
 importFrom("plotrix","color2D.matplot","color.legend")
 importFrom("lattice","wireframe")
 
-import(methods) 
-
 exportMethods("predict")
-
 exportClasses("model")
 
 S3method(naivebayes,default)
