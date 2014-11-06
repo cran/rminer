@@ -1,5 +1,22 @@
+importFrom("methods","setGeneric","setMethod")
+importFrom("plotrix","color2D.matplot","color.legend")
+importFrom("lattice","wireframe")
+importFrom("nnet","nnet","multinom")
+importFrom("MASS","lda","qda")
+#importFrom("glmnet","glmnet")
+importFrom("mda","mars")
+importFrom("rpart","rpart","rpart.control")
+importFrom("randomForest","randomForest","importance")
+importFrom("adabag","bagging","boosting")
+importFrom("party","ctree","ctree_control")
+importFrom("Cubist","cubist","cubistControl")
+importFrom("kknn","kknn","contr.dummy")
+#import("kknn")
+importFrom("kernlab","ksvm","rvm","sigest")
+importFrom("e1071","naiveBayes")
+importFrom("pls","pcr","plsr","cppls","pls.options")
 export(	
-       # rminer high level functions (most relevant):
+       ## rminer high level functions (most relevant):
        "fit",
        # predict (included in methods, check ?predict.fit)
        "mining",
@@ -9,7 +26,7 @@ export(
        "mmetric",
        "metrics",
        "meanint",
-       "medianminingpar",
+       "centralpar",
        "loadmodel",
        "savemodel",
        "loadmining",
@@ -18,43 +35,23 @@ export(
        "cmatrixplot",
        "imputation",
        "delevels",
-       "svmgrid",
+       "holdout",
+       "crossvaldata",
 
-       # time series:
+       ## time series:
        "CasesSeries", 
        "lforecast",
        "forplot",
        "tsplot",
 
-       # other functions, not that relevant:
+       ## other functions, not that relevant:
        "mpause",
-       "holdout",
-       "crossvaldata",
        "datalevels",
        "RECcurve",
        "ROCcurve",
        "rmboxplot",
        "s_measure",
-       "naivebayes",
        "factorize"
       )
-
-#importFrom("stats","cov2cor","toeplitz","update")
-#importFrom("Matrix","cov2cor","toeplitz","update")
-importFrom("nnet","nnet","multinom")
-importFrom("kknn","kknn")
-importFrom("kernlab","ksvm")
-importFrom("rpart","rpart")
-#importFrom("grDevices","pdf","dev.off")
-#importFrom("graphics","plot","segments","hist","par","lines","points","legend","axis","abline","filled.contour","text","boxplot")
-importFrom("plotrix","color2D.matplot","color.legend")
-importFrom("lattice","wireframe")
-
 exportMethods("predict")
 exportClasses("model")
-
-S3method(naivebayes,default)
-S3method(naivebayes,formula)
-S3method(predict,naivebayes)
-
-#S3method(predict,model)

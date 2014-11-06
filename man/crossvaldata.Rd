@@ -7,8 +7,8 @@ Computes k-fold cross validation for rminer models.
 Computes k-fold cross validation for rminer models.
 }
 \usage{
-crossvaldata(x, data, theta.fit, theta.predict, ngroup = n, 
-             order = FALSE, model, task, feature = "none",
+crossvaldata(x, data, theta.fit, theta.predict, ngroup = 10, 
+             mode = "stratified", seed = NULL, model, task, feature = "none",
              ...)
 }
 \arguments{
@@ -17,15 +17,18 @@ crossvaldata(x, data, theta.fit, theta.predict, ngroup = n,
   \item{theta.fit}{fitting function}
   \item{theta.predict}{prediction function}
   \item{ngroup}{number of folds}
-  \item{order}{if \code{TRUE} then a static ordered sampling cross-validation is adopted (e.g. useful for time series data), else the normal random sampling is adopted.}
+  \item{mode}{Possibilities are: "stratified", "random" or "order" (see \code{\link{holdout}} for details).}
+  \item{seed}{if \code{NULL} then a random seed is used; else a fixed seed is adopted (will return always the same result for the same seed).}
   \item{model}{See \code{\link{fit}} for details.}
   \item{task}{See \code{\link{fit}} for details.}
   \item{feature}{See \code{\link{fit}} for details.}
-  \item{\dots}{Additional parameters sent to \code{theta.fit} (e.g. \code{search}, \code{mpar}, \code{scale}, \code{transform})}
+  \item{\dots}{Additional parameters sent to \code{theta.fit} or \code{theta.predic} (e.g. \code{search})}
 }
 \details{
-Standard k-fold cross-validation but adopted for rminer models.
-For classification tasks ("class" or "prob") a stratified sampling is used (the class distributions are identical for each fold).
+Standard k-fold cross-validation adopted for rminer models.
+By default, for classification tasks ("class" or "prob") a stratified sampling is used 
+(the class distributions are identical for each fold), unless \code{mode} is set to \code{random} or \code{order} 
+(see \code{\link{holdout}} for details).
 }
 \note{A better control (e.g. use of several Runs) is achieved using the simpler \code{\link{mining}} function.}
 
@@ -43,7 +46,7 @@ Returns a list with:
               }
 }
 \references{
-Check the \code{crossval} function of the bootstrap library.
+Check the \code{\link{crossval}} function of the bootstrap library.
 }
 
 \author{This function was adapted by Paulo Cortez from the \code{crossval} function of the bootstrap library (S original by R. Tibshirani and R port by F. Leisch).}
@@ -52,7 +55,15 @@ Check the \code{crossval} function of the bootstrap library.
 \code{\link{holdout}}, \code{\link{fit}}, \code{\link{mining}} and \code{\link{predict.fit}}.}
 \examples{
  data(iris)
- M=crossvaldata(Species~.,iris,fit,predict,ngroup=3,model="mlpe",
-                task="prob",search=4,mpar=c(3,100,"holdout",2/3,"AUC"))
+ # 3-fold cross validation using fit and predict
+ # the control argument is sent to rpart function 
+ # rpart.control() is from the rpart package
+ M=crossvaldata(Species~.,iris,fit,predict,ngroup=3,seed=12345,model="rpart",
+                task="prob", control = rpart::rpart.control(cp=0.05))
+ print("cross validation object:")
+ print(M)
+ C=mmetric(iris$Species,M$cv.fit,metric="CONF")
+ print("confusion matrix:")
+ print(C)
 }
 \keyword{ models }

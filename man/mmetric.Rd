@@ -14,7 +14,10 @@ Compute classification or regression error metrics.
            Else, \code{y} should be a list returned by the  \code{\link{mining}} function.
           }
   \item{x}{the predictions (should be a numeric vector if \code{task="reg"}, matrix if \code{task="prob"} or factor if \code{task="class"} (used if \code{y} is not a list).}
-  \item{metric}{a R function or a character with valid options (">" means "better" if higher value; "<" means "better" if lower value):
+  \item{metric}{a R function or a character.\cr
+                Note: if a R function, then it should be set to provide lower values for better models if the intention is to be used
+within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} (i.e., "<" meaning).\cr
+                Valid character options are (">" means "better" if higher value; "<" means "better" if lower value):
               \itemize{
                        \item \code{ALL} -- returns all classification or regression metrics (context dependent, multi-metric). 
                        \item if vector -- returns all metrics included in the vector, vector elements can be any of the options below (multi-metric).
@@ -25,9 +28,8 @@ Compute classification or regression error metrics.
                        \item \code{CE} -- classification error or misclassification error rate (classification, "<", [0-\%100]). 
                        \item \code{MAEO} -- mean absolute error for ordinal classification (classification, "<", [0-Inf[). 
                        \item \code{MSEO} -- mean squared error for ordinal classification (classification, "<", [0-Inf[). 
-                       \item \code{KENDALL} -- Kendalls's coefficient  for ordinal classification or (mean if) ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
-                       \item \code{SPEARMAN} -- Mean Spearman's rho coefficient  for ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
-                       \item \code{MSE} -- classification error or misclassification error rate (classification, "<", [0-\%100]). 
+                       \item \code{KENDALL} -- Kendalls's coefficient for ordinal classification or (mean if) ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
+                       \item \code{SPEARMAN} -- Mean Spearman's rho coefficient for ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
                        \item \code{BER} -- balanced error rate (classification, "<", [0-\%100]). 
                        \item \code{KAPPA} -- kappa index (classification, "<", [0-\%100]). 
                        \item \code{CRAMERV} -- Cramer's V  (classification, ">", [0,1.0]). 
@@ -71,8 +73,9 @@ Compute classification or regression error metrics.
                        \item \code{MdMinkowski3} -- median of Minkowski loss function (q=3, heavier penalty for large errors when compared with SSE, regression, "<", [0\%,Inf[).
                        \item \code{COR} -- correlation (regression, ">", [-1,1]).
                        \item \code{q2} -- =1-correlation^2 test error metric, as used by M.J. Embrechts  (regression, "<", [0,1.0]).
-                       \item \code{R2} -- "press" R^2 (regression, ">", ]-Inf,1]).
-                       \item \code{Q2} -- "press"/SD test error metric, as used by M.J. Embrechts (regression, "<", [0,Inf[).
+                       \item \code{R2} -- coefficient of determination R^2 (regression, ">", squared pearson correlation coefficient: [0,1]).
+                       \item \code{R22} -- 2nd variant of coefficient of determination R^2 (regression, ">", most general definition that however can lead to negative values: ]-Inf,1]. In previous rminer versions, this variant was known as "R2").
+                       \item \code{Q2} -- R^2/SD test error metric, as used by M.J. Embrechts (regression, "<", [0,Inf[).
                        \item \code{REC} --  Regression Error Characteristic curve (regression, list with several components).
                        \item \code{NAREC} -- normalized REC area (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
                        \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
@@ -82,7 +85,7 @@ Compute classification or regression error metrics.
                        \item \code{RMdSPE} -- Root Median Square Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
                        \item \code{SMAPE} --  Symmetric Mean Absolute Percentage mmetric forecasting metric (regression, "<", [0\%,200\%]).
                        \item \code{SMdAPE} -- Symmetric Median Absolute Percentage mmetric forecasting metric  (regression, "<", [0\%,200\%]).
-                       \item \code{MRAE} -- Mean Relative Absolute mmetric forecasting metric (\code{val} should contain the last in-sample/training data value (for random walk) or full benchmark time series, regression, "<", [0,Inf[).
+                       \item \code{MRAE} -- Mean Relative Absolute mmetric forecasting metric (\code{val} should contain the last in-sample/training data value (for random walk) or full benchmark time series related with out-of-sample values, regression, "<", [0,Inf[).
                        \item \code{MdRAE} -- Median Relative Absolute mmetric forecasting metric (\code{val} should contain the last in-sample/training data value (for random walk) or full benchmark time series, regression, "<", [0,Inf[).
                        \item \code{GMRAE} -- Geometric Mean Relative Absoluate mmetric forecasting metric  (\code{val} should contain the last in-sample/training data value (for random walk) or full benchmark time series, regression, "<", [0,Inf[).
                        \item \code{THEILSU2} -- Theils'U2 forecasting metric (\code{val} should contain the last in-sample/training data value (for random walk) or full benchmark time series, regression, "<", [0,Inf[).
@@ -183,24 +186,24 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 \code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mining}}, \code{\link{mgraph}}, \code{\link{savemining}} and \code{\link{Importance}}.
 }
 \examples{
-### regression examples:
-y=c(95.01,96.1,97.2,97.8,99.3,99.7);x=95:100
+### regression examples: y - desired values; x - predictions
+y=c(95.01,96.1,97.2,98.0,99.3,99.7);x=95:100
 print(mmetric(y,x,"ALL"))
 print(mmetric(y,x,"MAE"))
 m=mmetric(y,x,c("MAE","RMSE","RAE","RSE"))
 print(m)
 cat(names(m)[3],"=",round(m[3],digit=2),"\n",sep="")
 print(mmetric(y,x,c("COR","R2","Q2")))
-print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.1))
-print(mmetric(y,x,"THEILSU2",val=94)) # val = 1-ahead random walk
-print(mmetric(y,x,"THEILSU2",val=94:99)) # val = 1-ahead random walk
-print(mmetric(y,x,"MASE",val=1:94)) # val = in-samples
+print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.5))
+print(mmetric(y,x,"THEILSU2",val=94.1)) # val = 1-ahead random walk, c(y,94.1), same as below
+print(mmetric(y,x,"THEILSU2",val=c(94.1,y[1:5]))) # val = 1-ahead random walk (previous y values)
+print(mmetric(y,x,"MASE",val=c(88.1,89.9,93.2,94.1))) # val = in-samples
 val=vector("list",length=4)
-val[[2]]=0.5;val[[3]]=94;val[[4]]=1:94
+val[[2]]=0.5;val[[3]]=94.1;val[[4]]=c(88.1,89.9,93.2,94.1)
 print(mmetric(y,x,c("MAE","NAREC","THEILSU2","MASE"),val=val))
 # user defined error function example:
-# myerror = number of samples with absolute error above 10% of y: 
-myerror=function(y,x){return (sum(abs(y-x)>(0.1*y)))}
+# myerror = number of samples with absolute error above 0.1% of y: 
+myerror=function(y,x){return (sum(abs(y-x)>(0.001*y)))}
 print(mmetric(y,x,metric=myerror))
 # example that returns a list since "REC" is included:
 print(mmetric(y,x,c("MAE","REC","TOLERANCE"),val=1))
@@ -274,16 +277,10 @@ x[1,]=1:7
 x[2,]=1:7
 print(mmetric(y,x,metric="ALL"))
 
-### IMPORTANT NOTE ###
-# The execution of the examples below requires more than a few seconds.
-# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
-# Such lines are marked with: # DELETE-OR-IGNORE ...
-# If you want to test the code, please comment or ignore these 2 lines
-### END OF NOTE    ###
-if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
 ### mining, several runs, prob multi-class
+\dontrun{
 data(iris)
-M=mining(Species~.,iris,model="dt",Runs=2)
+M=mining(Species~.,iris,model="rpart",Runs=2)
 R=mmetric(M,metric="CONF",aggregate="no")
 print(R[[1]]$conf)
 print(R[[2]]$conf)
@@ -293,11 +290,13 @@ print(mmetric(M,metric=c("ACC","ACCLASS"),aggregate="no"))
 print(mmetric(M,metric=c("ACC","ACCLASS"),aggregate="mean"))
 print(mmetric(M,metric="ALL",aggregate="no"))
 print(mmetric(M,metric="ALL",aggregate="mean"))
+}
 
 ### mining, several runs, regression
+\dontrun{
 data(sin1reg)
 S=sample(1:nrow(sin1reg),40)
-M=mining(y~.,data=sin1reg[S,],model="svm",search=2^3,Runs=10)
+M=mining(y~.,data=sin1reg[S,],model="ksvm",search=2^3,Runs=10)
 R=mmetric(M,metric="MAE")
 print(mmetric(M,metric="MAE",aggregate="mean"))
 miR=meanint(R) # mean and t-student confidence intervals
@@ -308,7 +307,7 @@ R=mmetric(M,metric="REC",aggregate="no")
 print(R[[1]]$rec)
 print(mmetric(M,metric=c("TOLERANCE","NAREC"),val=0.2))
 print(mmetric(M,metric=c("TOLERANCE","NAREC"),val=0.2,aggregate="mean"))
-} # DELETE-OR-IGNORE-THIS LINE #
+}
 
 }
 \keyword{classif}

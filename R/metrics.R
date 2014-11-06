@@ -1,27 +1,46 @@
 # Paulo Cortez @ 2013
 
-# to do: ranking measures?
-
 isbest=function(Cur,Best,metric)
 {if(length(Cur)==0 || is.na(Cur)) return (FALSE) 
- else{ return (switch(metric,
-                CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,
-                TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUC=Cur>Best,
-                Cur<Best))}
-} 
+ else{ 
+      if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
+      if(is.function(metric)) return (Cur<Best)
+      else { return (switch(metric,
+                CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,SPEARMAN=,TOLERANCE=,
+                TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUCCLASS=,AUC=Cur>Best,
+                Cur<Best))
+           }
+     } 
+}
 worst=function(metric)
-{ return (switch(metric, 
-                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUC=,TPRATFPR=,TOLERANCE=,NAREC=-0.1, # [0-1 or 100]
+{ if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
+  if(is.function(metric)) return (Inf) # assumption that metric should follow (i.e. "<" is better)
+  else{
+  return (switch(metric, 
+                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,AUC=,TPRATFPR=,TOLERANCE=,NAREC=-0.1, # [0-1 or 100]
                 MCC=,COR=,KENDALL=,SPEARMAN=-1.1, # [-1,1]
-                R2=,R22=-Inf,
+                q2=1.1,
+                R2=-0.1,
+                R22=-Inf,
                 CE=,BER=100.1, # [0,100], %
-                Inf))} # other regression metrics
+                Inf)) # other regression metrics
+      }
+}
 
 # x - vector of predictions, y - vector of desired values  
 # metric - metric or vector of metrics
 metrics=function(y,x=NULL,D=0.5,TC=-1,val=NULL,aggregate="no")
 { warning("Deprecated function, please use instead: mmetric(y,x,metric=\"ALL\",D,TC,val,aggregate)")
   return(mmetric(y,x,metric="ALL",D,TC,val,aggregate))
+}
+
+is.mmetric=function(metric)
+{ M=c("MAEO","MSEO","KENDALL",
+      "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC",
+      "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC",
+      "SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3"
+      ) 
+  return(sum(M==metric)>0)
 }
 
 mmetric=function(y,x=NULL,metric,D=0.5,TC=-1,val=NULL,aggregate="no")
@@ -367,8 +386,7 @@ else if(is.factor(y)) # classification
  {
     # absolute measures:
     res=NULL;nres=NULL;LM=length(metric)
-    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE",
-                                                    "MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
+    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
 
     LM=length(metric)
     if(sum(metric=="SAE")>0) SAE=TRUE else SAE=FALSE
@@ -392,6 +410,7 @@ else if(is.factor(y)) # classification
     if(sum(metric=="q2")>0) q2=TRUE else q2=FALSE
 
     if(sum(metric=="R2")>0) R2=TRUE else R2=FALSE
+    if(sum(metric=="R22")>0) R22=TRUE else R22=FALSE
     if(sum(metric=="Q2")>0) LQ2=TRUE else LQ2=FALSE
     # REC measures: 
     if(sum(metric=="REC")>0) REC=TRUE else REC=FALSE
@@ -417,16 +436,16 @@ else if(is.factor(y)) # classification
     if(REC) reslist=TRUE # list
     else reslist=FALSE# named vector
 
-    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R2||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
+    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R22||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
     if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||SMAPE||SMdAPE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
-    if(SAE||RAE) {sad=sum(eabs); if(rsingle && SAE) return(sad) else if(SAE){res=c(res,sad);nres=c(nres,"SAE")}} else sad=NULL
-    if(MAE) {mad=mean(eabs);     if(rsingle) return(mad) else{res=c(res,mad);nres=c(nres,"MAE")}} else mad=NULL
+    if(SAE||RAE) {sae=sum(eabs); if(rsingle && SAE) return(sae) else if(SAE){res=c(res,sae);nres=c(nres,"SAE")}} else sae=NULL
+    if(MAE) {mae=mean(eabs);     if(rsingle) return(mae) else{res=c(res,mae);nres=c(nres,"MAE")}} else mae=NULL
     if(MdAE) {mdae=median(eabs); if(rsingle) return(mdae) else{res=c(res,mdae);nres=c(nres,"MdAE")}} else mdae=NULL
     if(GMAE) {gmae=prod(eabs)^(1/(length(eabs)));  if(rsingle) return(gmae) else{res=c(res,gmae);nres=c(nres,"GMAE")}} else gmae=NULL
     if(MaxAE) {maxae=max(eabs);  if(rsingle) return(maxae) else{res=c(res,maxae);nres=c(nres,"MaxAE")}} else maxae=NULL
  
-    if(SSE||MSE||MdSE||RMSE||GMSE||RSE||RRSE||R2||LQ2||THEILSU2) esqr=(err)^2
-    if(SSE||RSE||RRSE||R2||LQ2) {sse=sum(esqr);if(rsingle && SSE) return(sse) else if(SSE){res=c(res,sse);nres=c(nres,"SSE")}} else sse=NULL
+    if(SSE||MSE||MdSE||RMSE||GMSE||RSE||RRSE||R22||LQ2||THEILSU2) esqr=(err)^2
+    if(SSE||RSE||RRSE||R22||LQ2) {sse=sum(esqr);if(rsingle && SSE) return(sse) else if(SSE){res=c(res,sse);nres=c(nres,"SSE")}} else sse=NULL
     if(MSE||RMSE||THEILSU2) {mse=mean(esqr);if(rsingle && MSE) return(mse) else if(MSE){res=c(res,mse);nres=c(nres,"MSE")}} else mse=NULL
     if(RMSE||THEILSU2) {rmse=sqrt(mse);if(rsingle && RMSE) return(rmse) else if(RMSE){res=c(res,rmse);nres=c(nres,"RMSE")}} else rmse=NULL 
     if(MdSE) {mdse=median(esqr);if(rsingle) return(mdse) else{res=c(res,mdse);nres=c(nres,"MdSE")}} else mdse=NULL
@@ -435,13 +454,15 @@ else if(is.factor(y)) # classification
 
     if(ME) { me=mean(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} else me=NULL
 
-    if(RAE||RSE||RRSE||R2||LQ2) {ymean=mean(y)}
+    if(RAE||RSE||RRSE||R22||LQ2) {ymean=mean(y)}
 
-    if(RAE) {rae=100*sad/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} else rae=NULL
-    if(RSE||RRSE||R2||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}
-    if(RSE) {rse=100*sse/sum_ym_esqr;if(rsingle) return(sse) else{res=c(res,rse);nres=c(nres,"RSE")}} else rse=NULL
+    if(RAE) {rae=100*sae/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} else rae=NULL
+    if(RSE||RRSE||R22||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}
+
+    if(RSE) {rse=100*sse/sum_ym_esqr;if(rsingle) return(rse) else{res=c(res,rse);nres=c(nres,"RSE")}} else rse=NULL
     if(RRSE){rrse=100*sqrt(sse/sum_ym_esqr);if(rsingle) return(rrse) else {res=c(res,rrse);nres=c(nres,"RRSE")}} else rrse=NULL
-    if(R2) {r2=1-sse/sum_ym_esqr;if(rsingle) return(r2) else {res=c(res,r2);nres=c(nres,"R2")}} else r2=NULL
+    if(R22) {r22=1-sse/sum_ym_esqr;if(rsingle) return(r22) else {res=c(res,r22);nres=c(nres,"R22")}} else r22=NULL
+# problem with this formulation, check better:
     if(LQ2) {Q2=sse/sum_ym_esqr;if(rsingle) return(Q2) else {res=c(res,Q2);nres=c(nres,"Q2")}} else Q2=NULL
 
     if(MAPE||MdAPE||RMSPE||RMdSPE) pe=err/y
@@ -454,10 +475,10 @@ else if(is.factor(y)) # classification
     if(RMdSPE) {rmdspe=sqrt(100*median(pe2));if(rsingle) return(rmdspe) else {res=c(res,rmdspe);nres=c(nres,"RMdSPE")}} else rmdspe=NULL
 
     if(SMAPE||SMdAPE) map=eabs/(abs(x)+abs(y)) 
-    if(SMAPE) {smape=200*mean(map); if(rsingle) return(SMAPE) else {res=c(res,smape);nres=c(nres,"SMAPE")}} else smape=NULL
-    if(SMdAPE){smdape=200*median(map); if(rsingle) return(SMdAPE) else {res=c(res,smdape);nres=c(nres,"SMdAPE")}} else smdape=NULL
+    if(SMAPE) {smape=200*mean(map); if(rsingle) return(smape) else {res=c(res,smape);nres=c(nres,"SMAPE")}} else smape=NULL
+    if(SMdAPE){smdape=200*median(map); if(rsingle) return(smdape) else {res=c(res,smdape);nres=c(nres,"SMdAPE")}} else smdape=NULL
 
-    # same val for all! FUTURE: need to check if randomwalk is being correctly calculated, look at Hyndman paper!
+    # same val for all: randomwalk, see Hyndman paper
     if(MRAE||MdRAE||GMRAE||THEILSU2) { if(!is.null(val)) { if(is.list(val))  val2=val[[which(metric=="MRAE"|metric=="MdRAE"|metric=="GMRAE"|metric=="THEILSU2")[1]]]
                                                            else val2=val
                                                            if(length(val2)==1) val2=c(val2,y[1:(length(y)-1)])
@@ -489,9 +510,10 @@ else if(is.factor(y)) # classification
     if(MMINKOWSKI3){mminkowski3=mean(eabs^3);if(rsingle) return(mminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MMinkowski3")}} else mminkowski3=NULL 
     if(MdMINKOWSKI3){mdminkowski3=median(eabs^3);if(rsingle) return(mdminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MdMinkowski3")}} else mdminkowski3=NULL
 
-    if(COR||q2){cor=suppressWarnings(cor(y,x));if(is.na(cor)) cor=0;
+    if(COR||q2||R2){cor=suppressWarnings(cor(y,x));if(is.na(cor)) cor=0;
                 if(rsingle && COR) return(cor) else {res=c(res,cor);nres=c(nres,"COR")}
                } else cor=NULL
+    if(R2) {r2=cor^2; if(rsingle) return (r2) else {res=c(res,r2);nres=c(nres,"R2")}} else r2=NULL
     if(q2){q2=1-cor^2;if(rsingle) return(q2) else {res=c(res,q2);nres=c(nres,"q2")}} else q2=NULL
 
     if(REC||NAREC||TOLERANCE) { if((NAREC||TOLERANCE)&& is.null(val)) val=1 
@@ -1096,9 +1118,9 @@ Gmse=function(y,x){ return (Gmean((y-x)^2)) }
 Rse=function(y,x,ymean=mean(y)) { return (100* sum((y-x)^2)/sum((y-ymean)^2)) } # relative squared error
 Rmse=function(y,x) { return (sqrt(mean((y-x)^2))) }
 Rrse=function(y,x) { return ( 100*sqrt(sum((y-x)^2)/sum((y-mean(y))^2)) ) }
-Sad=function(y,x) { return (sum(abs(y-x))) }
-Mad=function(y,x) { return (mean(abs(y-x)))}
-Gmad=function(y,x){ return (Gmean(abs(y-x)))}
+Sae=function(y,x) { return (sum(abs(y-x))) }
+Mae=function(y,x) { return (mean(abs(y-x)))}
+Gmae=function(y,x){ return (Gmean(abs(y-x)))}
 Rae=function(y,x,ymean=mean(y)) { return (100*sum(abs(y-x))/sum(abs(y-ymean))) } # also known as CumRAE, RelMAE
 #Smape=function(y,x) { return ( 100*mean(abs(y-x)/(x+y)))} # wikipedia def.
 
@@ -1151,3 +1173,4 @@ Nalift=function(y,x,val=1,TC=-1){ if(is.null(val)) val=1; RR=LIFTcurve(y,x,TC=TC
 Tprfpr=function(y,x,val,TC=-1){ if(is.null(val)) val=0.01; RR=ROCcurve(y,x,TC=TC); RR=partialcurve(RR$roc,val);if(is.vector(RR)) return (RR[2]) else return(RR[nrow(RR),2])}
 Aliftperc=function(y,x,val,TC=-1){ if(is.null(val)) val=0.1; RR=LIFTcurve(y,x,TC=TC); RR=partialcurve(RR$alift,val);if(is.vector(RR)) return (RR[2]) else return(RR[nrow(RR),2])}
 }
+# end of:---- I do not use these functions anymore, kept here just for backup purposes -----

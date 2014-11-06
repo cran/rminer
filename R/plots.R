@@ -15,7 +15,7 @@ plotH<-function(X,Y,INT,DISP=0.3,horiz=FALSE,...)
       }
 }
 #----------------------------------------
-rminerhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Frequency",xaxt="n",yaxt="n",xaxis=FALSE,size=NULL,density=FALSE,...)
+mhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Frequency",xaxt="n",yaxt="n",xaxis=FALSE,size=NULL,density=FALSE,...)
 {
  if(!is.null(size)){ width=size[1];height=size[2];} 
  else {width=5;height=5;}
@@ -59,6 +59,9 @@ rminerhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Freque
 mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=TRUE,ranges=NULL,data=NULL,digits=NULL,TC=-1,
                 intbar=TRUE,lty=1,col="black",main="",metric="MAE",baseline=FALSE,Grid=0,axis=NULL,cex=1.0)
 {
+#y=L;graph="REC";Grid=10;leg=c("mlpe","mr");main="REC curve";xval=0.1
+#x=NULL;PDF="";PTS=-1;size=c(5,5);sort=TRUE;ranges=NULL;data=NULL;digits=NULL;TC=-1;intbar=TRUE;lty=1;col="black";metric="MAE";baseline=FALSE;axis=NULL;cex=1.0
+#x=NULL;xval=-1;PDF="";PTS=-1;size=c(5,5);sort=TRUE;ranges=NULL;data=NULL;digits=NULL;TC=-1;intbar=TRUE;lty=1;col="black";main="";metric="MAE";baseline=FALSE;axis=NULL;cex=1.0
  if(!is.null(x)) { N=1;runs=1; 
                    TT=vector("list",1); PP=TT;
                    TT[[1]]=y;PP[[1]]=x; 
@@ -137,62 +140,69 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
                       else leg[xval]=y$sresponses[[xval]]$n
                     }
  }
- LPTS=length(PTS)
- if((graph=="LIFT" || graph=="ROC")) { if(TC==-1 & NX<=2) TC=2 
-                                       if(is.factor(y[[1]]$test[[1]])) POSITIVE=levels(y[[1]]$test[[1]])[TC]
-                                     }
- for(j in 1:N)
+
+ if(graph=="LIFT" || graph=="ROC") 
+  { if(TC==-1 & NX<=2) TC=2 
+    if(is.factor(y[[1]]$test[[1]])) POSITIVE=levels(y[[1]]$test[[1]])[TC]
+  }
+
+ if(graph=="LIFT" || graph=="ROC" || graph=="REC" || graph=="IMP" || graph=="VEC") 
  {
-  #cat("j:",j,"\n")
-  if(graph=="ROC" || graph=="REC" || graph=="LIFT")
+  for(j in 1:N)
   {
-   C=vector("list",runs)
-   for(i in 1:runs) 
-   { 
-  #cat("j:",j,"i:",i,"\n")
-    if(graph=="ROC") { # warning? 
+   #cat("j:",j,"\n")
+   if(graph=="ROC" || graph=="REC" || graph=="LIFT")
+   {
+    C=vector("list",runs)
+    for(i in 1:runs) 
+     { 
+     #cat("j:",j,"i:",i,"\n")
+     if(graph=="ROC") { # warning? 
                        C[[i]]=ROCcurve(y[[j]]$test[[i]],y[[j]]$pred[[i]],TC=TC)$roc
                      }
-    else if(graph=="LIFT") C[[i]]=twoclassLift(y[[j]]$test[[i]],y[[j]]$pred[[i]][,TC],Positive=POSITIVE,type=3,STEPS=(PTS-1))
-    else if(graph=="REC") C[[i]]=RECcurve(y[[j]]$test[[i]]-y[[j]]$pred[[i]])
+     else if(graph=="LIFT") C[[i]]=twoclassLift(y[[j]]$test[[i]],y[[j]]$pred[[i]][,TC],Positive=POSITIVE,type=3,STEPS=(PTS-1))
+     else if(graph=="REC") C[[i]]=RECcurve(y[[j]]$test[[i]]-y[[j]]$pred[[i]])
+     }
+   }
+   #cat("j:",j,"\n")
+   if(graph=="ROC"||graph=="REC"||graph=="LIFT") 
+   { 
+    if(length(PTS)>1) MC[[j]]=vaveraging(PTS[[j]],C,0,xval)
+    else MC[[j]]=vaveraging(PTS,C,0,xval)
+   }
+   else if(graph=="IMP") MC=meanint(y$sen)
+   else if(graph=="VEC") 
+   { 
+    #cat("j:",j,"xval:",xval,"PTS:",PTS,"ranges:",ranges[xval,],"\n")
+    if(xval!=-1 && !is.null(y$sresponses[[xval]]))
+      {
+       AUX=resp_to_list(y$sresponses[[xval]],TC)
+       MC[[j]]=vaveraging(y$sresponses[[xval]]$l,AUX,ranges[xval,1],ranges[xval,2])
+      }
+    else if(!is.null(y$sresponses[[j]]))
+      { 
+       AUX=resp_to_list(y$sresponses[[j]],TC) 
+       MC[[j]]=vaveraging(y$sresponses[[j]]$l,AUX,ranges[j,1],ranges[j,2])
+      }
    }
   }
-  #cat("j:",j,"\n")
-  if(graph=="ROC"||graph=="REC"||graph=="LIFT") 
-  { 
-    if(LPTS>1) MC[[j]]=vaveraging(PTS[[j]],C,0,xval)
-    else MC[[j]]=vaveraging(PTS,C,0,xval)
-  }
-  else if(graph=="IMP") MC=meanint(y$sen)
-  else if(graph=="VEC") 
-     { 
-#cat("j:",j,"xval:",xval,"PTS:",PTS,"ranges:",ranges[xval,],"\n")
-        if(xval!=-1 && !is.null(y$sresponses[[xval]]))
-                       {
-                        AUX=resp_to_list(y$sresponses[[xval]],TC)
-                        MC[[j]]=vaveraging(y$sresponses[[xval]]$l,AUX,ranges[xval,1],ranges[xval,2])
-                       }
-        else if(!is.null(y$sresponses[[j]])){ 
-               AUX=resp_to_list(y$sresponses[[j]],TC) 
-               MC[[j]]=vaveraging(y$sresponses[[j]]$l,AUX,ranges[j,1],ranges[j,2])
-             }
-     }
- }
+ } # if(graph== ...
 
  if(PDF!="" && graph!="VEC") 
-             { file=paste(PDF,".pdf",sep="");pdf(file,width=size[1],height=size[2]); 
-               # mar=c(bottom, left, top, right)
-               if(graph=="ROC"||graph=="REC"||graph=="LIFT") 
-                 { if(main!="") par(mar=c(4.0,4.0,1.0,0.7)) 
-                   else par(mar=c(4.0,4.0,0.3,0.7)) 
-                 }
-               else if(graph=="IMP") 
-                    { if(main!="") par(mar=c(2.0,1.0,2.0,0.0)) 
-                      else par(mar=c(2.0,1.0,2.0,0.0))
-                    }
-               else if(graph=="RSC") par(mar=c(2.0,2.0,2.0,2.0))
-               else if(graph=="DLC") par(mar=c(2.0,1.0,0.0,1.0))
-             }
+  { file=paste(PDF,".pdf",sep="");pdf(file,width=size[1],height=size[2]); 
+    # mar=c(bottom, left, top, right)
+    if(graph=="ROC"||graph=="REC"||graph=="LIFT") 
+      { if(main!="") par(mar=c(4.0,4.0,1.0,0.7)) 
+        else par(mar=c(4.0,4.0,0.3,0.7)) 
+      }
+    else if(graph=="IMP") 
+      { if(main!="") par(mar=c(2.0,1.0,2.0,0.0)) 
+        else par(mar=c(2.0,1.0,2.0,0.0))
+      }
+    else if(graph=="RSC") par(mar=c(2.0,2.0,2.0,2.0))
+    else if(graph=="DLC") par(mar=c(2.0,1.0,0.0,1.0))
+   }
+
  if(graph=="ROC"||graph=="REC"||graph=="LIFT") # multi mining graphs
  {
   plot(MC[[1]][,1],MC[[1]][,2],type="n",xlab=xlab,ylab=ylab,ylim=c(0,ymax),lwd=2,main=main,panel.first=grid(Grid,Grid))
@@ -217,15 +227,15 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
                       if(length(cleg)==2) legend(cleg[1],cleg[2],leg,lty=lty,col=col,lwd=2) else legend(cleg,leg,lty=lty,col=col,lwd=2)
                     }
  }
-else if(graph=="VEC")
-{
+ else if(graph=="VEC")
+ {
   # b,l,t,r
   for(i in 1:N)
   {
    if(xval==-1) XATT=i
    else XATT=xval
-#cat("XATT:",XATT,"\n")
-   if(!is.null(y$sresponses[[XATT]])) # XXX here:
+   #cat("XATT:",XATT,"\n")
+   if(!is.null(y$sresponses[[XATT]])) 
    {
     if(PDF!="") { file=paste(PDF,"-",XATT,".pdf",sep=""); 
                   pdf(file,width=size[1],height=size[2]); 
@@ -240,9 +250,9 @@ else if(graph=="VEC")
     vecplot(I=IMC,graph="VEC",leg=leg,xval=1,sort=sort,data=data[,c(xval,xval)],digits=digits,TC=TC,intbar=intbar,lty=lty,col=col,datacol="gray90",main=main,Grid=Grid,xlab=xlab,ylab=ylab)
     if(PDF!="") dev.off()
    }
+  }
  }
-}
-else if(graph=="IMP") # single mining graphs
+ else if(graph=="IMP") # single mining graphs
  {
   if(is.null(axis)) axis=c(1,3)
   # zero influence is not show in the graph? => yes!
@@ -257,15 +267,15 @@ else if(graph=="IMP") # single mining graphs
   LL=length(leg);LMC=length(MC$mean)
 
   if(LL>0 && LL<LMC)
-  {
-   if(!is.null(y$attributes)) yind=y$attributes[[1]][length(y$attributes[[1]])]
-   else { # some heuristics that will not work in every situation:
+   {
+    if(!is.null(y$attributes)) yind=y$attributes[[1]][length(y$attributes[[1]])]
+    else { # some heuristics that will not work in every situation:
           if(MC$mean[LMC]==0 && MC$int[LMC]==0) yind=LMC
           else if(MC$mean[1]==0 && MC$int[1]==0) yind=1
           else yind=CI[1]
         }
-   leg=append(leg,yind,(yind-1))
-  }
+    leg=append(leg,yind,(yind-1))
+   }
   # ---
   MM=MC$mean[CI]
   II=MC$int[CI]
@@ -273,23 +283,23 @@ else if(graph=="IMP") # single mining graphs
   IM=which.max(MM); xval=1.07*(max(MM)+II[IM])
   LMM=length(MM)
   if(sort==TRUE)
-  {
-   #cat("sort:",sort,"\n")
-   S=sort(MM,index.return =TRUE) 
-   MM=S$x
-   II=II[S$ix]
-   if(!is.null(leg)) leg=leg[S$ix]
-  }
+   {
+    #cat("sort:",sort,"\n")
+    S=sort(MM,index.return =TRUE) 
+    MM=S$x
+    II=II[S$ix]
+    if(!is.null(leg)) leg=leg[S$ix]
+   }
   else
-  {
-   INVI=LMM:1   
-   MM=MM[INVI]
-   II=II[INVI]
-   if(!is.null(leg)) leg=leg[INVI]
-  }
+   {
+    INVI=LMM:1   
+    MM=MM[INVI]
+    II=II[INVI]
+    if(!is.null(leg)) leg=leg[INVI]
+   }
 
-#cat("MM:",MM,"\n")
-#cat("leg:",leg,"\n")
+  #cat("MM:",MM,"\n")
+  #cat("leg:",leg,"\n")
   if(col=="black") col="white"
   Yx=barplot(MM,names.arg=NULL,axes=FALSE,col=col,xlim=c(0,xval),horiz=TRUE,main=main,panel.first=grid(Grid,Grid)) #,ylab="inputs",xlab="relative importance")
   Yx=Yx[,1]
@@ -358,7 +368,8 @@ else if(graph=="IMP") # single mining graphs
      MIN=min(MIN,y[[j]]$pred[[i]][XX]);MAX=max(MAX,y[[j]]$pred[[i]][XX])
     }
   xlab="Examples"; ylab="Values"
-  plot(XX,y$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
+  #plot(XX,y$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
+  plot(XX,y[[1]]$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
   if(length(lty)==1) lty=rep(lty,2)
   if(length(col)==1) col=rep(col,runs*N)
   for(j in 1:N) for(i in 1:runs) 
@@ -408,7 +419,6 @@ dlplot=function(m,main="",yval=0.5,pch=15,cex=2,labels=NULL,llab="worse",rlab="b
                 }
  XDISP=0.01*max(abs(c(XMIN,XMAX)))
  XLIM=c(XMIN-XDISP,XMAX+XDISP)
-
  #op=par(din=size)
  plot(m2,type="n",xlim=XLIM,ylim=c((yval-2*DISP),(yval+2*DISP)),xlab="",ylab="",axes=FALSE,frame.plot =FALSE)
  axis(1)
@@ -571,7 +581,7 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
       XLIM=range(BREAKS)
       BREAKS="Sturges";
       #cat("BREAKS:",BREAKS,"XLIM:",XLIM,"xval:",xval,"\n")
-      if(is.factor(data[,xval])) rminerhistogram(data[,xval],xaxt="n",yaxt="n",xlab="",ylab="",main="",col=datacol,labels=TRUE)
+      if(is.factor(data[,xval])) mhistogram(data[,xval],xaxt="n",yaxt="n",xlab="",ylab="",main="",col=datacol,labels=TRUE)
       else hist(data[,xval],xlim=XLIM,main="",xaxt="n",yaxt="n",xlab="",ylab="",col=datacol,breaks=BREAKS)
       #axis(1) #
       axis(4)

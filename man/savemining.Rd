@@ -36,13 +36,10 @@ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \examples{
 data(iris)
-M=fit(Species~.,iris,model="dt")
-savemodel(M,"iris.model")
-M=loadmodel("iris.model")
-print(M)
-M=mining(Species~.,iris,model="dt")
-savemining(M,"iris.model")
-M=loadmining("iris.model")
+M=fit(Species~.,iris,model="rpart")
+savemodel(M,"iris.model") # saves to file
+M=NULL # cleans M
+M=loadmodel("iris.model") # load from file
 print(M)
 }
 \keyword{file}

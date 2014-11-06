@@ -1,6 +1,6 @@
 \name{mining}
 \alias{mining}
-\alias{medianminingpar}
+\alias{centralpar}
 \title{
 Powerful function that trains and tests a particular fit model under several runs and a given validation method
 }
@@ -21,14 +21,29 @@ mining(x, data = NULL, Runs = 1, method = NULL, model = "default",
 
   \item{Runs}{number of runs used (e.g. 1, 5, 10, 20, 30)}
 
-  \item{method}{a vector with c(\emph{vmethod},\emph{vpar}), where \emph{vmethod} is:
+  \item{method}{a vector with c(\emph{vmethod},\emph{vpar},\emph{seed}) or c(\emph{vmethod},\emph{vpar},\emph{window},\emph{increment}), 
+where \emph{vmethod} is:
                 \itemize{
-                         \item \code{all} -- all \emph{NROW} examples are used as both training and test sets (no \emph{vpar} is needed).
-                         \item \code{holdout} -- standard holdout method. If \emph{vpar}<1 then \emph{NROW}*vpar random samples are used for training and the remaining rows are used for testing. Else, then \emph{NROW}*vpar random samples are used for testing and the remaining are used for training. For classification tasks (\code{prob} or \code{class}) a stratified sampling is used.
+                         \item \code{all} -- all \emph{NROW} examples are used as both training and test sets (no \emph{vpar} or \emph{seed} is needed).
+                         \item \code{holdout} -- standard holdout method. If \emph{vpar}<1 then \emph{NROW}*vpar random samples are used for training and the remaining rows are used for testing. Else, then \emph{NROW}*vpar random samples are used for testing and the remaining are used for training. For classification tasks (\code{prob} or \code{class}) a stratified sampling is assumed (equal to \code{mode="stratified"} in \code{\link{holdout}}).
+                         \item \code{holdoutrandom} -- similar to \code{holdout} except that assumes always a random sampling (not stratified).
                          \item \code{holdoutorder} -- similar to \code{holdout} except that instead of a random sampling, the first rows (until the split) are used for training and the remaining ones for testing (equal to \code{mode="order"} in \code{\link{holdout}}).
-                         \item \code{holdoutinc} -- incremental holdout retraining (e.g. used for spam data). Here, \emph{vpar} is the batch size.
-                         \item \code{kfold} -- K-fold cross-validation method, where \emph{vpar} is the number of folds.
-                         \item \code{kfoldo} -- similar to \code{kfold} except that instead of a random sampling, the order of the rows is used to build the folds.
+                         \item \code{holdoutinc} -- incremental holdout retraining (e.g. used for stock market data). Here, \emph{vpar} is the test size,
+\emph{window} is the initial window size and \emph{increment} is the number of samples added at each iteration. 
+Note: argument \code{Runs} is automatically set when this option is used. See also \code{\link{holdout}}.
+                         \item \code{holdoutrol} -- rolling holdout retraining (e.g. used for stock market data). Here, \emph{vpar} is the test size,
+\emph{window} is the window size and \emph{increment} is the number of samples added at each iteration. 
+Note: argument \code{Runs} is automatically set when this option is used. See also \code{\link{holdout}}.
+                         \item \code{kfold} -- K-fold cross-validation method, where \emph{vpar} is the number of folds. For classification tasks (\code{prob} or \code{class}) a stratified split is assumed (equal to \code{mode="stratified"} in \code{\link{crossvaldata}}).
+                         \item \code{kfoldrandom} -- similar to \code{kfold} except that assumes always a random sampling (not stratified).
+                         \item \code{kfoldorder} -- similar to \code{kfold} except that instead of a random sampling, the order of the rows is used to build the folds.
+                        }
+                \emph{vpar} -- number used by \emph{vmethod} (optional, if not defined 2/3 for \code{holdout} and 10 for \code{kfold} is assumed);\cr
+                and \emph{seed} (optional, if not defined then \code{NA} is assumed) is:
+                \itemize{
+                          \item \code{NA} -- random seed is adopted (default R method for generating random numbers);
+                          \item a vector of size \code{Runs} with fixed seed numbers for each Run;
+                          \item a number -- \code{set.seed}(\emph{number}) is applied then a vector of seeds (of size Runs) is generated.
                         }
                }
   \item{model}{See \code{\link{fit}} for details.}
@@ -37,7 +52,7 @@ mining(x, data = NULL, Runs = 1, method = NULL, model = "default",
 
   \item{search}{See \code{\link{fit}} for details.}
 
-  \item{mpar}{See \code{\link{fit}} for details.\cr
+  \item{mpar}{Only kept for compatibility with previous \code{rminer} versions, as you should use \code{search} instead of \code{mpar}. See \code{\link{fit}} for details.\cr
              }
 
   \item{feature}{See \code{\link{fit}} for more details about \code{feature="none"}, \code{"sabs"} or \code{"sbs"} options.\cr
@@ -67,8 +82,8 @@ mining(x, data = NULL, Runs = 1, method = NULL, model = "default",
 Powerful function that trains and tests a particular fit model under several runs and a given validation method
 (see [Cortez, 2010] for more details).\cr
 Several \code{Runs} are performed. In each run, the same validation method is adopted (e.g. \code{holdout}) and
-several relevant statistics are stored. Warning: be patient, this function can require some computational effort, specially if
-a high number of \code{Runs} is used.
+several relevant statistics are stored. Note: this function can require some computational effort, specially if
+a large dataset and/or a high number of \code{Runs} is adopted.
 }
 
 \value{
@@ -78,7 +93,7 @@ A \code{list} with the components:
 \item $test -- vector list, where each element contains the test (target) results for each run.
 \item $pred -- vector list, where each element contains the predicted results for each test set and each run.
 \item $error -- vector with an error \code{metric} for each run (the error depends on the \code{metric} parameter of \code{mpar}, valid options are explained in \code{\link{mmetric}}).
-\item $mpar -- data.frame with each fit model mpar parameters, the sequence repeats \code{Runs} (times \emph{vpar} if \code{kfold} is used).
+\item $mpar -- vector list, where each element contains the fit model mpar parameters (for each run).
 \item $model -- the \code{model}.
 \item $task -- the \code{task}.
 \item $method -- the external validation \code{method}.
@@ -114,25 +129,69 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 \examples{
-### IMPORTANT NOTE ###
-# The execution of the examples below requires more than a few seconds.
-# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
-# Such lines are marked with: # DELETE-OR-IGNORE ...
-# If you want to test the code, please comment or ignore these 2 lines
-### END OF NOTE    ###
-
-if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
+### dontrun is used when the execution of the example requires some computational effort.
 
 ### simple regression example
 x1=rnorm(200,100,20); x2=rnorm(200,100,20)
 y=0.7*sin(x1/(25*pi))+0.3*sin(x2/(25*pi))
+# mining with an ensemble of neural networks, each fixed with size=2 hidden nodes
+# assumes a default holdout (random split) with 2/3 for training and 1/3 for testing:
 M=mining(y~x1+x2,Runs=2,model="mlpe",search=2)
 print(M)
 print(mmetric(M,metric="MAE"))
 
+### more regression examples:
+\dontrun{
+# simple nonlinear regression task; x3 is a random variable and does not influence y:
+data(sin1reg)
+# 5 runs of an external holdout with 2/3 for training and 1/3 for testing, fixed seed 12345
+# feature selection: sabs method
+# model selection: 5 searches for size, internal 2-fold cross validation fixed seed 123
+#                  with optimization for minimum MAE metric 
+M=mining(y~.,data=sin1reg,Runs=5,method=c("holdout",2/3,12345),model="mlpe",
+         search=list(search="heuristic5",method=c("kfold",2,123),metric="MAE"),feature="sabs")
+print(mmetric(M,metric="MAE"))
+print(M$mpar)
+print("median hidden nodes (size) and number of MLPs (nr):")
+print(centralpar(M$mpar))
+print("attributes used by the model in each run:")
+print(M$attributes)
+mgraph(M,graph="RSC",Grid=10,main="sin1 MLPE scatter plot")
+mgraph(M,graph="REP",Grid=10,main="sin1 MLPE scatter plot",sort=FALSE)
+mgraph(M,graph="REC",Grid=10,main="sin1 MLPE REC")
+mgraph(M,graph="IMP",Grid=10,main="input importances",xval=0.1,leg=names(sin1reg))
+# average influence of x1 on the model:
+mgraph(M,graph="VEC",Grid=10,main="x1 VEC curve",xval=1,leg=names(sin1reg)[1])
+}
+
+### regression example with holdout rolling windows:
+\dontrun{
+# simple nonlinear regression task; x3 is a random variable and does not influence y:
+data(sin1reg)
+# rolling with 20 test samples, training window size of 300 and increment of 50 in each run:
+# note that Runs argument is automatically set to 14 in this example:
+M=mining(y~.,data=sin1reg,method=c("holdoutrol",20,300,50),
+         model="mlpe",search="heuristic",debug=TRUE)
+}
+
+### regression example with all rminer models:
+\dontrun{
+# simple nonlinear regression task; x3 is a random variable and does not influence y:
+data(sin1reg)
+models=c("naive","ctree","rpart","kknn","mlp","mlpe","ksvm","randomForest","mr","mars",
+         "cubist","pcr","plsr","cppls","rvm")
+for(model in models)
+{ 
+ M=mining(y~.,data=sin1reg,method=c("holdout",2/3,12345),model=model)
+ cat("model:",model,"MAE:",round(mmetric(M,metric="MAE")$MAE,digits=3),"\n")
+}
+}
+
 ### classification example (task="prob")
+\dontrun{
 data(iris)
-M=mining(Species~.,iris,Runs=10,method=c("kfold",3),model="dt")
+# 10 runs of a 3-fold cross validation with fixed seed 123 for generating the 3-fold runs
+M=mining(Species~.,iris,Runs=10,method=c("kfold",3,123),model="rpart")
 print(mmetric(M,metric="CONF"))
 print(mmetric(M,metric="AUC"))
 print(meanint(mmetric(M,metric="AUC")))
@@ -140,47 +199,47 @@ mgraph(M,graph="ROC",TC=2,baseline=TRUE,Grid=10,leg="Versicolor",
        main="versicolor ROC")
 mgraph(M,graph="LIFT",TC=2,baseline=TRUE,Grid=10,leg="Versicolor",
        main="Versicolor ROC")
-M2=mining(Species~.,iris,Runs=10,method=c("kfold",3),model="svm")
+M2=mining(Species~.,iris,Runs=10,method=c("kfold",3,123),model="ksvm")
 L=vector("list",2)
 L[[1]]=M;L[[2]]=M2
 mgraph(L,graph="ROC",TC=2,baseline=TRUE,Grid=10,leg=c("DT","SVM"),main="ROC")
-
-### regression example
-data(sin1reg)
-M=mining(y~.,data=sin1reg,Runs=3,method=c("holdout",2/3),model="mlpe",
-         search="heuristic5",mpar=c(50,3,"kfold",3,"MAE"),feature="sabs")
-print(mmetric(M,metric="MAE"))
-print(M$mpar)
-cat("median H nodes:",medianminingpar(M)[1],"\n")
-print(M$attributes)
-mgraph(M,graph="RSC",Grid=10,main="sin1 MLPE scatter plot")
-mgraph(M,graph="REP",Grid=10,main="sin1 MLPE scatter plot",sort=FALSE)
-mgraph(M,graph="REC",Grid=10,main="sin1 MLPE REC")
-mgraph(M,graph="IMP",Grid=10,main="input importances",xval=0.1,leg=names(sin1reg))
-mgraph(M,graph="VEC",Grid=10,main="x1 VEC curve",xval=1,leg=names(sin1reg)[1])
+}
 
 ### other classification examples
-## 1st example:
+\dontrun{
+### 1st example:
 data(iris)
-M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2),model="svm",
-search="heuristic",mpar=c(NA,NA,"kfold",3,"AUC"),feature="s")
+# 2 runs of an external 2-fold validation, random seed
+# model selection: SVM model with rbfdot kernel, automatic search for sigma,
+#                  internal 3-fold validation, random seed, minimum "AUC" is assumed
+# feature selection: none, "s" is used only to store input importance values
+M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2,NA),model="ksvm",
+         search=list(search="heuristic",method=c("kfold",3)),feature="s")
+
 print(mmetric(M,metric="AUC",TC=2))
 mgraph(M,graph="ROC",TC=2,baseline=TRUE,Grid=10,leg="SVM",main="ROC",intbar=FALSE)
 mgraph(M,graph="IMP",TC=2,Grid=10,main="input importances",xval=0.1,
 leg=names(iris),axis=1)
 mgraph(M,graph="VEC",TC=2,Grid=10,main="Petal.Width VEC curve",
 data=iris,xval=4)
-## 2nd example, ordered kfold:
+### 2nd example, ordered kfold, k-nearest neigbor:
 M=mining(Species~.,iris,Runs=1,method=c("kfoldo",3),model="knn")
-print(mmetric(M,metric="CONF"))
-## 3rd example, use of naive method (most common class)
-M=mining(Species~.,iris,Runs=1,method=c("kfold",3),model="naive")
+# confusion matrix:
 print(mmetric(M,metric="CONF"))
 
-} # DELETE-OR-IGNORE-THIS LINE #
-
+### 3rd example, use of all rminer models: 
+models=c("naive","ctree","rpart","kknn","mlp","mlpe","ksvm","randomForest","bagging",
+         "boosting","lda","multinom","naiveBayes","qda")
+models="naiveBayes"
+for(model in models)
+{ 
+ M=mining(Species~.,iris,Runs=1,method=c("kfold",3,123),model=model)
+ cat("model:",model,"ACC:",round(mmetric(M,metric="ACC")$ACC,digits=1),"\n")
+}
 }
 
+### for more fitting examples check the help of function fit: ?fit
+}
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{classif}

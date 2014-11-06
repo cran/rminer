@@ -48,5 +48,20 @@ print(imputation("value",d,2,Value=median(na.omit(d[,2]))))
 print(imputation("value",d,2,Value=c(1,2)))
 print(imputation("hotdeck",d,"X2",Value=1))
 print(imputation("hotdeck",d,Value=1))
+
+\dontrun{
+# hotdeck 1-nearest neighbor substitution on a real dataset:
+d=read.table(
+   file="http://archive.ics.uci.edu/ml/machine-learning-databases/autos/imports-85.data",
+   sep=",",na.strings="?")
+print(summary(d))
+d2=imputation("hotdeck",d,Value=1)
+print(summary(d2))
+par(mfrow=c(2,1))
+hist(d$V26)
+hist(d2$V26)
+par(mfrow=c(1,1)) # reset mfrow
+}
+
 }
 \keyword{ manip }

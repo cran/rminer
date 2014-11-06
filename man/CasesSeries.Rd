@@ -41,6 +41,8 @@ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 t=1:20
 d=CasesSeries(1:10,c(1,3,4))
 print(d)
+d=CasesSeries(1:10,c(1,2,3))
+print(d)
 }
 \keyword{ datasets }
 \keyword{ ts }

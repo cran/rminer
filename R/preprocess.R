@@ -200,11 +200,12 @@ hotdeck<-function(D,Attribute=NULL,Missing=NA,K=1)
 {
   #D=d; Attribute=3; Missing=NA; K=1
   #D=d; Attribute=NULL;Missing=NA;K=1
-  if(is.null(Attribute))N=NCOL(D)
+  if(is.null(Attribute)) N=NCOL(D)
   else 
     { N=1
       if(class(Attribute)=="character") 
-        { ND<-names(D); A<-which(ND==Attribute)}
+        { ND<-names(D); A<-which(ND==Attribute)
+        }
       else A<-Attribute
     }
   MA=missingatts(D,Missing) 
@@ -220,7 +221,7 @@ hotdeck<-function(D,Attribute=NULL,Missing=NA,K=1)
     if(is.factor(D[,A][1])){L=levels(D[,A][1]);DTS[,YDTS]=factor(rep(L[1],length(I)),levels=levels(D[,A])); task="class";}
     else { DTS[,YDTS]=0; task="reg";}
     if(!is.null(names(D))) x<-as.formula(paste(names(D)[A]," ~ .",sep="")) else x<-as.formula("y ~ .")
-    M<-fit(x,data=DTR,model="knn",search=K,task=task)
+    M<-fit(x,data=DTR,model="kknn",search=K,task=task)
     P<-predict(M,DTS)
     D=impvalue(D,A,Missing=Missing,Value=P)
    }
@@ -326,6 +327,8 @@ medianfirst=function(x)
  LX=length(X$ix);if(LX%%2==1) mid=(LX-1)/2+1 else mid=LX/2
  return (list(mid=X$ix[mid],val=X$x[mid]))
 }
+
+
 #--- END OF AUXILIAR FUNCTIONS --------------------------------------------
 
 # transform a TS intro a data.frame matrix of #W inputs and y output variables

@@ -6,7 +6,8 @@ Computes indexes for holdout data split into training and test sets.
 \description{
 Computes indexes for holdout data split into training and test sets.
 }
-\usage{holdout(y, ratio = 2/3, internalsplit = FALSE, mode = "random", iter = 1)
+\usage{holdout(y, ratio = 2/3, internalsplit = FALSE, mode = "stratified", iter = 1, 
+               seed = NULL, window=10, increment=1)
 }
 \arguments{
   \item{y}{desired target: numeric vector; or factor -- then a stratified holdout is applied (i.e. the proportions of the classes are the same for each set).}
@@ -14,17 +15,22 @@ Computes indexes for holdout data split into training and test sets.
   \item{internalsplit}{if \code{TRUE} then the training data is further split into training and validation sets. The same \code{ratio} parameter is used for the internal split.}
   \item{mode}{sampling mode. Options are:
               \itemize{
+                       \item \code{stratified} -- stratified randomized holdout if \code{y} is a factor; else it behaves as standard randomized holdout;
                        \item \code{random} -- standard randomized holdout;
                        \item \code{order} -- static mode, where the first examples are used for training and the later ones for testing (useful for time series data);
-                       \item \code{incremental} -- incremental retraining mode (e.g. useful for spam detection), similar to \code{order} except that \code{ratio}=\emph{batch} size
-                                                   and \code{iter} is used. In each iteration, the training set size grows, while the test set size is equal to \code{ratio} except
-                                                   for the last batch (where it may be smaller).
+                       \item \code{rolling} -- rolling window, also known as sliding window (e.g. useful for stock market prediction), similar to \code{order} except that \code{window} is the window size, \code{iter} is the rolling iteration and \code{increment} is the number of samples slided at each iteration. In each iteration, the training set size is fixed to \code{window}, while the test set size is equal to \code{ratio} except for the last iteration
+(where it may be smaller).
+                       \item \code{incremental} -- incremental retraining mode, also known as growing windows, similar to \code{order} except that \code{window} is the initial window size, \code{iter} is the incremental iteration and \code{increment} is the number of samples added at each iteration. In each iteration, the training set size grows (+increment), while the test set size is equal to \code{ratio} except
+                                                   for the last iteration (where it may be smaller).
                       }
 }
-  \item{iter}{iteration of the incremental retraining mode (only used when \code{mode==}"incremental", typically \code{iter} is set within a cycle, see the example below).}
+  \item{iter}{iteration of the incremental retraining mode (only used when \code{mode="rolling"} or \code{"incremental"}, typically \code{iter} is set within a cycle, see the example below).}
+  \item{seed}{if \code{NULL} then a random seed is used; else a fixed seed is adopted (will return always the same result for the same seed).}
+  \item{window}{training window size (if \code{mode="rolling"}) or initial training window size (if \code{mode="incremental"}).}
+  \item{increment}{number of samples added to the training window at each iteration (if \code{mode="incremental"} or \code{mode="rolling"}).}
 }
 \details{
-Computes indexes for holdout data split into training and test sets (if \code{y} is a factor then a stratified holdout is applied).
+Computes indexes for holdout data split into training and test sets.
 }
 \value{
 A list with the components:
@@ -47,38 +53,55 @@ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \examples{
 ### simple examples:
+# preserves order, last two elements go into test set
 H=holdout(1:10,ratio=2,internal=TRUE,mode="order")
 print(H)
-H=holdout(1:10,ratio=2/3,internal=TRUE,mode="order")
+# no seed or NULL returns different splits:
+H=holdout(1:10,ratio=2/3,mode="random")
 print(H)
-H=holdout(1:10,ratio=2/3,internal=TRUE,mode="random")
+H=holdout(1:10,ratio=2/3,mode="random",seed=NULL)
 print(H)
-H=holdout(1:10,ratio=2/3,internal=TRUE,mode="random")
+# same seed returns identical split:
+H=holdout(1:10,ratio=2/3,mode="random",seed=12345)
+print(H)
+H=holdout(1:10,ratio=2/3,mode="random",seed=12345)
 print(H)
 
 ### classification example
 data(iris)
 # random stratified holdout
-H=holdout(iris$Species,ratio=2/3,internal=TRUE) 
-print(summary(iris[H$itr,]))
-print(summary(iris[H$val,]))
-print(summary(iris[H$tr,]))
-print(summary(iris[H$ts,]))
-M=fit(Species~.,iris[H$tr,],model="dt") # training data only
+H=holdout(iris$Species,ratio=2/3,mode="stratified") 
+print(table(iris[H$tr,]$Species))
+print(table(iris[H$ts,]$Species))
+M=fit(Species~.,iris[H$tr,],model="rpart") # training data only
 P=predict(M,iris[H$ts,]) # test data
 print(mmetric(iris$Species[H$ts],P,"CONF"))
 
-### regression example with incremental training
+### regression example with incremental and rolling window holdout:
+\dontrun{
 ts=c(1,4,7,2,5,8,3,6,9,4,7,10,5,8,11,6,9)
 d=CasesSeries(ts,c(1,2,3))
-for(b in 1:3) # iterations
-{
- H=holdout(d$y,ratio=4,mode="incremental",iter=b)
- print(H)
- M=fit(y~.,d[H$tr,],model="mlpe",search=2)
- P=predict(M,d[H$ts,])
- cat("batch :",b,"TR size:",length(H$tr),"TS size:",
-     length(H$ts),"mae:",mmetric(d$y[H$ts],P,"MAE"),"\n")
+print(d) # with 14 examples
+# incremental holdout example (growing window)
+for(b in 1:4) # iterations
+  {
+   H=holdout(d$y,ratio=4,mode="incremental",iter=b,window=5,increment=2)
+   M=fit(y~.,d[H$tr,],model="mlpe",search=2)
+   P=predict(M,d[H$ts,])
+   cat("batch :",b,"TR from:",H$tr[1],"to:",H$tr[length(H$tr)],"size:",length(H$tr),
+       "TS from:",H$ts[1],"to:",H$ts[length(H$ts)],"size:",length(H$ts),
+       "mae:",mmetric(d$y[H$ts],P,"MAE"),"\n")
+  }
+# rolling holdout example (sliding window)
+for(b in 1:4) # iterations
+  {
+   H=holdout(d$y,ratio=4,mode="rolling",iter=b,window=5,increment=2)
+   M=fit(y~.,d[H$tr,],model="mlpe",search=2)
+   P=predict(M,d[H$ts,])
+   cat("batch :",b,"TR from:",H$tr[1],"to:",H$tr[length(H$tr)],"size:",length(H$tr),
+       "TS from:",H$ts[1],"to:",H$ts[length(H$ts)],"size:",length(H$ts),
+       "mae:",mmetric(d$y[H$ts],P,"MAE"),"\n")
+  }
 }
 }
 \keyword{ manip }

@@ -19,6 +19,9 @@
 
 }
 
+\details{
+         Returns predictions for a fit model. Note: the \code{...} optional argument is currently only used by \code{cubist} model (see example).
+        }
 \value{
    If \code{task} is \code{prob} returns a matrix, where each column is the class probability.\cr
    If \code{task} is \code{class} returns a factor.\cr
@@ -41,13 +44,29 @@ In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspec
 }
 
 \examples{
-## simple classification example with logistic regression
+### simple classification example with logistic regression
 data(iris)
 M=fit(Species~.,iris,model="lr")
 P=predict(M,iris)
 print(mmetric(iris$Species,P,"CONF")) # confusion matrix
 
-## check also fit for more examples
+### simple regression example
+data(sa_ssin)
+H=holdout(sa_ssin$y,ratio=0.5,seed=12345)
+Y=sa_ssin[H$ts,]$y # desired test set
+# fit multiple regression on training data (half of samples)
+M=fit(y~.,sa_ssin[H$tr,],model="mr") # multiple regression
+P1=predict(M,sa_ssin[H$ts,]) # predictions on test set
+print(mmetric(Y,P1,"MAE")) # mean absolute error
+
+### fit cubist model
+M=fit(y~.,sa_ssin[H$tr,],model="cubist") #
+P2=predict(M,sa_ssin[H$ts,],neighbors=3) #
+print(mmetric(Y,P2,"MAE")) # mean absolute error
+P3=predict(M,sa_ssin[H$ts,],neighbors=7) #
+print(mmetric(Y,P3,"MAE")) # mean absolute error
+
+### check fit for more examples
 }
 
 \keyword{methods}

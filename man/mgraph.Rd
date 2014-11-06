@@ -109,13 +109,13 @@ L=vector("list",3); pred=vector("list",1); test=vector("list",1);
 pred[[1]]=y; test[[1]]=x; L[[1]]=list(pred=pred,test=test,runs=1)
 test[[1]]=x2; L[[2]]=list(pred=pred,test=test,runs=1)
 test[[1]]=x3; L[[3]]=list(pred=pred,test=test,runs=1)
-mgraph(L,graph="DLC",metric="MAE",leg=c("x","x2","x3"),main="MAE errors")
+mgraph(L,graph="DLC",metric="MAE",leg=c("x1","x2","x3"),main="MAE errors")
 
 ### regression example with mining
+\dontrun{
 data(sin1reg)
 M1=mining(y~.,sin1reg[,c(1,2,4)],model="mr",Runs=5)
-M2=mining(y~.,sin1reg[,c(1,2,4)],model="mlpe",
-          mpar=c(3,50),search=4,Runs=5,feature="simp")
+M2=mining(y~.,sin1reg[,c(1,2,4)],model="mlpe",nr=3,maxit=50,search=4,Runs=5,feature="simp")
 L=vector("list",2); L[[1]]=M2; L[[2]]=M1
 mgraph(L,graph="REC",xval=0.1,leg=c("mlpe","mr"),main="REC curve")
 mgraph(L,graph="DLC",metric="TOLERANCE",xval=0.01,
@@ -125,20 +125,23 @@ mgraph(M2,graph="IMP",xval=0.01,leg=c("x1","x2"),
 mgraph(M2,graph="VEC",xval=1,main="sin1reg 1-D VEC curve for x1")
 mgraph(M2,graph="VEC",xval=1,
        main="sin1reg 1-D VEC curve and histogram for x1",data=sin1reg)
+}
 
 ### classification example
+\dontrun{
 data(iris)
-M1=mining(Species~.,iris,model="dt",Runs=5)
-M2=mining(Species~.,iris,model="svm",Runs=5)
+M1=mining(Species~.,iris,model="rpart",Runs=5) # decision tree (DT)
+M2=mining(Species~.,iris,model="ksvm",Runs=5) # support vector machine (SVM)
 L=vector("list",2); L[[1]]=M2; L[[2]]=M1
 mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="mr ROC")
 mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="mr ROC",intbar=FALSE)
-mgraph(L,graph="ROC",TC=3,leg=c("svm","dt"),baseline=TRUE,Grid=10,
+mgraph(L,graph="ROC",TC=3,leg=c("SVM","DT"),baseline=TRUE,Grid=10,
        main="ROC for virginica")
-mgraph(L,graph="LIFT",TC=3,leg=list(pos=c(0.4,0.2),leg=c("svm","dt")),
+mgraph(L,graph="LIFT",TC=3,leg=list(pos=c(0.4,0.2),leg=c("SVM","DT")),
        baseline=TRUE,Grid=10,main="LIFT for virginica")
 }
 
+}
 \keyword{aplot}
 \keyword{classif}
 \keyword{regression}

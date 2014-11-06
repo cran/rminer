@@ -37,7 +37,8 @@ In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
 }
 }
 \examples{
-data(sa_fri1)
-## maybe str(sa_fri1) ; plot(sa_fri1) ...
+data(sa_ssin)
+print(summary(sa_ssin))
+\dontrun{plot(sa_ssin$x1,sa_ssin$y)}
 }
 \keyword{datasets}

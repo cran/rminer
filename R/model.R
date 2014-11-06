@@ -1,59 +1,58 @@
-# think about the use of references: R2.13? R.oo package ?
 #-------------------------------------------------------------------------------------------------
-# "model.R" code by Paulo Cortez 2010@, Department of Information Systems, University of Minho
+# "model.R" code by Paulo Cortez 2010-2014@, Department of Information Systems, University of Minho
 #
 # This file deals will all Data Mining models
 #
 #  - Several parts of code were gratefully copied/inspired from the kernlab source code package :)
-#  - The naivebayes is equal to naiveBayes but without requiring the instalation of the e1071 other sources and packages
-#  that constantly appeared when a high number of inputs was used (spam e-mail classification)
 #-------------------------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------------------------
-# 17/11/2010 - deleted text mining and holdout sequence code. not sure if I will need this.
+# personal thoughts of things to improve:
+# improved feature selection?
+# parallel execution of searches?
+# ensembles? 
+# use of references: R2.13? R.oo package ? 
+# ranking ?
+# ordinal classification ?
+#
 #-------------------------------------------------------------------------------------------------
 # libraries that need to be installed:
-library(nnet)   # get nnet: MLP and Multiple Logistic Regression
-library(rpart)  # get rpart: Decision Trees
-library(kknn)   # get kknn: k-nearest neighbours
-library(kernlab)# get the ksvm
+#library(nnet)   # get nnet: MLP and Multiple Logistic Regression
+#library(pls) # get pls methods
+#library(MASS) # lda and qda
+#library(mda) # mars
+#library(rpart)  # get rpart: Decision Trees
+#library(randomForest) # get randomForest
+#library(adabag) # get bagging and boosting
+#library(party) # get ctree
+#library(Cubist) # regression, cubist
+#library(kknn)   # get kknn: k-nearest neighbours
+#library(kernlab)# get the ksvm
+#library(e1071) # get naiveBayes
 
+# not used:
 ##library(neuralnet) # get neuralnet # still experimental stuff
-
-# suggested libraries:
-#try(library(MASS),silent=TRUE)
-#try(library(mda),silent=TRUE)
-#try(library(randomForest),silent=TRUE)
-
-#----------------------------------------------------------------------------------------------
 ##library(klaR) # get NaiveBayes
-##library(RWeka) # get Weka classifiers # uncomment if you need to use Weka classifiers
-                 # uncomment all wmodels code and adapt to work...
-#-------------------------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------------------------
-# Things to do in the future: # - ensembles?
+##library(RWeka) # get Weka classifiers ?
 #-------------------------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------------------------
 # save/load functions:
 #
-
 #-- save a fitted model into a binary (ascii=FALSE) of text (ascii=TRUE) file:
-savemodel<-function(mm_model,file,ascii=FALSE)
+savemodel=function(mm_model,file,ascii=FALSE)
 { #if(mmmodel@model=="wnaivebayes") { .jcache( (mmmodel@object)$classifier ) } # weka objects
   save(mm_model,file=file,ascii=ascii)
 }
 #-- load a file that was saved using savemodel function
-loadmodel<-function(file)
+loadmodel=function(file)
 {mm_model=FALSE;load(file=file); return(mm_model) }
 
 #-- save a fitted mining into a binary (ascii=FALSE) of text (ascii=TRUE) file:
-savemining<-function(mmm_mining,file,ascii=TRUE)
+savemining=function(mmm_mining,file,ascii=TRUE)
 { save(mmm_mining,file=file,ascii=ascii) }
 
 #-- load a fitted mining file that was saved using savemining function
-loadmining<-function(file)
+loadmining=function(file)
 {mmm_mining=FALSE;load(file=file);return(mmm_mining)}
 
 #-------------------------------------------------------------------------------------------------
@@ -63,57 +62,84 @@ loadmining<-function(file)
 # @formula - the formula used to create the model
 # @outindex - the output index of data
 # @attributes - index with all attributes considered 
-# @model - the data mining model: "naive", "lr", "mr", "dt", "naivebayes", "knn", "mlp", "svm" (optional: "lda", "qda", "randomforest", "bruto", "mars")
+# @model - the data mining model:
 # @object - the data mining object (e.g. nnet, rpart, etc...) 
 # @time - the estimation/training time
 # @created - string with the date and time (strptime) when the model was build
-# @mpar - vector with the parameters of the model (e.g. svm, mlp, knn)
+# @mpar - vector with the hyperparameters of the model (e.g. svm, mlp, knn)
 #         other: metric
-#         mlp: c(NR,MaxIt,validationmethod,validationpar,metric) 
-#         mlp: c(NR,MaxIt,validationmethod,validationpar,metric,PAR) PAR = HN if decay is used for the search or DECAY if HN is used for the search
+#         mlp: c(nr,MaxIt,validationmethod,validationpar,metric) 
+#         mlp: c(nr,MaxIt,validationmethod,validationpar,metric,PAR) PAR = H if decay is used for the search or DECAY if H is used for the search
 #         svm: c(C,Epsilon,validationmethod,validationpar,metric)  if C=NA or Epsilon=NA then heuristics are used
 #         knn: c(validationmethod,validationpar,metric)
 #              metric = "AUC", "ACC", "MAE", "SSE"
 # @task - type of data mining task, one of the following: 
 # "default", "class" (or "cla" or "classification"), "prob" (or "probability") - pure class, no probabilities!, "reg" (or "regression")
 #     "default" means if is.factor(y) "class" else "reg"
-# @scale - if the data needs to be scaled (to use specially with "mlp"). The options are:
+# @scale - if the data needs to be scaled (to use specially with "nnet"). The options are:
 #     "none", "inputs", "all", "default"
 # @transform - if the output needs to be transformed ("reg"):
 #     "log","logpositive","positive","scale"
 # @levels - if the output is factor, store the levels. This is needed to recover the level order when predictive results are latter
 #           analysed from files.
-setClass("model",representation(formula="formula",model="character",task="character",mpar="ANY",attributes="numeric",scale="character",transform="character",created="character",time="numeric",object="ANY",outindex="numeric",levels="character")) 
+setClass("model",representation(formula="formula",model="ANY",task="character",mpar="list",attributes="numeric",scale="character",transform="character",created="character",time="numeric",object="ANY",outindex="numeric",levels="character")) 
 #--------------------------------------------------------------------------------------
 #--- generic and powerful fit method --------------------------------------------------
 # most of these parameters are explained in the rminer.R file
 
+# improve this??? 
+# todo : search= change to set the parameter and if two or more parameters can be searched and with which function/method?
+# todo : specify different kernel for SVM?
+# todo: add more models, such as: 
+# Relevance Vector Machine (RVM): rvm
+# elastic nets: http://cran.r-project.org/web/packages/glmnet/index.html classification and regression
+# Conditional inference trees via party
+# The party package provides nonparametric regression trees for nominal, ordinal, numeric, censored, and multivariate responses. party: A laboratory for recursive partitioning, provides details: http://www.statmethods.net/advstats/cart.html ctree
+
+# adabag!
+# adaboost: http://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Classification/adaboost -> binary classification!
+# number of trees, max depth, min split, complexity,xval:
+# predict(gdis,iris,type="probs") and predict(gdis,iris,type="vector")
+# variable importance plot!
+# require(nnet, quietly=TRUE)
+
+# package car ? lm for classification?
+# JRIP class: http://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Classification/JRip library(caret)
+
 #setGeneric("fit", function(x, ...) standardGeneric("fit"))
 #setMethod("fit",signature(x="formula"),
-fit=function(x, data=NULL, model="default",task="default", search="heuristic",mpar=NULL,feature="none",scale="default", transform="none",created=NULL,...)
+# change search method to perform: grid, uniform, other function !!!
+
+fit=function(x, data=NULL,model="default",task="default",search="heuristic",mpar=NULL,feature="none",scale="default",transform="none",created=NULL,fdebug=FALSE,...)
 {
- if(is.null(data)) 
-   { data<-model.frame(x) # only formula is used 
+PTM= proc.time() # start clock
+call=match.call() # does not occupy too much memory!
+args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
+if(is.null(data)) # If x contains the data in formula expressions, then data=NULL 
+{ data=model.frame(x) # only formula is used 
      outindex=output_index(x,names(data))
-     x<-as.formula(paste(names(data)[outindex]," ~ .",sep=""))
-   }
- #else { if(feature[1]=="aries" && length(feature)>1) outindex=as.numeric(feature[2]) 
- else outindex=output_index(x,names(data)) #}
- task=defaultask(task,model,data[1,outindex])
- if(model=="lr") model="logistic" else if(model=="default") model<-defaultmodel(task)
- metric=getmetric(mpar,model,task)
- mpar=defaultmpar(mpar,model,task,metric)
+     x=as.formula(paste(names(data)[outindex]," ~ .",sep=""))
+}
+else outindex=output_index(x,names(data)) 
 
- if(task!="reg" && !is.factor(data[,outindex])) data[,outindex]=factor(data[,outindex])
- else if(task=="reg" && transform_needed(transform)) data[,outindex]=xtransform(data[,outindex],transform) #transform output?
+params=NULL
+task=defaultask(task,model,data[1,outindex])
+COL=NCOL(data)
+attributes=1:COL # set to all
+if(is.factor(data[,outindex])) levels=levels(data[1,outindex]) else levels=""
 
- if(is.factor(data[,outindex])) levels<-levels(data[1,outindex]) else levels=""
- params=NULL
+if(!is.list(model)) model=defaultmodel(model,task) 
+#if(is.null(mpar)) mpar=defaultmpar(mpar,task)
 
- PTM<- proc.time() # start clock
+if(task!="reg" && !is.factor(data[,outindex])) data[,outindex]=factor(data[,outindex])
+else if(task=="reg" && transform_needed(transform)) data[,outindex]=xtransform(data[,outindex],transform) #transform output?
 
- feature=defaultfeature(feature) # process feature
- if(feature_needed(feature[1]))
+feature=defaultfeature(feature) # process feature
+
+search=readsearch(search,model,task,mpar,...)
+#cat("SEARCH:\n"); print(search); #mpause()
+
+if(feature_needed(feature[1])) # will treat this better in next version: 2/9/2014
   { 
 #print(feature)
 #print("--")
@@ -129,221 +155,333 @@ fit=function(x, data=NULL, model="default",task="default", search="heuristic",mp
                           }
     else fsearch=search # this may take a long time...
        # perform both FS and parameter search at the same time...
-    RES=bssearch(x,data,algorithm=feature[1],Runs=Runs,method=c(vmethod,vpar),model=model,task=task,search=fsearch,mpar=mpar,scale=scale,transform="none",fstop=fstop,smeasure=smeasure)
+    RES=bssearch(x,data,algorithm=feature[1],Runs=Runs,method=c(vmethod,vpar),model=model,task=task,search=fsearch,
+                 scale=scale,transform="none",fstop=fstop,smeasure=smeasure)
     attributes=RES$attributes
     outindex=output_index(x,names(data)[attributes]) # update the output index if it has changed due to the deletion of variables
-    if(length(fsearch)>1) { LRS=length(RES$search) 
-                            if(substr(model,1,3)=="mlp")
-                            { if(length(mpar)==6) search=RES$search[2] # decay
-                              else search=RES$search[1] # Hn
-                            }
-                            else{ search=RES$search[1];
-                                  if(LRS>1) mpar[1:(LRS-1)]=RES$search[2:LRS]
-                                }
-                          }
+    #if(length(fsearch)>1) { search$search=RES$search # check later if this works: 1/10/2014
+    #                      }
+    #print(search)
     data=data[,attributes] # new
   }
  else attributes=1:NCOL(data); # set to all
 
- # --- if for all models ---
- if (model=="naive")
-  { if(substr(task,1,3)=="reg") M<-mean(data[,outindex])
-    else if(is.factor(data[,outindex])) 
-    { M=data[1,outindex];M[1]=levels(data[1,outindex])[mostcommon(data[,outindex])] }
-  }
- else if(model=="dt") # decision tree: based in the rpart library
-  { if(task=="reg") METHOD="anova" else METHOD="class"
-    M=rpart(x,data=data,method=METHOD,...)
-  }
- #else if(model=="randomforest") # random forest: based in the randomForest package
- # {
-   #M<-randomForest(x,ntree=1000,data=data,importance=TRUE,...)
- #  M<-randomForest(x,data=data,importance=TRUE,mtry=search,...)
- # }
- else if(model=="mr") # multiple/linear regression: uses the nnet function
-  { M=mlp.fit(x,data,HN=0,NR=1,maxit=100,task=task,scale="none") }
- else if(model=="mars") # mars
-  { M=mars(data[,-outindex],data[,outindex]) }
- else if(model=="bruto") # bruto
-  { M=bruto(data[,-outindex],data[,outindex]) }
- #else if(model=="lm") # multiple/linear regression: uses the R lm function
- # {
- #  if(substr(task,1,3)!="reg" || is.factor(data[,outindex])) 
- #	print("Error: lm should be used in regression with a numeric output!!!")
- #  suppressWarnings(M<-lm(x, data=data,...))
- # }
- else if(model=="lda" || model=="qda") # linear/quadratic discriminant analysis
-  {
-   if(substr(task,1,3)=="reg") cat("Error:",model,"should be used in classification\n")
-   if(model=="lda") suppressWarnings(M<-lda(x,data=data,...)) else suppressWarnings(M<-qda(x,data=data,...))
-  }
- else if(model=="naivebayes") # || model=="wnaivebayes") # naive bayes: based in the naiveBayes function
-  {
-   if(substr(task,1,3)=="reg") print("Error: naive bayes should be used in classification\n")
-   #if(model=="wnaivebayes") { WNB <- make_Weka_classifier("weka/classifiers/bayes/NaiveBayes"); M<-WNB(x,data=data,...); }
-   #else 
-   M<-naivebayes(x,data=data,...) ###
-   #if(length(attributes)==2) M<-NULL # model is equal to the unique input attribute
-   #else M<-naiveBayes(x,data=data,...)
- }
- else if(model=="logistic") 
-  {
-   M<-multinom(x,data=data,trace=FALSE,...)
-   #else suppressWarnings(M<-glm(x,data=data,family=binomial(logit),...)) # glm gives some errors when factors have levels with few elements.
-  }
- else if(model=="knn" || substr(model,1,3)=="mlp" || model=="svm" || model=="randomforest") # methods with internal search for best parameter
-  {# --- else if ----------------------------------------------------------------------------------------
-   if(scale=="default" && substr(model,1,3)=="mlp") # removed "svm" from this if due to a "object scal not found" error
-     { if(is.factor(data[,outindex])) scale="inputs" else scale="all" }
-   # set default mpar and metric
-#print("mpar:")
-#print(mpar)
-   if(substr(model,1,3)=="mlp" && length(mpar)==6) decay=TRUE else decay=FALSE
-   search=defaultsearch(search,model,task,COL=NCOL(data),decay)
-#print("search:")
+if(search$smethod=="grid" || search$smethod=="matrix") # grid or matrix search
+{ 
+  search=mgrid(search,x,data,model,task,scale,transform,fdebug,args)
+}
+else if(search$smethod=="2L" || substr(search$smethod,1,2)=="UD") # nested 2-level grid or uniform design
+{ 
+ if(fdebug) print(" 1st level:")
 #print(search)
-   if(is.list(search) && length(search$convex)==1) convex=search$convex else convex=0 # perform convex search: much faster and simpler...
+  if(substr(search$smethod,1,2)=="UD") 
+    {
+     if(search$smethod=="UD1") points=13 else points=9
+     limits=c(search$search$sigma,search$search$C); if(task=="reg") limits=c(limits,search$search$epsilon)
+     mud=uniform_design(limits,points=points,center=NULL)
+     search$search$sigma=mud[,1];search$search$C=mud[,2]; if(task=="reg") search$search$epsilon=mud[,3]
+    }
+  saux1=mgrid(search,x,data,model,task,scale,transform,fdebug,args) # 1st level
+#print(" > best1 ---:")
+#print(saux1)
+  if(substr(search$smethod,1,2)=="UD") 
+    {
+     if(search$smethod=="UD1") points=9 else points=5
+     mode="range"
+    } 
+  else mode="seq"
+  search2=midrangesearch(saux1,search,mode=mode) 
+  if(substr(search$smethod,1,2)=="UD") 
+    {
+     limits=c(search2$search$sigma,search2$search$C); if(task=="reg") limits=c(limits,search2$search$epsilon)
+     center=c(saux1$search$sigma,saux1$search$C); if(task=="reg") center=c(center,saux1$search$epsilon)
+     mud=uniform_design(limits,points=points,center=center)
+     search2$search$sigma=mud[,1];search2$search$C=mud[,2]; if(task=="reg") search2$search$epsilon=mud[,3]
+    } 
+ if(fdebug) print(" 2nd level:")
+#print(" > 2nd ---:")
+#print(search2)
+  saux2=mgrid(search2,x,data,model,task,scale,transform,fdebug,args) # 2nd level
+#print(" > best2 ---:")
+#print(saux2)
+  if(isbest(saux2$bestval,saux1$bestval,search$metric)) search=saux2 else search=saux1
+#print(" > final ---:")
+#print(search)
+}
 
-#cat("convex:",convex,"\n")
-   if( (is.list(search)&&length(search$search)==1) || length(search)==1) K=search # do not perform an expensive best fit search
-   else if(!is.list(search)) K=bestfit(x,data,model,task,scale,search,mpar,transform="none",convex=convex,...) # simple grid search
-   else # is list 
-   { 
-          if(length(search$smethod)==1) smethod=search$smethod else smethod="normal"
-          if(smethod=="normal") K=bestfit(x,data,model,task,scale,search=search$search,mpar,transform="none",convex=convex,...)
-          else if(substr(smethod,1,2)=="UD" || smethod=="2L") 
-           {
-             LS=length(search$search)
-             if(substr(smethod,1,2)=="UD"){if(smethod=="UD1") points=13 else points=9
-                                           factors=LS/2;upar=2^(uniform_design(search$search,factors=factors,points=points))} # (gamma,C) or # (gamma,C,epsilon)
-             else upar=search$search # vector, 2L
-             K=bestfit(x,data,model,task,scale,search=upar,mpar,transform="none",error=TRUE,convex=convex,...)
-             KI=log(K$K,2)
-             # 2nd level:
-             if(substr(smethod,1,2)=="UD")
-                              {upar=rep(0,LS);if(smethod=="UD1") points=9 else points=5
-                               for(i in 1:factors) {ini=i*2-1;end=ini+1;aux=diff(range(search$search[ini:end]))/4;
-                                                    upar[ini]=KI[i]-aux; upar[end]=KI[i]+aux
-                                                   }
-                               upar=uniform_design(upar,points=points,center=KI)
-                               upar=2^upar
-                              }
-             else { # vector, 2L
-                    KI=which(search$search==K$K[1])
-                    if(model=="svm") {upar=log(search$search,2);KK=log(K$K[1],2);} else {upar=search$search;KK=K$K[1];}
-                    if(KI==1) Range=diff(range(upar[1:2])) else if(KI==LS) Range=diff(range(upar[(LS-1):LS])) else Range=diff(range(upar[(KI-1):(KI+1)]))/2
-                    upar=seq(upar[KI]-Range/2,upar[KI]+Range/2,length.out=LS)
-                    upar=upar[setdiff(1:length(upar),which(upar==KK[1]))]
-                    if( (substr(model,1,3)=="mlp" && length(mpar)<6)||model=="randomforest"||model=="knn") upar=unique(round(upar)) # H, mtry, k
-
-                    if(decay) upar=upar[which(upar<=1)]
-                    if(substr(model,1,3)=="mlp") upar=upar[which(upar>=0)] # H or decay
-                    else if(model=="randomforest"||model=="knn") { upar=upar[which(upar>=1)]} # mtry, k 
-                    else if(model=="svm") upar=2^upar # gamma = sigma
-                  }
-             if(length(upar)>0) K2=bestfit(x,data,model,task,scale,search=upar,mpar,transform="none",error=TRUE,convex=convex,...)
-             if(length(upar)>0 && isbest(K2$error,K$error,metric)) K=K2$K else K=K$K
-           }
-   }
-   if(model=="knn") # k-nearest neighbour, uses kknn implementation
-   { M<-knn.fit(x=x,data=data,k=K); params=c(K) }
-   else if(substr(model,1,3)=="mlp")
+if(search$smethod=="none") # no search
+{ # --- if for all models, assumes one fit per model:
+  #args=c(args,search$search) # need to add extra parameters to args? yes but no duplicates should be in args!
+  #cat("search2:",search$smethod,"\n")
+  args=addSearch(args,search$search,model)
+  #AAA<<-args
+  #print(">> none fit >> args in fit main function:"); print(args)
+  if(is.list(model)) # new way, list(fit=FITFUNCTION,predict=PREDICTFUNCTION,name=NAME)
+    M=try( do.call(model$fit,c(list(x,data),args)), silent=TRUE ) # execute model$fit with x, data and extra args (if any!)
+  else # model is character
    {
-    if(model=="mlpe") type=2
-    else if(model=="mlp2") type=3
-    else type=1
-    # read the internal parameters
-    NR<-as.numeric(mpar[1]); maxit<-as.numeric(mpar[2]);
-    if(decay) {hn=as.numeric(mpar[6]); DECAY=K} else {DECAY=0.0;hn=K}
-    #print(paste("NR:",NR," maxit:",maxit))
-    M<-mlp.fit(x,data,HN=hn,decay=DECAY,NR=NR,maxit=maxit,task,scale,type=type,metric=metric)
-    params=c(M$mpar)
-   }
-   else if(model=="svm") # support vector machine, uses kernlab implementation
-   { 
-    # read the internal parameters
-    sigma=K[1];
-    if(length(K)>2)
-      { C=K[2];epsilon=K[3] }
-    else if(length(K)>1)
-      { C=K[2];epsilon=NA}
-    else
-      { 
-       LP<-length(mpar)
-       if(LP>=1 && !is.na(mpar[1])) C=as.numeric(mpar[1]) else C=NULL;
-       if(LP>=2 && !is.na(mpar[2])) epsilon=as.numeric(mpar[2]) else epsilon=NULL;
+    fargs=args
+    # models with different (non do.call) fits:
+    if (model=="naive") # naive classification or regression
+      { if(substr(task,1,3)=="reg") M=mean(data[,outindex]) # output mean
+        else if(is.factor(data[,outindex])) 
+         { M=data[1,outindex];M[1]=levels(data[1,outindex])[mostcommon(data[,outindex])] } # most common class
+      } 
+    else if(model=="kknn") # knn does not have a fit function but the data needs to be stored
+      { M=c(list(formula=x,train=data),fargs) } # think about params!
+    # -outindex regression models that use x, y ...
+    else if(model=="mars"||model=="cubist") # M=mda::mars(data[,-outindex],data[,outindex],...) 
+         M=try( do.call(model,c(list(x=data[,-outindex],y=data[,outindex]),fargs)), silent=TRUE) # FIT!!!
+    else # equal do.call fits:
+    {
+     fitfun=model # true for most models
+     if(model=="rpart") 
+      { if(task=="reg") fargs[["method"]]="anova" else fargs[["method"]]="class" }
+     # "ctree", "lda", "qda", "naiveBayes", "bagging", "boosting", "pcr", "plsr", "cppls", "rvm" (sigma but not C or epsilon)
+     else if(model=="multinom") fargs[["trace"]]=FALSE 
+     # regression fits:
+     else if(model=="mr") # multiple/linear regression: uses the nnet function
+      { fitfun="mlp.fit"; fargs[["size"]]=0;fargs[["nr"]]=1;fargs[["task"]]="reg";fargs[["scale"]]="none"; }
+     else if(model=="randomForest")
+      { fitfun="randomForest";fargs[["importance"]]=TRUE;}
+     else if(substr(model,1,3)=="mlp")
+      {
+       if(scale=="default") # removed "svm" from this if due to a "object scal not found" error
+         { if(is.factor(data[,outindex])) scale="inputs" else scale="all" }
+       if(model=="mlpe") type=2 else type=1
+       fitfun="mlp.fit"; 
+       fargs[["task"]]=task;
+       fargs[["scale"]]=scale;
+       fargs[["type"]]=type
       }
-     M<-try(svm.fit(x,data,sigma=sigma,C=C,epsilon=epsilon,task,scale),silent=TRUE)
-     if(class(M)!="try-error")
-     { if(substr(task,1,3)=="reg") epsilon=M$mpar[3] else epsilon=0
-       if(is.null(C)) C=M$mpar[2]
-       params=c(sigma,C,epsilon)
-     }
-     else{ if(substr(task,1,3)=="reg"){M=mean(data[,outindex]);model="naive"}
-           else if(is.factor(data[,outindex])){M=data[1,outindex];M[1]=levels(data[1,outindex])[mostcommon(data[,outindex])];model="naive"}
-         }
-   }
-   else if(model=="randomforest")
-   {
-    M<-randomForest(x,data=data,importance=TRUE,mtry=K,...);params=K
-   }
-  } # --- end else if -----------------------------------------------------------------------------------
- TME<-(proc.time()-PTM)[3] # computes time elapsed, in seconds
- if(is.null(created)) created=format(Sys.time(),"%Y-%m-%d %H:%M:%S")
-#print(" < end fit>")
- if(!is.null(params)) {params=data.frame(t(params));names(params)=modelnamespar(model);}
- return(new("model",formula=x,model=model,task=task,mpar=params,attributes=attributes,scale=scale,transform=transform,created=created,time=TME,object=M,outindex=outindex,levels=levels))
+     else if(model=="ksvm")
+      { fitfun="svm.fit"
+        fargs[["task"]]=task;
+      }
+     #sink("/dev/null")
+     #cat(">>fargs:\n")
+     #print(fargs)
+     M=try( do.call(fitfun,c(list(x,data=data),fargs)), silent=TRUE) # FIT!!!
+     #sink()
+     if(class(M)[1]!="try-error") args=modelargs(args,model,M) # update args if needed
+
+    } # end else
+   } # end model is character 
+} # end no search
+if(class(M)[1]=="try-error") { M=M[[1]];msg=paste("fit failed:",M[[1]],capture.output(call));warning(msg);}
+
+TME=(proc.time()-PTM)[3] # computes time elapsed, in seconds
+if(is.null(created)) created=format(Sys.time(),"%Y-%m-%d %H:%M:%S")
+return(new("model",formula=x,model=model,task=task,mpar=args,attributes=attributes,scale=scale,transform=transform,created=created,time=TME,object=M,outindex=outindex,levels=levels))
 }#)
 
-# 
-defaultsearch=function(search,model,task,COL,decay=FALSE)
+#
+addSearch=function(args,search,model)
 {
- if(class(search)=="character")
- { if(search=="heuristic") 
-   { if(model=="knn") search=3 # 3nn by default
-     else if(model=="randomforest") { if(task!="reg") search=floor(sqrt(COL-1)) else search=max(floor((COL-1)/3),1) }
-     else if(substr(model,1,3)=="mlp") 
-      { search=round((COL-1)/2) # simple heuristic for hidden nodes
-        if(task!="reg" && search>10) search=10 # classification mlp cannot have huge search, as R entropy minimization gives an error...
+ # decode and treat kpar:
+ ##call=match.call() # does not occupy too much memory!
+ ##print(call)
+ kpar=list()
+ if(is.character(model) && (model=="ksvm"||model=="rvm") )
+   {
+    N=names(search)
+    hyper=c("sigma","degree","scale","offset","order","length","lambda","normalized")
+    I=NULL;for(i in 1:length(hyper)) I=c(I,which(N==hyper[i]))
+    if(length(I)>0)
+     {
+      for(i in 1:length(I))
+        { aname=N[I[i]]
+          kpar[[ aname ]]= search [[ aname ]]
+          search [[ aname ]] = NULL
+        }
+      if( is.null(args$kpar)) args$kpar=kpar
+      else for(j in 1:length(kpar)) args$kpar[[ names(kpar)[j] ]] = kpar [[j]]
+     }
+    
+   }
+ # add search into args:
+ L=length(search)
+ N=names(search)
+ if(L>0) for(i in 1:L) args [[ N[i] ]] = search [[ N[i] ]]
+ return(args)
+}
+
+modelargs=function(args,model,M) # not sure if needed
+{
+ if(substr(model,1,3)=="mlp")
+  {
+   if(!is.null(args$size) && is.na(args$size)) # "NA" -> size
+      {
+       if(model=="mlp") size=M$mlp$n[2] else size=M$mlp[[1]]$n[2]
+       args[["size"]]=size
       }
-     else if(model=="svm") search=2^-7 #"automatic" # use automatic heuristic for the kernel parameter
+   if( is.null(args$nr) || (!is.null(args$nr) && is.na(args$nr)) ) # "NA" -> size
+      {
+       args[["nr"]]=M$nr
+      }
+  }
+ else if(model=="ksvm"||model=="rvm")
+  { if(!is.null(args$kpar)) # automatic estimation was used, or exponential scale or normal
+      {
+       # get kernel:
+       args[["kpar"]]=M$svm@kernelf@kpar
+      }
+    if( model=="ksvm" && ( is.null(args$C) || (!is.null(args$C) && is.na(args$C)) ))
+       if(!is.null(M$svm@param$C)) args[["C"]]=M$svm@param$C
+    if( model=="ksvm" && ( is.null(args$epsilon) || (!is.null(args$epsilon) && is.na(args$epsilon)) ))
+       if(!is.null(M$svm@param$epsilon)) args[["epsilon"]]=M$svm@param$epsilon
+   }
+ else if(model=="randomForest")
+  { if(is.null(args$mtry) || is.na(args$mtry)) # automatic estimation was used!
+      {
+       args[["mtry"]]=M$mtry
+      }
+  }
+ return(args)
+}
+# 
+readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+output
+{
+ #S<<-search;M<<-model;TT<<-task;MP<<-mpar
+ #mpause()
+ #search=S;model=M;task=TT;mpar=MP
+ #search="heuristic"; model="ksvm"; task="prob";mpar=NULL;args=list()
+ args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
+ if(is.list(search) && !is.null(search$smethod) && search$smethod=="normal") search$smethod="grid" # compatibility issue
+ if(is.list(search) && !is.null(search$search) && is.character(search$search))
+  { search2=readsearch(search$search,model,task,mpar,...)
+    search$search=search2$search;search$smethod=search2$smethod
+    if(is.null(search$convex)) search$convex=0
+    if(is.null(search$method)) search$method=c("holdout",2/3,NA)
+    if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
+  }
+ search2=list();smethod="";
+ if(is.character(search) && !is.list(model))
+ { 
+   if(model=="ksvm" && is.null(args$kernel)) # treat the special rbfdot implicit case
+      search2[["kernel"]]="rbfdot"
+   #if(search=="automatic" && is.null(args$kpar)) { search2$kpar="automatic"; search="heuristic"} # compatibility issue
+
+   if(search=="heuristic"||search=="automatic") 
+   { smethod="none"
+     if(substr(model,1,3)=="mlp") 
+      { if(!is.null(args$size)) search=args$size else search=NA # will use: round((COL-1)/2) in mlp.fit # simple heuristic for hidden nodes
+      }
+     else if(model=="ksvm") # special case 
+      { 
+        if( (is.null(args$kernel) || (is.character(args$kernel) && args$kernel=="rbfdot") ) # compatible kernel
+            && is.null(args$kpar) && search!="automatic" ) # no kpar definition or no "automatic"
+             { if(!is.na(search)) search="automatic" else search=2^-7 # 2^-7 # or "automatic" # use automatic heuristic for the kernel parameter
+             }
+        else if(is.null(args$kpar)) search="automatic" # other kernels
+      }
    }
    else if(search=="heuristic5") # simple heuristic
-     { if(model=="knn") search=seq(1,9,2) else if(substr(model,1,3)=="mlp"){if(decay) search=seq(0,0.2,0.05) else search=seq(0,8,2)} else if(model=="svm") search=2^seq(-15,3,4)
-       else if(model=="randomforest") search=1:5 
+     { smethod="grid"
+       if(model=="kknn") search=seq(1,9,2)
+       else if(substr(model,1,3)=="mlp") search=seq(0,8,2)
+       else if(model=="ksvm")
+         { if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") search=2^seq(-15,3,4)
+           else {cat("Current rminer version does not have an heuristic5 rule for this kernel:");print(args$kernel);}
+         }
+       else if(model=="randomForest") {search=1:5} 
      }
    else if(search=="heuristic10")
-     { if(model=="knn") search=seq(1,10,1) else if(substr(model,1,3)=="mlp"){if(decay) search=seq(0,0.2,length.out=10) else search=seq(0,9,1)} else if(model=="svm") search=2^seq(-15,3,2)
-       else if(model=="randomforest") search=1:10 
+     { smethod="grid"
+       if(model=="kknn") search=seq(1,10,1) 
+       else if(substr(model,1,3)=="mlp") search=seq(0,9,1) 
+       else if(model=="ksvm")
+         { if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") search=2^seq(-15,3,2)
+           else {cat("Current rminer version does not have an heuristic10 rule for this kernel:");print(args$kernel);}
+         }
+       else if(model=="randomForest") {search=1:10}
      }
-   else if(substr(search,1,2)=="UD" && model=="svm")
+   else if(model=="ksvm")
      {
-       #if(task=="reg") search=c(-8,0,-1,6,-8,-1) # gama, C, epsilon in libsvm guide?
-       smethod=search
-       if(task=="reg") search=c(-8,0,-1,6,-8,-1) else search=c(-15,3,-5,15) # gama, C, epsilon
-       #if(task=="reg") search=c(-15,3,-5,15,-11,2) else search=c(-15,3,-5,15) # gama, C, epsilon
-       search=list(smethod=smethod,search=search)
+      if(substr(search,1,2)=="UD")
+        {
+         if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") 
+         { 
+          smethod=search
+          if(task=="reg") { search2$sigma=c(-8,0);search2$C=c(-1,6);search2$epsilon=c(-8,-1) }
+          else { search2$sigma=c(-15,3);search2$C=c(-5,15) } # gama, C, epsilon
+          search2[["exponentialscale"]]=TRUE
+         }
+         else {cat("Current rminer version does not have an UD rule for this kernel:");print(args$kernel);}
+        }
      }
  }
+ if( (!is.list(search)||is.null(search$smethod) ) && !is.list(model)) # search can be a factor
+ {
+   if(substr(model,1,3)=="mlp") search2[["size"]]=search
+   else if(model=="ksvm") 
+     { if(is.numeric(search) && (is.null(args$kernel) || (is.character(args$kernel) && args$kernel=="rbfdot")) ) search2$sigma=search
+       else if(search=="automatic") search2$kpar=search
+       if(is.null(args$kernel)) # treat the special rbfdot implicit case
+         search2[["kernel"]]="rbfdot"
+     }
+   else if(model=="randomForest" && !is.character(search)) search2[["mtry"]]=search
+   else if(model=="kknn" && !is.character(search)) search2[["k"]]=search
+   if(smethod!="grid" && smethod!="none" && substr(smethod,1,2)!="UD") { if(length(search)<2) smethod="none" else smethod="grid" }
+   search=list(smethod=smethod,search=search2,convex=0)
+ }
+ else if(is.character(search) && search=="heuristic" && is.list(model)) search=list(smethod="none")
+
+ if(!is.null(mpar))
+ {
+  Lmpar=length(mpar)
+  if(is.null(search$method) && !is.list(model) ) search$method=getmethod(mpar)# fill method
+  if(is.null(search$metric) && !is.list(model) ) search$metric=getmetric(mpar,task) # fill metric
+  if( !is.list(model) && substr(model,1,3)=="mlp")
+   {
+     if(is.null(args$nr) && is.null(search$search$nr) && Lmpar>3) 
+       { nr=as.numeric(mpar[1])
+         if(is.na(nr)) nr=3 # default value 
+         search$search$nr=nr
+       }
+     if(is.null(args$maxit) && is.null(search$search$maxit) && Lmpar>3)
+       { maxit=as.numeric(mpar[2])
+         if(is.na(maxit)) maxit=100 # default value 
+         search$search$maxit=maxit
+       }
+   }
+  if( !is.list(model) && model=="ksvm")
+   {
+     if(is.null(args$C) && is.null(search$search$C) && Lmpar>0)
+       { C=suppressWarnings(as.numeric(mpar[1])) # number or NA
+         search$search$C=C
+       }
+     if(is.null(args$epsilon) && is.null(search$search$epsilon) && Lmpar>1)
+       { epsilon=suppressWarnings(as.numeric(mpar[2])) # number or NA
+         search$search$epsilon=epsilon
+       }
+   }
+ }
+ else search$metric=getmetric(mpar,task) # default metric
  return (search)
 }
 
-defaultmpar=function(mpar,model,task,metric)
-{ DLP=switch(model,knn=,randomforest=3,mlp=,mlpe=,svm=5,1)
-  LP=length(mpar)
-  if(LP>=DLP && sum(is.na(mpar))==0) return (mpar)
-  else
-  { dmpar=switch(model,knn=,randomforest=c("holdout",2/3,metric),
-                    mlp=,mlpe=c(3,100,"holdout",2/3,metric), # NR, maxit,...
-                    svm=c(NA,NA,"holdout",2/3,metric), # C, epsilon,...
-                    metric)
-    if(LP<DLP) mpar=c(mpar,rep(NA,(DLP-LP)))
-    for(i in 1:DLP) { if(is.na(mpar[i])) mpar[i]=dmpar[i]
-                      if(i>1 && !is.na(mpar[i-1]) && mpar[i-1]=="kfold" && !is.na(mpar[i]) && mpar[i]==2/3) mpar[i]=3
-                    }
-    return (mpar)
-  }
+midrangesearch=function(midpoint,search,mode="seq") 
+{
+ n=length(search$search) # dimension
+ for(i in 1:n)
+  if(is.numeric(search$search[[i]]) && length(search$search[[i]])>1 ) 
+   { Range=diff( range(search$search[[i]]) )/4
+     L=length(search$search[[i]])
+     Min=max( midpoint$search[[i]]-Range , min(search$search[[i]]) )
+     Max=min( midpoint$search[[i]]+Range , max(search$search[[i]]) )
+     if(mode=="range") L=2
+     search$search[[i]]=seq(Min,Max,length.out=L)
+   }
+ return(search) 
 }
+
+# -------------------------------------------------------------------------
+#defaultmpar=function(mpar,task="reg")
+#{ if(task=="reg") metric="SAE" else if (task=="prob") metric="AUC" else metric="ACC"
+#  mpar=c("holdout",2/3,metric)
+#  return(mpar)
+#}
 
 defaultfeature=function(feature)
 { if(!is.na(feature[1]))
@@ -362,13 +500,13 @@ defaultfeature=function(feature)
   return(feature)
 }
 
-# ====== Feature Selection Methods (beta development =======================
+# ====== Feature Selection Methods (beta development) =======================
 # future: put some control in feature, in order to change default smeasure = gradient???
-bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,scale,transform,smeasure="g",fstop=-1,debug=FALSE)
+bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,scale,transform,smeasure="g",fstop=-1,debug=FALSE)
 { 
  #cat("alg:",algorithm,"smeasure:",smeasure,"\n")
  #debug=TRUE; cat("debug:",debug,"\n")
- metric=getmetric(mpar,model,task)
+ metric=search$metric
  OUT=output_index(x,names(data)) # output
  Z=1:NCOL(data);BZ=Z;
  LZ=length(Z); if(fstop==-1)fstop=(LZ-2);LZSTOP=min(LZ-2,fstop)
@@ -386,17 +524,17 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
  {
    if(algorithm=="sabs") 
    { 
-    M=mining(x,data[,Z],model=model,task=task,method=method,feature=c(imethod),search=search,mpar=mpar,scale=scale,transform=transform,Runs=Runs)
-    J=mean(M$error); K=medianminingpar(M)
+    M=mining(x,data[,Z],model=model,task=task,method=method,feature=c(imethod),search=search,scale=scale,transform=transform,Runs=Runs)
+    J=mean(M$error); K=centralpar(M$mpar,medianfirst=TRUE)
     LZ=length(Z);Imp=vector(length=LZ);for(i in 1:LZ) Imp[i]=mean(M$sen[,i]);
    }
    else if(algorithm=="sbs")
-   { if(t==0) { M=mining(x,data[,Z],Runs=Runs,model=model,method=method,task=task,feature="none",search=search,mpar=mpar,scale=scale,transform=transform)
-               J=mean(M$error); K=medianminingpar(M)
+   { if(t==0) { M=mining(x,data[,Z],Runs=Runs,model=model,method=method,task=task,feature="none",search=search,scale=scale,transform=transform)
+               J=mean(M$error); K=centralpar(M,medianfirst=TRUE)
               }
    }
    if(isbest(J,JBest,metric)) {JBest=J;BZ=Z;notimprove=0;BK=K;BT=t;} else notimprove=notimprove+1;
-   if(debug){ cat(">> t:",t,"cerr:",J,"Best:",JBest,"BT:",BT,"Z:",Z,"S:",K,"\n",sep=" ");}
+   if(debug){ cat(">> t:",t,"cerr:",J,"Best:",JBest,"BT:",BT,"Z:",Z,"S:\n",sep=" ");print(K)}
    if((t==LZSTOP || notimprove==NILIM)) stop=TRUE
    else # select next attribute to be deleted 
     { 
@@ -410,8 +548,8 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
                                for(i in setdiff(Z,OUT))
                                {
                                 Zi=setdiff(Z,i)
-                                M=mining(x,data[,Zi],Runs=Runs,model=model,method=method,task=task,feature="none",search=search,mpar=mpar,scale=scale,transform=transform)
-                                Ji=mean(M$error); Ki=medianminingpar(M); 
+                                M=mining(x,data[,Zi],Runs=Runs,model=model,method=method,task=task,feature="none",search=search,scale=scale,transform=transform)
+                                Ji=mean(M$error); Ki=centralpar(M,medianfirst=TRUE); 
                                 if(isbest(Ji,J,metric)) {J=Ji;K=Ki;Zb=Zi}
                                 #cat("   >> i:",i,"Zi",Zi,"Ki:",Ki,"err:",Ji,"best:",J,"\n")
                                }
@@ -421,13 +559,13 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,mpar,sca
    t=t+1
  }
  #debug=TRUE
- if(debug) cat(" | t:",BT,"Best:",JBest,"BZ:",BZ,"BS:",BK,"\n",sep=" ")
+ if(debug) {cat(" | t:",BT,"Best:",JBest,"BZ:",BZ,"BS:\n",sep=" "); print(BK) }
  return(list(attributes=BZ,search=BK)) # attributes and search parameter
 }
 # ====== End of Feature Selection Methods ==================================
 
 # fast uniform design: only works for some uniform design setups: 2, 3 factors and 5,9,13 points
-uniform_design<-function(limits,factors=length(limits)/2,points,center=NULL)
+uniform_design=function(limits,factors=length(limits)/2,points,center=NULL)
 {
  ud=matrix(nrow=points,ncol=factors) # gamma, C (and epsilon?)
  
@@ -460,175 +598,99 @@ if(length(center)>0) # delete center point
 return (ud)
 }
 
-# auxiliary create grid for classification and regression as suggested by 
-# Hastie et al 2001 and the LIBSVM authors
-svmgrid<-function(task="prob")
-{
- l=1
- if(substr(task,1,3)=="reg")
-   {
-     res<-matrix(ncol=3,nrow=576)
-     for(i in 0:-8)
-     	for(j in -1:6)
-     		for(k in -8:-1) 
-			{ res[l,1]=2^i; res[l,2]=2^j; res[l,3]=2^k; l=l+1;}
-   }
- else # "class" || "prob"
-   { res<-matrix(ncol=2,nrow=110)
-     for(i in -15+(0:9)*2)
-     	for(j in -5+(0:10)*2)
-		{ res[l,1]=2^i; res[l,2]=2^j; l=l+1}
-   }
- return (res)
-}
-
 # --- the best fit internal function ---------------------------------------------------
-bestfit=function(x,data,model,task,scale,search,mpar,transform,convex=0,error=FALSE,...)
+mgrid=function(search,x,data,model,task,scale,transform,fdebug,...)
 {
-#print(mpar)
- outindex<-output_index(x,names(data))
- y<-data[,outindex]
+ #fdebug=1
+ metric=search$metric
+ bestval=worst(metric)
+ stop=FALSE; notimprove=0
 
- if(model=="randomforest") search=search[which(search<=(NCOL(data)-1))] # clean elements higher than inputs
- VEC_SEARCH<-is.vector(search)
+ N=length(search$search); si=list(smethod="none",convex=search$convex,metric=metric); nsi=names(search$search)
+ saux=list()
+ # set saux names:
+ for(i in 1:N) saux[[ nsi[i] ]]= search$search [[ nsi[i] ]] [1]
+ L=vector(length=N)
+ for(i in 1:N) L[i]=length(search$search[[i]])
 
- if(VEC_SEARCH)
-   { NP<-length(search); BEST<-search[1]; }
- else # matrix, used for svm or models that require more than 1 hyperparameter
-   { NP<-nrow(search) # one parameter per line
-     BEST<-search[1,] # the first line 
-   }
- P<-vector(length=0)
- 
- LP<-length(mpar)
- DECAY=0.0
+ if(search$smethod=="grid"||search$smethod=="2L") # explore combinations of combinations
+ {
+  LS=prod(L)
+  s=matrix(ncol=N,nrow=LS) # set the search space 
+  for(i in 1:N) #
+    {
+     if(i==1) E=1 else E=E*L[i-1]
+     s[,i]=rep(1:length(search$search[[i]]),length.out=LS,each=E) 
+    }
+ }
+ else if(search$smethod=="matrix" ||substr(search$smethod,1,2)=="UD") # generate s
+ {
+  LS=max(L)
+  for(i in 1:N) if(length(search$search[[i]])==1) search$search[[i]]=rep(search$search[[i]],LS)
 
- metric=getmetric(mpar,model,task)
-
- if( substr(model,1,3)=="mlp" || model=="svm") 
-   {K1=as.numeric(mpar[1]); K2=as.numeric(mpar[2]); vmethod=mpar[3]; K3=as.numeric(mpar[4]);
-    if(LP>5 && substr(model,1,3)=="mlp") {DECAY=mpar[6]}
-   }
- else {K1=NULL;K2=NULL;vmethod=mpar[1]; K3=as.numeric(mpar[2]);}
-
- BESTVAL=worst(metric)
-
- stop=FALSE; i=1; # for(i in 1:NP)
- if(convex>0) NLIM=convex
- else NLIM=(NP+1)
- notimprove=0
-
- if(substr(vmethod,1,6)=="kfoldo") {order=TRUE;vmethod="kfold";}
- else order=FALSE
-
+  s=matrix(ncol=N,nrow=LS) # set the search space 
+  for(i in 1:N) #
+    {
+     s[,i]=1:LS
+    }
+ }
+ if(fdebug) { cat(search$smethod,"with:",LS,"searches") 
+              if(is.character(metric)) cat(" (",metric," values)\n",sep="") else cat("\n")}
+ i=1 
  while(!stop)
    {
-     if(vmethod=="all")
-       {
-          if(VEC_SEARCH) M<-fit(x,data,model=model,task=task,scale=scale,search=c(search[i]),mpar=mpar,transform=transform,...)
-          else
-            { if(model=="svm") { if(NCOL(search)>=2) mpar[1]<-search[i,2]
-                                 if(NCOL(search)>=3) mpar[2]<-search[i,3]
-                               }
-              M<-fit(x,data,model=model,task=task,scale=scale,search=c(search[i,1]),mpar=mpar,transform=transform,...)
-            }
-          P<-predict(M,data)
-          TS<-y
-       }
-     else if(substr(vmethod,1,7)=="holdout") #all holdout types 
-       {  
-          if(vmethod=="holdoutorder") H<-holdout(y,ratio=K3,mode="order") 
-         else if(vmethod=="holdoutfor5") H<-holdout(y,ratio=K3-5,mode="order") 
-          else H<-holdout(y,ratio=K3)
-
-          if(VEC_SEARCH) M<-fit(x,data[H$tr,],model=model,task=task,scale=scale,search=c(search[i]),mpar=mpar,transform=transform,...) 
-          else
-            { if(model=="svm") { if(NCOL(search)>=2) mpar[1]<-search[i,2]
-                                 if(NCOL(search)>=3) mpar[2]<-search[i,3]
-                               }
-              M<-fit(x,data[H$tr,],model=model,task=task,scale=scale,search=c(search[i,1]),mpar=mpar,transform=transform,...) 
-            }
-          TS<-y[H$ts]
-       #if(method=="holdoutfor") P=lforecast(M,data,start=(1+nrow(data)-K3),horizon=K3) 
-          #else if(method=="holdoutfor5")
-          # {  Eval=vector(length=5)
-          #    for(kkk in 1:5)
-          #    {
-          #      beg=1+nrow(data)-K3-5+kkk;
-          #      P=lforecast(M,data,start=beg,horizon=K3) 
-          #      Eval[kkk]=mmetric(data[beg:(beg+horizon),ncol(data)],P,metric)
-          #    }
-          #    Eval=mean(Eval)
-          # }
-        #else 
-          P<-predict(M,data[H$ts,])
-       }
-     else if(substr(vmethod,1,5)=="kfold")
-       {
-          if(model=="knn" || model=="randomforest") kmpar=c("all",0,metric)
-          else kmpar=c(K1,K2,"all",0,metric)
-          if(DECAY>0) kmpar<-c(kmpar,DECAY)
-        
-          if(VEC_SEARCH) KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,
-                                          scale=scale,search=c(search[i]),mpar=kmpar,transform=transform,...)
-          else
-            { if(model=="svm") { if(NCOL(search)>=2) kmpar[1]<-search[i,2]
-                                 if(NCOL(search)>=3) kmpar[2]<-search[i,3]
-                               }
-              
-              KF<-crossvaldata(x,data,fit,predict,ngroup=K3,order=order,model=model,task=task,
-                                          scale=scale,search=c(search[i,1]),mpar=kmpar,transform=transform,...)
-            }
-          P<-KF$cv.fit
-#cat(" <---- i:",i,"----\n")
-#print(summary(P))
-          TS<-y
-       }
-     # get the error
-       #if(method!="holdoutfor5") 
-#TS<<-TS;P<<-P
-       Eval=mmetric(TS,P,metric)
-#cat("best fit eval:",Eval,"metric:",metric,"\n")
-       if(isbest(Eval,BESTVAL,metric)) {BESTVAL<-Eval;notimprove=0;if(VEC_SEARCH) BEST<-search[i] else BEST<-search[i,]} 
-       else notimprove=notimprove+1
-#cat("i",i,"at:",(ncol(data)-1),"nr:",nrow(data),"s:",search[i],"val:",Eval,"b:",BESTVAL,"best:",BEST,"\n")
-#print(M@object)
-       i<-i+1
-       if(notimprove==NLIM) stop=TRUE
-       else if(i==NP+1) stop=TRUE
-    } # end while 
- #print(paste("Best:",BEST))
- # refit the best model with all training data: 
- if(error) return(list(K=BEST,error=BESTVAL))
- else return (BEST)
+    for(j in 1:N) saux[[ j ]]= search$search[[ j ]] [s[i,j]]
+    si$search=saux
+ 
+    eval=try( mining(x,data,Runs=1,method=search$method,model=model,task=task,scale=scale,search=si,transform=transform,...)$error, silent= TRUE) 
+    if(class(eval)[1]=="try-error") eval=worst(metric)
+    if(isbest(eval,bestval,metric)) {bestval=eval;notimprove=0;best=si} 
+    else notimprove=notimprove+1
+    if(fdebug) { cat("i:",i,"eval:",eval,"best:",bestval,"\n") }
+    i=i+1
+    if(search$convex>0 && notimprove==search$convex) {stop=TRUE; if(fdebug) cat (" -> stop since not improve searches =",notimprove,"\n") }
+    else if(i>LS) stop=TRUE
+    } 
+ best$bestval=bestval
+ return (best)
 }
 # -------- end of best fit -----------
 
-output_index<-function(x,namesdata)
-{ # check also: y <- model.extract(m, response) for multi targets ? => future work?
+output_index=function(x,namesdata)
+{ # check also: y = model.extract(m, response) for multi targets ? => future work?
  #x=as.character(x)[2]
- #T<-terms(x,data=data); Y<-names(attr(T,"factors")[,1])[1] 
+ #T=terms(x,data=data); Y=names(attr(T,"factors")[,1])[1] 
  #return(which(names(data)==Y))
  return(which(namesdata==(as.character(x)[2])))
 }
 
 transform_needed=function(transform) { return (switch(transform,log=,logpositive=,positive=,scale=TRUE,FALSE)) }
-#param_needed=function(model) { return (switch(model,mlp=,mlpe=,svm=,knn=,randomforest=TRUE,FALSE)) }
 feature_needed=function(feature) { return (switch(feature,sbs=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE)) }
 
 defaultask=function(task="default",model="default",output=1)
-{ if(task=="default") { task=switch(model,logistic=,lr=,lda=,qda=,naivebayes="prob",mr=,mars=,bruto="reg","default")
-                        if(task=="default") { if (is.factor(output)) task="prob" else task="reg" }
-                      }
+{ if(task=="default") 
+    { 
+      if(is.character(model)) task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,qda="prob",cubist=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
+      if(task=="default") { if (is.factor(output)) task="prob" else task="reg" }
+    }
   else if(substr(task,1,1)=="c") task="class" else if(substr(task,1,1)=="p") task="prob"
   return (task)
 }
 
-defaultmodel<-function(task)
+defaultmodel=function(model,task="reg")
 { 
-  if(substr(task,1,3)=="reg") return ("mr")
-  else return ("dt")
+ if(model=="lr" || model=="logistic") model="multinom" 
+ else if(model=="dt") model="rpart" 
+ else if(model=="knn") model="kknn" 
+ else if(model=="svm") model="ksvm" 
+ else if(model=="randomforest") model="randomForest" 
+ else if(model=="naivebayes") model="naiveBayes" 
+ else if(model=="default")
+  { if(substr(task,1,3)=="reg") model="mr" else model="rpart" 
+  }
+ return(model)
 }
+
 #--- end of generic fit ------------------------------------------------------
 
 #--- generic predict method --------------------------------------------------
@@ -639,88 +701,95 @@ defaultmodel<-function(task)
 
 #if(!isGeneric("predict")){
 #  if (is.function("predict"))
-#    fun <- predict 
-#  else fun <- function(object) standardGeneric("predict")
+#    fun = predict 
+#  else fun = function(object) standardGeneric("predict")
 #  setGeneric("predict", fun)
 #}
 setGeneric("predict")
 setMethod("predict",signature(object="model"),
-function(object,newdata){
+function(object,newdata,...){
 
- if(NCOL(newdata)>length(object@attributes)) newdata=newdata[,object@attributes]
- 
- # --- if code for the models ---
+if(NCOL(newdata)>length(object@attributes)) newdata=newdata[,object@attributes] # due to feature selection
+# --- if code for the models ---
+if(is.list(object@model)) P=object@model$predict(object@object,newdata)
+else # test all character models
+{
+ object@model=defaultmodel(object@model,object@task) # due to compatibility issues (e.g. "svm" -> "ksvm")
+
+ # if scale is needed:
  if(substr(object@model,1,3)=="mlp"){ if(object@scale=="inputs" || object@scale=="all") newdata=scaleinputs2(newdata,object@object$cx,object@object$sx) }
- #if(is.list(object@object) && object@object$M=="try-error")
+
  if(object@model=="naive")
-   {
-    if(object@task=="reg") P=rep(object@object,length=nrow(newdata))
+  { if(object@task=="reg") P=rep(object@object,length=nrow(newdata)) # numeric
     else { L=levels(object@object[1])
-           P<-matrix(nrow=nrow(newdata),ncol=length(L)); P[,]=0
-           P[,which(L==object@object)]=1
-           if(object@task=="class") P=majorClass(P,L)
+           P=matrix(nrow=nrow(newdata),ncol=length(L)); P[,]=0
+           P[,which(L==object@object)]=1 # matrix
+           if(object@task=="class") P=majorClass(P,L) # factor
          }
-   }
- else if(object@model=="dt")
-   { type=switch(object@task,class="class",prob="prob","vector")
-     P=predict(object@object,newdata,type=type)
-   }
- else if(object@model=="randomforest")
-   { type=switch(object@task,prob="prob","response")
-     P=predict(object@object,newdata,type=type)
-     #attr(P,"class")=NULL
-   }
+  }
+ else if(object@model=="ctree" || object@model=="rpart" || object@model=="randomForest")
+  { if(object@model=="rpart") type=switch(object@task,class="class",prob="prob","vector") # rpart
+    else type=switch(object@task,reg=,class="response",prob="prob") # ctree or randomForest
+    P=predict(object@object,newdata,type=type)
+    if(object@model=="randomForest" && object@task=="prob") attr(P,"class")=NULL
+  }
+ else if(object@model=="multinom") 
+  {
+    type=switch(object@task,class="class","probs")
+    P=predict(object@object,newdata,type=type)
+    if(length(object@levels)==2 && object@task=="prob") {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
+  }
+ else if(object@model=="bagging" || object@model=="boosting")
+  { P=predict(object@object,newdata)
+    if(object@task=="class") P=P$class else P=P$prob
+  }
+ # pure regression:
  else if(object@model=="mr")
-    { P<-predict(object@object$mlp,newdata)[,1] }
+    { P=predict(object@object$mlp,newdata)[,1] }
  else if(object@model=="mars")
-    { P<-predict(object@object,newdata[,-object@outindex])[,1] }
- else if(object@model=="bruto")
-    { P<-predict(object@object,as.matrix(newdata[,-object@outindex]))[,1] }
- #else if(object@model=="lm") { suppressWarnings(P<-predict(object@object,newdata)) }
+    { P=predict(object@object,newdata[,-object@outindex])[,1] }
+ else if(object@model=="cubist")
+    { P=predict(object@object,newdata[,-object@outindex],...)}
+ else if(object@model=="pcr"||object@model=="plsr"||object@model=="cppls")
+    { P=predict(object@object,newdata,comp=1:(object@object$ncomp)) }
+ # pure classification:
  else if(object@model=="lda" || object@model=="qda")
-   { P<-predict(object@object,newdata)
+   { P=predict(object@object,newdata)
      if(object@task=="class") P=P$class else P=P$posterior 
    }
- else if(object@model=="naivebayes") # || object@model=="wnaivebayes")
-   { if(is.null(object@object)) P<-newdata[,-object@outindex] # only 1 input
+ else if(object@model=="naiveBayes") # || object@model=="wnaivebayes")
+   { if(is.null(object@object)) P=newdata[,-object@outindex] # only 1 input
      else { type=switch(object@task,class="class","raw")
-            suppressWarnings(P<-predict(object@object,newdata[,-object@outindex],type=type))
+            P=suppressWarnings(predict(object@object,newdata[,-object@outindex],type=type))
           }
-     #else  # wnaivebayes
-     #{ suppressWarnings(P<-predict(object@object,newdata[,-object@outindex],type="prob")) }
    }
- else if(object@model=="logistic")
-   { type=switch(object@task,class="class","probs")
-     P=predict(object@object,newdata,type=type)
-     if(length(object@levels)==2 && object@task=="prob") {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
-     #else P<-1/(1+exp( - predict(object@object,newdata)) )
-   }
- else if(object@model=="knn") # k-nearest neighbour, uses kknn implementation
-   { if(object@task=="reg") P=(kknn(object@object$x,object@object$data,newdata,k=object@object$k))$fitted.values
-     else { P=(kknn(object@object$x,object@object$data,newdata,k=object@object$k))
-            P=switch(object@task,prob=P$prob,P$fitted.values)
-          }
+ # reg or cla:
+ else if(object@model=="kknn") # k-nearest neighbour, uses kknn implementation
+   { 
+     P=do.call(kknn::kknn,c(object@object,list(test=newdata)))
+     if(object@task=="reg") P=P$fitted.values
+     else P=switch(object@task,prob=P$prob,P$fitted.values)
    }
  else if(object@model=="mlp") 
    { if(object@task=="reg") 
-       { P<-predict(object@object$mlp,newdata)[,1]
-         if(object@scale=="all") P<-invtransform(P,"scale",object@object$cy,object@object$sy)
+       { P=predict(object@object$mlp,newdata)[,1]
+         if(object@scale=="all") P=invtransform(P,"scale",object@object$cy,object@object$sy)
        }
      else
       { type=switch(object@task,class="class","raw")
-        P<-predict(object@object$mlp,newdata,type=type)
+        P=predict(object@object$mlp,newdata,type=type)
         if(length(object@levels)==2 && object@task=="prob") {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
       }
    }
  else if(object@model=="mlpe") # 
-   {  MR=object@mpar[1,3]
+   {  MR=object@mpar$nr
       if(object@task!="reg"){L=length(object@levels); P=matrix(0,ncol=L,nrow=NROW(newdata))} 
       else P=rep(0,NROW(newdata))
       for(i in 1:MR)
       {
        if(object@task=="reg") 
         { P1=predict(object@object$mlp[[i]],newdata)[,1]
-          if(object@scale=="all") P1<-invtransform(P1,"scale",object@object$cy,object@object$sy)
+          if(object@scale=="all") P1=invtransform(P1,"scale",object@object$cy,object@object$sy)
           P=P+P1
         }
        else
@@ -733,191 +802,154 @@ function(object,newdata){
       P=P/MR
       if(object@task=="class") P=majorClass(P,L=object@levels)
    }
- #else if(object@model=="mlp2") # in development, does not work for class and prob...
- #  {
- #     if(object@task=="reg") 
- #       { 
- #         P<-compute(object@object$mlp,newdata[-object@outindex])$net.result
- #         if(object@scale=="all") P<-invtransform(P,"scale",object@object$cy,object@object$sy)
- #       }
- #     else # classification: to be done...
- #     { L=length(object@levels)
- #       P<-predict(object@object$mlp,newdata)
- #       if(L==2) {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
- #     }
- #  }
- else if(object@model=="svm") 
+ else if(object@model=="ksvm") 
    {
       if(object@task=="prob") P=predict(object@object$svm,newdata,type="probabilities")
       else if(object@task=="class") P=predict(object@object$svm,newdata) 
-      else P<-predict(object@object$svm,newdata,type="response")[,1]
+      else P=predict(object@object$svm,newdata,type="response")[,1]
    }
+ else if(object@model=="rvm") P=predict(object@object,newdata,type="response")[,1]
+
+ # transform P into the same standard format: 
+ if(object@task=="reg")
+        { if(is.matrix(P)) P=P[,1] 
+          if( !is.null(names(P)) ) attr(P,"names")=NULL
+        } 
+ else if(object@task=="prob")
+        {
+         if(is.list(P)) P=t(matrix(data=unlist(P),nrow=length(object@levels))) 
+         if(is.matrix(P)) { V=vector("list",2);V[[1]]=NULL;V[[2]]=object@levels;attr(P,"dimnames")=V } 
+        }
+ else # cla
+        { if(is.character(P)) P=factor(P,levels=object@levels)
+          if(!is.null(names(P))) names(P)=NULL
+        }
+} # end test all model character types
  if(substr(object@task,1,3)=="reg" && transform_needed(object@transform))P=invtransform(P,object@transform)
-
- #if(object@task=="reg") attr(P,"names")=NULL # new line: should i keeep this? lets see...
- #else attr(P,"dimnames")=NULL # classification
-
  return(P)
 })
 
-#-----------------------------------------------------------------------------
-modelnpar<-function(model)
-{return(switch(model,knn=,randomforest=1,mlp=,mlpe=4,svm=3,0))}
-modelnamespar<-function(model)
-{return(switch(model,knn="k",randomforest="mtry",mlp=,mlpe=c("H","decay","Nr","Me"),svm=c("gamma","C","epsilon"),""))}
-
-knn.fit<- function(x,data,k)
-{ return (list(x=x,data=data,k=k)) #why? kknn does not have predict function that works like predict for other methods
-}
-
-svm.fit <- function(x,data,sigma=2^-6,C=NULL,epsilon=NULL,task,scale=TRUE)
+svm.fit = function(x,data,task,exponentialscale=FALSE,...)
 { 
+ args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
  # to avoid this error: object "scal" not found, I will adopt SCALED=TRUE
- SCALED=TRUE; cx=NULL; sx=NULL; 
-#print(paste("Sigma: ",sigma," C: ",C," Ep:",epsilon))
- #if(scale=="all") SCALED=TRUE # XXX warning: be careful about this option. scaled by rminer of ksvm? 
- # check if ksvm has some problems with numeric output??
- #else SCALED=FALSE
-
+ SCALED=TRUE
  outindex=output_index(x,names(data))
- #if(scale=="inputs") # scale the inputs 
- #  { S<-scaleinputs(data,outindex)
- #    data=S$data; cx=S$cx; sx=S$sx
- #  }
- #else{cx=NULL; sx=NULL}
 
- # this code is needed for the SVM heuristics only:
- if(substr(task,1,3)=="reg") # && (scale=="output" || scale=="all")) # scale the output
+ # think about kernel change? 
+ if(!is.null(args$C) && is.na(args$C) ) # set the C value using heuristic of CheMa04
+  {
+   if(substr(task,1,3)=="reg") # scale the output
    { CY=mean(data[,outindex])
      SY=sd(data[,outindex])
-     Y<-xtransform(data[,outindex],"scale",A=CY,B=SY)
+     Y=xtransform(data[,outindex],"scale",A=CY,B=SY)
    }
- else{CY=0; SY=0; Y=data[,outindex]}
- 
- if(is.null(C)) # set the C value
-  {
-   if(is.factor(Y)) { #Y<-as.numeric(Y) # reasonable ???
-                      if(FALSE){
-                      L=levels(Y);NL=length(L)
-                      if(NL==1) { MEANY=0;SDY=1;}
-                      else if(NL==2) 
-                                 { NY=as.numeric(Y==L[2])
-                                   MEANY=mean(NY);SDY=sd(NY)
-                                 }
-                      else { MEANY=vector(length=NL);SDY=MEANY;
-                             for(i in 1:NL) 
-                                 { NY=as.numeric(Y==L[i])
-                                   MEANY[i]=mean(NY);SDY[i]=sd(NY)
-                                 }
-                           }
-                               }
-                      MEANY=0;SDY=1; 
-                    }
-   else
-   {
-    MEANY<-mean(Y)
-    SDY<-sd(Y)
-   }
-   C<-max(abs(MEANY+3*SDY),abs(MEANY-3*SDY))
-   #cat("Scaled:",SCALED,"MEANY",MEANY,"SDY:",SDY,"C:",C,"\n")
+   else{CY=0; SY=0; Y=data[,outindex]}
+   if(is.factor(Y)) {MEANY=0;SDY=1;}
+   else { MEANY=mean(Y); SDY=sd(Y) }
+   C=max(abs(MEANY+3*SDY),abs(MEANY-3*SDY))
+   args[["C"]]=C
   }
  
- if(is.null(epsilon) && substr(task,1,3)=="reg") # set the epsilon, in regression
+ if(!is.null(args$epsilon) && is.na(args$epsilon) && substr(task,1,3)=="reg") # set the epsilon, in regression
  {
   data2=data; data2[,outindex]=Y
   N=nrow(data)
-  
-  K3<-(kknn(x,train=data2,test=data2,k=3))$fitted.values # 3NN, as argued by CheMa04
-  SUM<-sum((Y-K3)^2)
+  K3=(kknn::kknn(x,train=data2,test=data2,k=3))$fitted.values # 3NN, as argued by CheMa04
+  SUM=sum((Y-K3)^2)
   SD=sqrt(1.5/N * SUM)
-  #print(paste("SD: ",SD))
-  if(N>100) epsilon<-3*SD*sqrt(log(N)/N) # eq.14 of CheMa04: use for large N 
+  if(N>100) epsilon=3*SD*sqrt(log(N)/N) # eq.14 of CheMa04: use for large N 
   else epsilon=SD/sqrt(N) # eq.13 of CheMa04 : ok if N small 
+  args[["epsilon"]]=epsilon
  }
 
-#cat("s:",sigma,"C:",C,"e:",epsilon,"prob:",prob,"\n")
- if(task=="prob") { SVM=ksvm(x,data=data,scaled=SCALED,kernel="rbfdot",kpar=list(sigma=sigma),C=C,prob.model=TRUE); mpar=c(sigma,C,1) }
- else if(task=="class") { SVM=ksvm(x,data=data,scaled=SCALED,kernel="rbfdot",kpar=list(sigma=sigma),C=C,prob.model=FALSE); mpar=c(sigma,C,0) }
- else # regression
-  {
-   SVM=ksvm(x,data=data,scaled=SCALED,kernel="rbfdot",kpar=list(sigma=sigma),C=C,epsilon=epsilon)
-   mpar=c(sigma,C,epsilon)
+ if(!is.null(args$sigma))
+  { if(args$sigma=="automatic") args[["kpar"]]="automatic"
+    else if(is.null(args$kpar)) args[["kpar"]]=list(sigma=args$sigma)
+    else if(args$kpar!="automatic") args[["kpar"]]=c(args$kpar,list(sigma=args$sigma))
+    args[["sigma"]]=NULL
   }
-if(is.null(epsilon)) epsilon<-NA
-#return(list(svm=SVM,mpar=mpar,cx=cx,sx=sx,cy=CY,sy=SY,C=C,epsilon=epsilon))
-return(list(svm=SVM,mpar=mpar,cx=cx,sx=sx,cy=0,sy=0,C=C,epsilon=epsilon))
+
+ if(exponentialscale) 
+  { 
+   if(!is.null(args$C)) args$C=2^args$C
+   if(!is.null(args$epsilon)) args$epsilon=2^args$epsilon
+   if(!is.null(args$nu)) args$nu=2^args$nu
+   if(!is.null(args$kpar) && is.list(args$kpar))
+     { for(i in 1:length(args$kpar))
+         if(is.numeric(args$kpar[[i]])) args$kpar[[i]]=2^args$kpar[[i]]
+     }
+  }
+ if(task=="prob") args[["prob.model"]]=TRUE
+ args[["scaled"]]=SCALED;
+ #sink("/dev/null")
+ # capture to avoid "maximum number of iterations reached" verbose:
+ capture.output( { M = do.call("ksvm",c(list(x,data),args)) } )
+ #sink()
+ return(list(svm=M))
 }
 
 #------------------------------------------------------------------------------------------
 # Create and fit a MLP
 # current version: performs NetRuns trainings and selects the MLP 
 #                  with lowest minimum criterion (SSE+decay?) 
-# HN - number of hidden nodes 
-# decay - decay value (in 0 ... 1)
-# NR - NetRuns - number of MLP trainings
+# size - number of hidden nodes 
+                # decay - decay value (in 0 ... 1)
+# nr - NetRuns - number of MLP trainings
 # maxit   - maximum number of training epochs
 # type = 1 mlp, 2 mlpe, 3 mlp neuralnet (rprop)
-mlp.fit<- function(x,data,HN=2,decay=0.0,NR=3,maxit=100,task,scale,type=1,metric="SSE")
+mlp.fit= function(x,data,size=2,nr=3,task,scale,type=1,...) # metric="SSE")
 {
- if(type==2) { MinNet<-vector("list",NR) } # ensemble
+ if(is.na(size)) { size=round( (ncol(data)-1) /2) # simple heuristic for hidden nodes
+                   if(task!="reg" && size>10) size=10 # nnet does not allow huge size for classification tasks
+                 }
 
-#scale="inputs"
-#print(summary(data)); NR=1;
-#print(paste(" > mlp HN:",HN,"decay:",decay,"NR:",NR,"maxit:",maxit,"task:",task,"scale:",scale))
+ if(type==2) { MinNet=vector("list",nr) } # ensemble
+
  outindex=output_index(x,names(data))
- if(scale=="inputs" || scale=="all") # scale the inputs 
-   { S<-scaleinputs(data,outindex)
+ if(scale=="inputs" || scale=="all") # scale the inputs if needed 
+   { S=scaleinputs(data,outindex)
      data=S$data; cx=S$cx; sx=S$sx
    }
  else{cx=NULL; sx=NULL}
- if(substr(task,1,3)=="reg" && scale=="all") # scale the output
+ if(substr(task,1,3)=="reg" && scale=="all") # scale the output if needed
    { CY=mean(data[,outindex])
      SY=sd(data[,outindex])
-     data[,outindex]<-xtransform(data[,outindex],"scale",A=CY,B=SY)
+     data[,outindex]=xtransform(data[,outindex],"scale",A=CY,B=SY)
    }
  else{CY=0; SY=0}
 
- MinError<-Inf # maximum real number
- if(substr(task,1,3)=="reg") LINOUT<-TRUE
- else LINOUT=FALSE
+ MinError=Inf # maximum real number
+ if(substr(task,1,3)=="reg") LINOUT=TRUE else LINOUT=FALSE
 
-# XXX 
-#LINOUT=FALSE
- 
  goon=TRUE;i=1;
- while(goon)#for(i in 1:NR)
+ if(size>0) skip=FALSE else skip=TRUE
+ size=round(size) # because of "2L" !
+ while(goon)#for(i in 1:nr)
     {
-# XXX
       if(type==1)
-      { if(HN>0) Net<-nnet(x,data=data,size=HN,decay=decay,trace=FALSE,skip=FALSE,maxit=maxit,linout=LINOUT)
-        else     Net<-nnet(x,data=data,size=0,decay=decay,trace=FALSE,skip=TRUE,maxit=maxit,linout=LINOUT)# 0 hidden nodes
-        err<-Net$value #---- this code used minimum penalized error (SSE+decay...) #err<-Sse(data[,outindex],Net$fitted.values)
+      { Net=nnet::nnet(x,data=data,size=size,trace=FALSE,skip=skip,linout=LINOUT,...)
+        err=Net$value #---- this code used minimum penalized error (SSE+decay...) #err=Sse(data[,outindex],Net$fitted.values)
       }
       else if(type==2)
-      { if(HN>0) MinNet[[i]]<-nnet(x,data=data,size=HN,decay=decay,trace=FALSE,skip=FALSE,maxit=maxit,linout=LINOUT)
-        else     MinNet[[i]]<-nnet(x,data=data,size=0,decay=decay,trace=FALSE,skip=TRUE,maxit=maxit,linout=LINOUT)# 0 hidden nodes
-      }
+        MinNet[[i]]=nnet::nnet(x,data=data,size=size,trace=FALSE,skip=skip,linout=LINOUT,...)
       #else # type==3
       #{
       # #if(metric=="SSE") ERR="sse" 
       # #else ERR="sad" # sse2 #sad
       # NM=names(data); ALL=setdiff(1:ncol(data),outindex) 
       # fx=as.formula(paste(NM[outindex], paste(NM[ALL],collapse='+'), sep='~'))
-      # Net=neuralnet(fx,data=data,hidden=HN,linear.output=LINOUT,rep=1) #,err.fct=ERR)
+      # Net=neuralnet(fx,data=data,hidden=H,linear.output=LINOUT,rep=1) #,err.fct=ERR)
       # #cat(data[1,outindex],Net$response[1],"\n")
-      # err<-Sse(data[,outindex],Net$response)
+      # err=Sse(data[,outindex],Net$response)
       #}
-#print(paste("HN:",HN,"decay:",decay,"Err:",err,"Min:",MinError,sep=" "))
-      if(type!=2 && MinError>err){ MinError<-err; MinNet<-Net;}
-#cat("metric:",metric,"HN:",HN,"Err:",err,"Min:",MinError,"\n")
+      if(type!=2 && MinError>err){ MinError=err; MinNet=Net;}
       i=i+1
-      if(i>NR || MinError==0) goon=FALSE
+      if(i>nr || MinError==0) goon=FALSE
     }
-NNmodel<-list(mlp=MinNet,mpar=c(HN,decay,NR,maxit),cx=cx,sx=sx,cy=CY,sy=SY)
-#print(" > end mlpfit <")
-return (NNmodel)
+ NNmodel=list(mlp=MinNet,cx=cx,sx=sx,cy=CY,sy=SY,nr=nr)
+ return (NNmodel)
 }
-
 #---------------------------------------------------------------------------------
 # Performs the Data Mining stage.
 # The dataset (x - inputs, y - output) is used to fit the model.
@@ -933,13 +965,13 @@ return (NNmodel)
 #            instead of the random split. This is quite useful for temporal data.
 #          - holdoutinc - incremental retraining method (vpar=batchsize)
 #         2nd: the estimation method parameter (e.g. 2/3, 3/4 - holdout or 3, 5 or 10 - kfold)
-# model - the type of model used. Currently: "lm", "svm","mlp","logistic","naivebayes", "knn", "dt","randomforest"
+# model - the type of model used. Currently: "lm", "svm","mlp","logistic","naivebayes", "knn", "rpart","randomforest"
 # task - "default", "class" (or "classification", "cla"), "reg" (or "regression")
 # search - NULL or a vector of seaching hyperparameters (used for "mlp", "svm", "knn")
 # mpar - vector with the internal searching parameters (for "mlp", "svm", "knn"):
 # mpar[1] - knn: internal estimation method ("all", "kfold", "holdout", "holdoutorder") 
 # mpar[2] - knn: internal split ratio or number of kfolds
-# mpar[1] - svm or mlp: 1st internal parameter (svm - C, mlp - NR)
+# mpar[1] - svm or mlp: 1st internal parameter (svm - C, mlp - nr)
 # mpar[2] - svm or mlp: 2nd internal parameter (svm - Epsilon, mlp - maxit) 
 # mpar[3] - svm or mlp: internal estimation method ("all", "kfold", "holdout", "holdoutorder")
 # mpar[4] - svm or mlp: internal split ratio or number of kfolds 
@@ -962,104 +994,87 @@ return (NNmodel)
 #---------------------------------------------------------------------------------
 mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",search="heuristic",mpar=NULL,feature="none",scale="default",transform="none",debug=FALSE,...)
 {
+ args=do.call(list,list(...)) # extra arguments (needed for neighbors)
  if(is.null(data)) 
-   { data<-model.frame(x) # only formula is used 
+   { data=model.frame(x) # only formula is used 
      outindex=output_index(x,names(data))
-     x<-as.formula(paste(names(data)[outindex]," ~ .",sep=""))
+     x=as.formula(paste(names(data)[outindex]," ~ .",sep=""))
    }
  #else { if(feature[1]=="aries" && length(feature)>1) outindex=as.numeric(feature[2]) 
  else outindex=output_index(x,names(data)) 
 
- firstm <- proc.time()
- previoustm<-firstm
+ firstm = proc.time()
+ previoustm=firstm
 
- time<-vector(length=Runs)
- error<-vector(length=Runs)
- PRED<-vector("list",Runs); TEST<-vector("list",Runs)
+ if(!is.list(model)) model=defaultmodel(model,task) # due to compatibility issues
 
- vpar=2/3; # default 
- if(is.null(method)) {vmethod="holdout"; vpar=2/3;}
- else if(length(method)>1) 
- { vpar=as.numeric(method[2]); vmethod=method[1];}
- else {vmethod=method[1]}
-
- if(vmethod=="all") vpar=1
- else if(vmethod=="kfold" && vpar<1) vpar<-10 # default
- else if(substr(vmethod,1,7)=="holdout" && vpar>=1 && !is.null(data)) #all holdout types 
-   {  
-      NR<-nrow(data)
-      if(vmethod=="holdoutinc") Runs=(ceiling(NR/vpar)-1)
-   }
+ time=vector(length=Runs)
+ error=vector(length=Runs)
+ PRED=vector("list",Runs); TEST=vector("list",Runs)
 
  feature=defaultfeature(feature)
  task=defaultask(task,model,data[1,outindex])
  if(task!="reg" && !is.factor(data[,outindex])) data[,outindex]=factor(data[,outindex])
 
- npar=modelnpar(model)
- 
- if(substr(vmethod,1,6)=="kfoldo"){order=TRUE;vmethod="kfold";}
- else order=FALSE
+ vmethod=readmethod(method,Runs) 
+#cat("vmethod:\n")
+#print(vmethod)
+ if(vmethod$m=="holdout" && (vmethod$mode=="incremental" || vmethod$mode=="rolling")) 
+    Runs=floor( (nrow(data)-vmethod$w+vmethod$p)/vmethod$i ) 
+#cat("runs:",Runs,"\n")
 
- if(npar>0) { if(vmethod=="kfold") par=matrix(nrow=Runs*vpar,ncol=npar) else par=matrix(nrow=Runs,ncol=npar) }
- else par=NULL
-
- metric=getmetric(mpar,model,task)
- #cat(" >> metric:",metric,"\n")
+ par=vector("list",length=Runs)
+ #if(is.null(mpar)) mpar=defaultmpar(mpar,task)
+ search=readsearch(search,model,task,mpar,...)
+ metric=search$metric
 
  if(substr(feature[1],1,4)=="sens" || substr(feature[1],1,4)=="sabs" || substr(feature[1],1,4)=="simp") 
     { 
-       if(vmethod=="kfold") MULT=vpar
+       if(vmethod$m=="kfold") MULT=vmethod$p
        else MULT=1
-       SEN<-matrix(ncol=NCOL(data),nrow=(Runs*MULT) )
+       SEN=matrix(ncol=NCOL(data),nrow=(Runs*MULT) )
        if(substr(feature[1],1,4)!="sens") { SRESP=TRUE;FSRESP=TRUE;}
        else {SRESP=NULL; FSRESP=FALSE;}
        imethod=switch(feature[1],sabsv=,simpv="sensv",sabsg=,sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",simpa="sensa",feature[1])
     }
- else {SEN<-NULL; SRESP=NULL;FSRESP=FALSE;imethod="none"}
+ else {SEN=NULL; SRESP=NULL;FSRESP=FALSE;imethod="none"}
 
  #cat("is.null sen?",is.null(SEN),"\n")
  if(feature[1]!="none" && substr(feature[1],1,4)!="sens") # store features?
-  { if(vmethod=="kfold") attrib=vector("list",Runs*vpar)
+  { if(vmethod$m=="kfold") attrib=vector("list",Runs*vmethod$p)
     else attrib=vector("list",Runs)
   }
  else attrib=NULL 
+ HOLD=FALSE
 
  for(i in 1:Runs)
  {
-  #cat("i:",i,"of ",Runs,"\n")
-  if(debug) { curtm <- proc.time(); print(paste("Run: ", i, " time:",(curtm-firstm)[3])) }
-
-  if(vmethod=="all")
-     { L<-fit(x=x,data=data,model=model,task=task,search=search,mpar=mpar,scale=scale,transform=transform,feature=feature,...)
-       P<-predict(L,data)
-       TS<-data[,outindex]
-       if(!is.null(SEN)) IMPORTANCE<-Importance(L,data,method=imethod,responses=FSRESP) # store sen
+  if(vmethod$m=="all") {V=list();V$tr=1:nrow(data);V$ts=V$tr;HOLD=TRUE}
+  else if(vmethod$m=="holdout") #all holdout types  
+     { if(length(vmethod$seed)==1) si=1 else si=i
+       V=holdout(data[,outindex],ratio=vmethod$p,mode=vmethod$mode,iter=i,seed=vmethod$s[si]);HOLD=TRUE
      }
-  else if(substr(vmethod,1,7)=="holdout") #all holdout types 
+  if(HOLD)     
      { 
-       if(vmethod=="holdoutorder"|| vmethod=="holdoutfor") H<-holdout(data[,outindex],ratio=vpar,mode="order")
-       else if(vmethod=="holdoutinc") H=holdout(data[,outindex],ratio=vpar,mode="incremental",iter=i)
-       else H<-holdout(data[,outindex],ratio=vpar)
-       L<-fit(x=x,data=data[H$tr,],model=model,task=task,search=search,mpar=mpar,scale=scale,transform=transform,feature=feature,...)
-       P<-predict(L,data[H$ts,])
-     ##if(method!="holdoutfor") P<-predict(L,data[H$ts,])
-     ##else P=lforecast(L,data,start=(1+nrow(data)-vpar),horizon=vpar) 
-       TS<-data[H$ts,outindex]
-#cat("imethod:",imethod,"\n")
-       if(!is.null(SEN)) IMPORTANCE<-Importance(L,data[H$tr,],method=imethod,responses=FSRESP) # store sen
+       L=fit(x=x,data=data[V$tr,],model=model,task=task,search=search,scale=scale,transform=transform,feature=feature,...)
+       if(model=="cubist" && !is.null(args$neighbors)) P=predict(L,data[V$ts,],neighbors=args$neighbors)
+       else P=predict(L,data[V$ts,])
+       TS=data[V$ts,outindex]
+       if(!is.null(SEN)) IMPORTANCE=Importance(L,data,method=imethod,responses=FSRESP) # store sen
      }
-  else if(substr(vmethod,1,5)=="kfold")
-     { L=crossvaldata(x,data,fit,predict,ngroup=vpar,order=order,model=model,task=task,feature=feature,
-                      scale=scale,search=search,mpar=mpar,transform=transform,...)
-       P<-L$cv.fit
-       TS<-data[,outindex]
+  else # KFOLD 
+     { if(length(vmethod$seed)==1) si=1 else si=i
+       L=crossvaldata(x,data,fit,predict,ngroup=vmethod$p,mode=vmethod$mode,seed=vmethod$s[si],model=model,task=task,feature=feature,
+                      scale=scale,search=search,transform=transform,...)
+       P=L$cv.fit
+       TS=data[,outindex]
      }
 
   if(!is.null(SEN))
      { 
-       if(vmethod=="kfold")
-         {  Begi<-(i-1)*MULT+1; Endi=Begi+vpar-1;
-            SEN[Begi:Endi,]<-L$sen # store sen
+       if(vmethod$m=="kfold")
+         {  Begi=(i-1)*MULT+1; Endi=Begi+vmethod$p-1;
+            SEN[Begi:Endi,]=L$sen # store sen
             if(!is.null(SRESP)) 
                  { 
                   if(i==1) SRESP=L$sresponses # store sen
@@ -1079,7 +1094,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
          }
        else
          { 
-           SEN[i,]<-IMPORTANCE$imp # store sen
+           SEN[i,]=IMPORTANCE$imp # store sen
            if(!is.null(SRESP)) 
             { if(i==1) SRESP=IMPORTANCE$sresponses # store sen
               else{ for(j in 1:length(SRESP)) 
@@ -1099,65 +1114,143 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
      }
 
   if(!is.null(attrib))
-  { if(vmethod=="kfold") for(j in 1:vpar) attrib[[ (i-1)*vpar+j ]]<-L$attributes[[j]]
-    else attrib[[i]]<-L@attributes
+  { if(vmethod$m=="kfold") for(j in 1:vmethod$p) attrib[[ (i-1)*vmethod$p+j ]]=L$attributes[[j]]
+    else attrib[[i]]=L@attributes
   }
+  #if(npar>0) { if(vmethod$m=="kfold"){ ini=(i-1)*vmethod$p+1;end=ini+vmethod$p-1;par[ini:end,]=L$mpar} else par[i,]=as.numeric(L@mpar[1,]) }
+  if(is.list(L)) par[[i]]=L$mpar else par[[i]]=L@mpar
+  # store P and TS:
+  PRED[[i]]=P
+  TEST[[i]]=TS
+  error[i]=do.call("mmetric",c(list(y=TS,x=P),metric))
 
-  if(npar>0) { if(vmethod=="kfold"){ ini=(i-1)*vpar+1;end=ini+vpar-1;par[ini:end,]=L$mpar} else par[i,]=as.numeric(L@mpar[1,]) }
-
-  # store P and TS
-  PRED[[i]]<-P
-  TEST[[i]]<-TS
-#print(PRED[[i]])
-#print(TEST[[i]])
-#cat(" i:",i,"metric:",metric,"\n")
-  error[i]=mmetric(TS,P,metric)
-#cat(" e:",error[i],"\n")
-  curtm<- proc.time()
-  time[i]<-(curtm-previoustm)[3] # execution time for run i
-  previoustm<-curtm
+  #print(PRED[[i]]); #print(TEST[[i]]) #cat(" e:",error[i],"\n")
+  curtm= proc.time()
+  time[i]=(curtm-previoustm)[3] # execution time for run i
+  previoustm=curtm
+  if(debug) { 
+              cat("Run: ",i,", ",error[i],sep="")
+              if(is.character(metric)) cat(" (",metric," values)",sep="") 
+              cat(" time:",round((curtm-firstm)[3],digits=1),"\n",sep="") 
+            }
  }
  if(!is.null(SRESP)) { for(i in 1:length(SRESP)) if( !is.null(SRESP[[i]]) && is.factor(data[,i])) SRESP[[i]]$x=factor(SRESP[[i]]$x) }
- if(npar>0) { par=data.frame(par); names(par)=modelnamespar(model);}
- return(list(time=time,test=TEST,pred=PRED,error=error,mpar=par,model=model,task=task,method=c(vmethod,vpar),sen=SEN,sresponses=SRESP,runs=Runs,attributes=attrib,feature=feature))
+ #if(npar>0) { par=data.frame(par); names(par)=modelnamespar(model);}
+ return(list(time=time,test=TEST,pred=PRED,error=error,mpar=par,model=model,task=task,method=vmethod,sen=SEN,sresponses=SRESP,runs=Runs,attributes=attrib,feature=feature))
 }
 
-medianminingpar=function(M,parorder=NULL)
+readmethod=function(method,Runs=1)
 {
- NP=switch(M$model,randomforest=,knn=1,mlp=,mlpe=4,svm=3,0) 
- if(NP>0)
- {
-  MPAR=M$mpar
-  if(is.null(parorder)) parorder=1:NP
-  i=1;stop=FALSE
-  while(!stop)
-  {
-   val=medianfirst(MPAR[,parorder[i]])$val
-   ind=which(MPAR[,parorder[i]]==val);Lind=length(ind)
-   if(Lind>0) MPAR=MPAR[ind,]
-   if(Lind==1) stop=TRUE
-   else { i=i+1
-          if(i>NP) { stop=TRUE
-                     if(is.vector(MPAR)) MPAR=MPAR[1] else if(Lind>1) MPAR=MPAR[1,]
-                   }
-        }
+ seed=NULL;VFLAG=FALSE;mode=NULL;increment=1;window=10
+ if(is.null(method)) method="holdout"
+ # read vmethod and assign mode:
+ vmethod=method[1]
+ if(substr(vmethod,1,6)=="kfoldo") {vmethod="kfold";mode="order";vpar=10}
+ else if(substr(vmethod,1,6)=="kfoldr") {vmethod="kfold";mode="random";vpar=10}
+ else if(substr(vmethod,1,5)=="kfold") {vmethod="kfold";mode="stratified";vpar=10}
+ else if(substr(vmethod,1,8)=="holdouto") {vmethod="holdout";mode="order";vpar=2/3}
+ else if(substr(vmethod,1,9)=="holdoutro") {vmethod="holdout";mode="rolling";vpar=1}
+ else if(substr(vmethod,1,8)=="holdoutr") {vmethod="holdout";mode="random";vpar=2/3}
+ else if(substr(vmethod,1,8)=="holdouti") {vmethod="holdout";mode="incremental";vpar=1}
+ else if(vmethod=="holdout") {mode="stratified";vpar=2/3}
+ else if(vmethod=="all") {mode="order";vpar=1}
+ else # none of above, then use default: 
+ { vmethod="holdout";mode="stratified";vpar=2/3;VFLAG=TRUE}
+
+ if(length(method)>1 && !VFLAG) vpar=as.numeric(method[2])
+ if(mode=="incremental"||mode=="rolling") 
+  { 
+   if(length(method)>2 && !is.na(method[3])) window=as.numeric(method[3])
+   if(length(method)>3 && !is.na(method[4])) increment=as.numeric(method[4])
   }
-  return (as.numeric(MPAR))
- }
- else return (NULL)
+ else if(length(method)>2 && !is.na(method[3])) seed=as.numeric(method[3:length(method)])
+
+ if(!is.null(seed) && length(seed)<Runs) # need to build a distinct seed for each run:
+ { set.seed(seed)
+   seed=sample(1:10000,Runs) 
+ } 
+ return(list(m=vmethod,p=vpar,s=seed,mode=mode,i=increment,w=window))
 }
 
+# mpar is a mining object component
+# medianfirst is only used for multiple runs of feature selection!
+centralpar=function(mpar,medianfirst=FALSE)
+{
+ Runs=length(mpar) # runs
+ # has folds? 
+ if( is.null( names(mpar[[1]]) ) ) {par=mpar[[1]][[1]];Folds=length(mpar[[1]])} else {par=mpar[[1]];Folds=1}
+ Args=length(par)
+ A=sapply(mpar,unlist) # 
+ # AA<<-A
+ RA=nrow(A)
+ DIST=RA/Folds
+ # compute now the median value:
+
+ k=1 
+ for(a in 1:Args)
+     if(is.list(par[[a]])) # kpar issue!
+       { 
+        L=length(par[[a]])
+        for(i in 1:L) 
+          {
+             if( is.numeric(par[[a]][[i]]) || is.logical(par[[a]][[i]]) || is.character(par[[a]][[i]]) ) 
+               par[[a]][[i]]=centralaux(par[[a]][[i]],(k+i-1),Folds,RA,DIST,A,medianfirst)
+             k=k+1
+          }        
+       } 
+     else if(is.numeric(par[[a]]) || is.logical(par[[a]]) || is.character(par[[a]]) ) 
+       {
+        par[[a]]=centralaux(par[[a]],k,Folds,RA,DIST,A,medianfirst)
+        k=k+1
+       }
+     else k=k+1
+ return(par)
+}
+
+centralaux=function(elem,k,Folds,Rows,BY,A,medianfirst=FALSE)
+{
+ if(Folds==0) ROWS=k else ROWS=seq(k,Rows,by= BY )
+ aux=A[ROWS,]
+ if(is.numeric(elem)) 
+  { aux=as.numeric(aux) 
+    if(medianfirst) res=medianfirst(aux)$val
+    else res=median(as.numeric(aux)) # central value ?
+  }
+ else
+  { T=table(aux) # mode: most common element
+    if(is.logical(elem)) res=as.logical(names(which.max(T)))
+    else res=names(which.max(T)) # character or factor
+  }
+ return(res) 
+}
 
 # 
-getmetric=function(mpar,model,task)
+getmetric=function(mpar,task="reg") 
+{ 
+  if(is.null(mpar)) defaultmetric=TRUE
+  else { metric=mpar[length(mpar)]
+         if(is.numeric(metric)||is.na(metric)) defaultmetric=TRUE
+         else if(!is.mmetric(metric)) defaultmetric=TRUE
+         else defaultmetric=FALSE
+       }
+  if(defaultmetric) 
+   { if(task=="reg") metric="SAE" else if(task=="prob") metric="AUC" else metric="ACC" }
+  return(metric)
+}
+
+getmethod=function(mpar)
 {
  L=length(mpar)
- if(L==0) {metric=switch(task,prob="AUC",class="ACC","MAE")}
- else if(L>2 && (model=="knn" || model=="randomforest") ) metric=mpar[3]
- else if(L>4 && (substr(model,1,3)=="mlp" || model=="svm")) metric=mpar[5]
- else if(L>0 && (substr(model,1,3)!="mlp" && model!="svm" && model!="knn" && model!="randomforest") ) metric=mpar[1]
- else metric=switch(task,prob="AUC",class="ACC","MAE")
- return (metric)
+ if(L==1) {vmethod=mpar[1];vmethodp=NA}
+ else if(L==2 || L==3) {vmethod=mpar[1];vmethodp=mpar[2]}
+ else if(L>3) {vmethod=mpar[3];vmethodp=mpar[4]}
+ else {vmethod="holdout";vmethodp=2/3}
+
+ if(vmethod=="all") vmethodp=NA   
+ else if(substr(vmethod,1,7)=="holdout" && is.na(vmethodp)) vmethodp=2/3
+ else if(substr(vmethod,1,5)=="kfold" && is.na(vmethodp)) vmethodp=3
+ method=readmethod(c(vmethod,vmethodp))
+ return (c(method$m,method$p,NA))
 }
 
 # TO DO: remove sampling argument, not used!!!
@@ -1196,7 +1289,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
                     outindex=NULL,task="default",PRED=NULL,interactions=NULL,Aggregation=-1,LRandom=-1,MRandom="discrete",Lfactor=FALSE)
 {
 #model=M;data=d;RealL=6;method="sens";measure="variance";sampling="regular";responses=TRUE;outindex=NULL;task=NULL;
-#model<<-M;DDD<<-data;RealL<<-RealL;method<<-method;measure<<-measure;sampling<<-sampling;responses<<-responses; 
+#model<=M;DDD<=data;RealL<=RealL;method<=method;measure<=measure;sampling<=sampling;responses<=responses; 
  SDD=NULL
  if(class(M)=="model"){outindex=M@outindex; task=M@task; Attributes=M@attributes} # rminer model
  else # another R supervised learning model
@@ -1228,10 +1321,10 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
  }
 
  # use the method proposed by Leo Breiman 2001:
- if(method=="randomforest") # user should be sure this is a randomforest!
+ if(method=="randomForest" || method=="randomforest") # user should be sure this is a randomforest!
  { if(class(M)=="model") Sv=randomForest::importance(M@object,type=1)
    else Sv=randomForest::importance(M,type=1) # true randomforest
-   ASv<-abs(Sv)
+   ASv=abs(Sv)
    imp=100*abs(ASv)/sum(ASv) 
    RESP=NULL
    measure=""
@@ -1466,7 +1559,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
 # -- 
 avg_imp_1D=function(I,measure="variance")
 {
-#II<<-I
+#II<=I
  x=I$sresponses[[1]]$x 
  NC=NCOL(x)
  
@@ -1621,16 +1714,16 @@ aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outda
       for(j in 1:LY)
        {
          sss=seq(j,(LY*(J-1)+j),LY)
-#yy<<-yy
-#K<<-K
+#yy<=yy
+#K<=K
          mm[i,sss]=yaggregate(yy[K$index[[j]],i],Aggregation)
        } 
    }  
 #cat("done kmsample\n")
-#mm<<-mm
-#NLY<<-NLY
-#ML<<-ML
-#ameth<<-ameth;measure<<-measure
+#mm<=mm
+#NLY<=NLY
+#ML<=ML
+#ameth<=ameth;measure<=measure
    # s_measure global OU em x + em y ?
    value=vector(length=Aggregation)
    value2=vector(length=Aggregation)
@@ -2036,7 +2129,7 @@ rmsample=function(x,L=2,MAX=Inf,Tolerance=1,sampling="regular",index=TRUE)
 
 #print("MID:")
 #print(MID)
-#xxx<<-x
+#xxx<=x
  #index=TRUE;sampling="regular";L=3;
  if(index){
  S=seq(R[1],R[2],length.out=(L+1))

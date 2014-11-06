@@ -27,7 +27,7 @@ Importance(M, data, RealL = 7, method = "1D-SA", measure = "AAD",
                          \item MSA -- Monte-Carlo SA.
                          \item CSA -- Cluster-based SA.
                          \item GSA -- Global SA (very slow method, particularly if the number of inputs is large, should be avoided).
-                         \item randomforest -- uses method of Leo Breiman (type=1), only makes sense when M is a randomRorest.
+                         \item randomForest -- uses method of Leo Breiman (type=1), only makes sense when M is a randomRorest.
                         }
 }
   \item{measure}{sensitivity analysis measure (used to measure input importance). Options are:
@@ -60,9 +60,9 @@ a matrix of examples (rows) vs probabilities (columns) (\code{task="prob"}) or a
   \item{interactions}{numeric vector with the attributes (columns) used by Ith-D sensitivity analysis (2-D or higher, "GSA" method):
 \itemize{
                       \item if \code{NULL} then only a 1-D sensitivity analysis is performed.
-                      \item if \code{length(interactions)==1}?then a "special" 2-D sensitivity analysis is performed using the index of interactions versus
+                      \item if \code{length(interactions)==1} then a "special" 2-D sensitivity analysis is performed using the index of interactions versus
 all remaining inputs. Note: the $sresponses[[interactions]] will be empty (in \code{\link{vecplot}} do not use \code{xval} \code{=interactions}).
-                      \item if \code{length(interactions)>1}?then a full Ith-D sensitivity analysis is performed, where I=length(interactions).
+                      \item if \code{length(interactions)>1} then a full Ith-D sensitivity analysis is performed, where I=length(interactions).
 Note: Computational effort can highly increase if I is too large, i.e. O(RealL^I). Also, you need to preprocess the 
 returned list (e.g. using \code{avg_imp}) to use the \code{\link{vecplot}} function (see the examples).
 }
@@ -121,19 +121,12 @@ See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 \code{\link{vecplot}}, \code{\link{fit}}, \code{\link{mining}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}.
 }
 \examples{ 
-### IMPORTANT NOTE ###
-# The execution of the examples below requires more than a few seconds.
-# Thus, to fulfill CRAN policies, I have added 2 lines: IF(FALSE){ ... }
-# Such lines are marked with: # DELETE-OR-IGNORE ...
-# If you want to test the code, please comment or ignore these 2 lines
-### END OF NOTE    ###
+### dontrun is used when the execution of the example requires some computational effort.
 
-if(FALSE){ # DELETE-OR-IGNORE-THIS AND LAST EXAMPLE LINE #
-
-### Typical use under rminer:
-# 1st example, regression, 1-D sensitivity analysis
+### 1st example, regression, 1-D sensitivity analysis
+\dontrun{
 data(sa_ssin) # x1 should account for 55%, x2 for 27%, x3 for 18% and x4 for 0%.
-M=fit(y~.,sa_ssin,model="svm")
+M=fit(y~.,sa_ssin,model="ksvm")
 I=Importance(M,sa_ssin,method="1D-SA") # 1-D SA, AAD
 print(round(I$imp,digits=2))
 
@@ -145,8 +138,10 @@ vecplot(I,xval=1,Grid=10,data=sa_ssin,datacol="gray",
    main="VEC curve for x1 influence on y") # same graph
 vecplot(I,xval=c(1,2,3),pch=c(1,2,3),Grid=10,
 leg=list(pos="bottomright",leg=c("x1","x2","x3"))) # all x1, x2 and x3 VEC curves
+}
 
-# 2nd example, regression, DSA sensitivity analysis:
+### 2nd example, regression, DSA sensitivity analysis:
+\dontrun{
 I2=Importance(M,sa_ssin,method="DSA")
 print(I2)
 # influence of x1 and x2 over y
@@ -154,11 +149,13 @@ vecplot(I2,graph="VEC",xval=1) # VEC curve
 vecplot(I2,graph="VECB",xval=1) # VEC curve with boxplots
 vecplot(I2,graph="VEC3",xval=c(1,2)) # VEC surface
 vecplot(I2,graph="VECC",xval=c(1,2)) # VEC contour
+}
 
-# 3th example, classification (pure class labels, task="cla"), DSA:
+### 3th example, classification (pure class labels, task="cla"), DSA:
+\dontrun{
 data(sa_int2_3c) # pair (x1,x2) is more relevant than x3, all x1,x2,x3 affect y, 
                  # x4 has a null effect.
-M2=fit(y~.,sa_int2_3c,model="mlpe",task="cla")
+M2=fit(y~.,sa_int2_3c,model="mlpe",task="class")
 I4=Importance(M2,sa_int2_3c,method="DSA")
 # VEC curve (should present a kind of "saw" shape curve) for class B (TC=2):
 vecplot(I4,graph="VEC",xval=2,cex=1.2,TC=2,
@@ -166,11 +163,13 @@ vecplot(I4,graph="VEC",xval=2,cex=1.2,TC=2,
 # same VEC curve but with boxplots:
 vecplot(I4,graph="VECB",xval=2,cex=1.2,TC=2,
  main="VEC curve with box plots for x2 influence on y (class B)",xlab="x2")
+}
 
-# 4th example, regression, DSA:
+### 4th example, regression, DSA:
+\dontrun{
 data(sa_psin)
 # same model from Table 1 of the reference:
-M3=fit(y~.,sa_psin,model="svm",search=2^-2,mpar=c(2^6.87,2^-8))
+M3=fit(y~.,sa_psin,model="ksvm",search=2^-2,C=2^6.87,epsilon=2^-8)
 # in this case: Aggregation is the same as NY
 I5=Importance(M3,sa_psin,method="DSA",Aggregation=3)
 # 2D analysis (check reference for more details), RealL=L=7:
@@ -199,6 +198,7 @@ cm2=agg_matrix_imp(I6)
 print(round(cm2$m1,digits=2))
 print(round(cm2$m2,digits=2))
 fcm2=cmatrixplot(cm2,threshold=0.1) 
+}
 
 ### If you want to use Importance over your own model (different than rminer ones):
 # 1st example, regression, uses the theoretical sin1reg function: x1=70% and x2=30%
@@ -214,8 +214,9 @@ mgraph(L,graph="IMP",leg=names(sin1reg),col="gray",Grid=10)
 mgraph(L,graph="VEC",xval=1,Grid=10) # equal to:
 par(mar=c(2.0,2.0,1.0,0.3)) # change the graph window space size
 vecplot(I,graph="VEC",xval=1,Grid=10,main="VEC curve for x1 influence on y:")
-###
-# 2nd example, 3-class classification for iris and lda model:
+
+### 2nd example, 3-class classification for iris and lda model:
+\dontrun{
 data(iris)
 library(MASS)
 predlda=function(M,data) # the PRED function
@@ -225,8 +226,10 @@ LDA=lda(Species ~ .,iris, prior = c(1,1,1)/3)
 I=Importance(LDA,iris,method="1D-SA",PRED=predlda,outindex=4)
 vecplot(I,graph="VEC",xval=1,Grid=10,TC=1,
 main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (prob.)")
-###
-# 3rd example, binary classification for setosa iris and lda model:
+}
+
+### 3rd example, binary classification for setosa iris and lda model:
+\dontrun{
 iris2=iris;iris2$Species=factor(iris$Species=="setosa")
 predlda2=function(M,data) # the PRED function
 { return (predict(M,data)$class) }
@@ -234,8 +237,7 @@ LDA2=lda(Species ~ .,iris2)
 I=Importance(LDA2,iris2,method="1D-SA",PRED=predlda2,outindex=4)
 vecplot(I,graph="VEC",xval=1,
 main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (class)",Grid=10)
-
-} # DELETE-OR-IGNORE-THIS LINE #
+}
 
 }
 

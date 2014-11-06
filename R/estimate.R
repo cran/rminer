@@ -1,15 +1,16 @@
 #-------------------------------------------------------------------------------------------------
-# "estimate.R" code by Paulo Cortez 2009@, Department of Information Systems, University of Minho
+# "estimate.R" code by Paulo Cortez 2014@, Department of Information Systems, University of Minho
 #
-# This file deals will two estimation functions: crossvaldata - k-fold cross validation and holdout - houldout validation
+# This file deals with two estimation functions: crossvaldata - k-fold cross validation and holdout - holdout validation
 #
 #-------------------------------------------------------------------------------------------------
 
 # adapted from the bootstrap library to use x - formula and data!!!
-# order = if samples are timely ordered and this order should be kept:
-crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,model,task,feature="none",...)
+# mode= "stratified", "order" or "random"
+crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratified",seed=NULL,model,task,feature="none",...)
 {
-    call <- match.call()
+    args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
+    #call <- match.call() not needed
     outindex<-output_index(x,names(data))
     y<- data[,outindex]
     n <- length(y)
@@ -21,43 +22,11 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
     if(ngroup > n){
         stop ("ngroup should be less than or equal to the number of observations")
     }
-  
-    if(ngroup==n) {groups <- 1:n; leave.out <- 1}
-    if(ngroup<n){
-     leave.out <- trunc(n/ngroup)
-     groups <- vector("list",ngroup)
+    
+    if(ngroup==n) {groups <- 1:n; leave.out <- 1} # leave-one-out
+    if(ngroup<n){ leave.out <- trunc(n/ngroup); groups <- crossfolds(y,ngroup,leave.out,mode,seed) } # stratified k-fold or random k-fold
 
-     if(is.factor(y)) # stratified crossvalidation
-     { L<-levels(y)
-       NL<-length(L)
-       I<-vector("list",NL)
-       g<-vector("list",NL)
-       for(i in 1:NL)
-          {
-            I[[i]]<-which(y==L[i])
-            g[[i]]<-crossfolds(y[ I[[i]] ],ngroup)
-          }
-       for(j in 1:ngroup)
-          {
-           f=NULL
-           for(i in 1:NL) f=c(f, I[[i]][ g[[i]][[j]] ] )
-           groups[[j]]=f
-          }
-      }
-      else #normal crossvalidation
-      {
-        if(order) o=1:n
-        else o <- sample(1:n)
-        for(j in 1:(ngroup-1)){
-            jj <- (1+(j-1)*leave.out)
-            groups[[j]] <- (o[jj:(jj+leave.out-1)])
-        }
-        groups[[ngroup]] <- o[(1+(ngroup-1)*leave.out):n]
-      }
-    }
-    u <- vector("list",ngroup)
-    npar=modelnpar(model)
-    par=matrix(nrow=ngroup,ncol=npar)
+    par=vector("list",length=ngroup)
     if(substr(feature[1],1,4)=="sens" || substr(feature[1],1,4)=="sabs" || substr(feature[1],1,4)=="simp") 
     {
          SEN <- matrix(nrow=ngroup, ncol=ncol(data) )
@@ -80,7 +49,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
 
     for(j in 1:ngroup)
     {
-        u <- theta.fit(x,data[-groups[[j]], ],task=task,model=model,feature=feature,...) # is this the correct line or add feature=feature?
+        u=theta.fit(x,data[-groups[[j]], ],task=task,model=model,feature=feature,...)
         if(!is.null(SEN)) 
          {
             #cat("----- j:",j,"\n",sep=" ")
@@ -108,12 +77,20 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
             }
          }
         if(!is.null(ATTRIB)) ATTRIB[[j]]=u@attributes
-#print(u)
-        if(npar>0) par[j,]=as.numeric(u@mpar[1,]) 
+        par[[j]]=u@mpar
 #print("---")
 #cat("cv fit class:",class(cv.fit),"\n")
+        if(model=="cubist" && !is.null(args$neighbors)) 
+        {
+        neighbors=args$neighbors
+        if(is.matrix(cv.fit)) cv.fit[ groups[[j]], ] <-  theta.predict(u,data[groups[[j]],],neighbors) # probabilities!
+        else cv.fit[ groups[[j]] ] <-  theta.predict(u,data[groups[[j]],],neighbors) # regression or classification, 1 output
+        }
+        else
+        {
         if(is.matrix(cv.fit)) cv.fit[ groups[[j]], ] <-  theta.predict(u,data[groups[[j]],]) # probabilities!
         else cv.fit[ groups[[j]] ] <-  theta.predict(u,data[groups[[j]],]) # regression or classification, 1 output
+        }
         #print(cv.fit[groups[[j]]])
     }
     if(leave.out==1) groups <- NULL
@@ -123,29 +100,45 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=n,order=FALSE,mode
                 attributes=ATTRIB,
                 ngroup=ngroup, 
                 leave.out=leave.out,
-                groups=groups, 
-                call=call)) 
+                groups=groups))
+                #call=call)) 
 }
 
 #  auxiliar function, adapted from the bootstap library: only makes the groups, you should not need to use this:
-crossfolds<-function(y,ngroup)
+# about mode:
+#      > "stratified" - stratified random split if y is factor; else random split
+#      > "random" - uses standard random split
+crossfolds<-function(y,ngroup,leave.out,mode="stratified",seed=NULL)
 {
   n <- length(y)
-  leave.out <- trunc(n/ngroup)
   groups <- vector("list",ngroup)
-  o <- sample(1:n)
-  for(j in 1:(ngroup-1)){
+  if(!is.null(seed)) set.seed(seed) # use seed to fix groups
+
+  if(is.factor(y) && mode=="stratified") STRATIFIED=TRUE# stratified crossfolds
+  else STRATIFIED=FALSE
+
+  if(STRATIFIED) # stratified crossfolds
+    groups=factorsample(y,leave.out,ngroup) # groups can be null if stratified is not possible
+
+  if(!STRATIFIED || is.null(groups) ) # pure random crossfolds
+  {
+   if(mode=="order") o<- 1:n 
+   else o <- sample(1:n) # random split
+
+   for(j in 1:(ngroup-1)){
             jj <- (1+(j-1)*leave.out)
             groups[[j]] <- (o[jj:(jj+leave.out-1)])
+   }
+   groups[[ngroup]] <- o[(1+(ngroup-1)*leave.out):n]
   }
-  groups[[ngroup]] <- o[(1+(ngroup-1)*leave.out):n]
+  if(!is.null(seed)) set.seed(NULL) # reset seed
   return(groups)
 }
 
 
 #---------------------------------------------------------
 # holdout: create indexes for spliting the data into training and test datasets
-#          the holdout is statified if the output is factor 
+#          the holdout is statified if the output is a factor 
 # a list is returned with:
 #  $tr - indexes of all training examples
 #  $ts - indexes of all test examples
@@ -159,22 +152,29 @@ crossfolds<-function(y,ngroup)
 # ratio is the ratio of training set (in percentage)
 # internalsplit if TRUE then another stratified holdout is used within the training set
 # mode - the sampling mode used for the holdout
-#      > "random" - is the default mode, uses standard random split
-#      > "order" - uses the sequencial order of y, no random is used. 
+#      > "stratified" - stratified random split if y is factor; else random split
+#      > "random" - uses standard random split
+#      > "order" - uses the sequential order of y, no random is used. 
 #                  the first examples are used as tr while the lattest are used as ts
 #      need to check in the future is this makes any sense at all ?
 #      > "incremental" - incremental retraining, ratio=batch-size, iter=iterator
+# seed : optional, for having the same holdout (note: to reset a seed, use:  set.seed(NULL) )
 #---------------------------------------------------------
-holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="random",iter=1)
+holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="stratified",iter=1,seed=NULL, window=10, increment=1)
 { 
   ALLITR=NULL; VAL=NULL;
   NSIZE=length(y)
  
- if(mode=="incremental")
- { batches=ceiling(NSIZE/ratio)-1
-   aux=iter*ratio; ALLTR=1:aux;
-   end=aux+ratio; if(end>NSIZE) end=NSIZE;
-   TS=(length(ALLTR)+1):end
+ if(mode=="incremental"||mode=="rolling")
+ { 
+   aux=window+increment*(iter-1)
+   aux=min(aux,NSIZE)
+   if(mode=="rolling") iaux=max((aux-window+1),1) else iaux=1
+   ALLTR=iaux:aux
+   end=aux+ratio
+   end=min(end,NSIZE)
+   iend=aux+1
+   if(iend<end) TS=iend:end else TS=NULL
  }
  else 
  {
@@ -194,31 +194,14 @@ holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="random",iter=1)
   }
   else # default random holdout
   {
-   ALL<-1:NSIZE
-   FACTOR<-is.factor(y)
-   ALLITR<-vector(length=0)
-    if(FACTOR) 
-     { L<-levels(y)
-       NL<-length(L)
-       I<-vector("list",NL)
-       TR<-vector("list",NL)
-       ALLTR<-vector(length=0)
-
-       for(i in 1:NL)
-          {
-            I[[i]]<- which(y==L[i])
-            NI<- length( (I[[i]]) )
-            TR[[i]]<-sample( (I[[i]]), (NI*ratio) )
-            ALLTR<-c(ALLTR,TR[[i]])
- 
-            if(internalsplit==TRUE)
-               {
-                 NTR<-length(TR[[i]]) 
-                 ITR<-sample(TR[[i]],(NTR*ratio))
-                 ALLITR<-c(ALLITR,ITR)
-               }
-          }
-      }
+   if(!is.null(seed)) set.seed(seed) # use seed to fix holdout
+   ALL=1:NSIZE
+    if(is.factor(y) && mode=="stratified") 
+     { 
+       ALLTR=factorsample(y,ratio*NSIZE)
+       NALLTR=length(ALLTR)
+       if(internalsplit==TRUE) ALLITR=ALLTR[factorsample(y[ALLTR],ratio*NALLTR)]
+     }
     else
      {
        ALLTR<-sample(ALL,(ratio*NSIZE)) 
@@ -226,13 +209,55 @@ holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="random",iter=1)
          {
           NALLTR<-length(ALLTR)
           ALLITR<-sample(ALLTR,(ratio*NALLTR)) 
-          
          }
      }
-  TS<-setdiff(ALL,ALLTR)
-  if(internalsplit==TRUE)VAL<-setdiff(ALLTR,ALLITR)       
+   TS<-setdiff(ALL,ALLTR)
+   if(internalsplit==TRUE)VAL<-setdiff(ALLTR,ALLITR)       
+   if(!is.null(seed)) set.seed(NULL) # reset seed to random
   }
  }
   return(list(tr=ALLTR,itr=ALLITR,val=VAL,ts=TS))
 }
-#-----------------------------------------------------------
+#---------------------
+
+# returns indexes of y with size such that frequency of each class is similar (as possible) to the frequency of y 
+factorsample=function(y,size,ngroup=1)
+{
+ L=levels(y)
+ NL=length(L)
+ YL=length(y)
+ I=vector("list",NL)
+ if(ngroup==1) S=vector(length=size) 
+ else { S=vector("list",ngroup) 
+        for(j in 1:(ngroup-1)) S[[j]]=vector(length=size)
+        S[[ngroup]]=vector(length=(YL-size*(ngroup-1)))
+        rini=1
+      }
+ ini=1
+ for(i in 1:NL)
+  {
+   I[[i]]=which(y==L[i])
+   LS=round( size*length(I[[i]])/YL )
+   if(ngroup==1) { S[ini:(ini+LS-1)]=sample( (I[[i]]),size=LS )
+                   ini=ini+LS
+                }
+   else {
+         if(length(I[[i]])<LS*ngroup) {S=NULL;break;}
+         OS=sample(I[[i]],size=LS*(ngroup-1))
+         sini=1
+         for(j in 1:(ngroup-1))
+            {
+             send=sini+(LS-1)
+             S[[j]][ini:(ini+LS-1)]=OS[sini:send]
+             sini=send+1
+            }
+         Rest=setdiff(I[[i]],OS)
+         LRest=length(Rest)
+         S[[ngroup]][rini:(rini+LRest-1)]=Rest
+         ini=ini+LS
+         rini=rini+LRest
+        }
+  }
+ return(S)
+}
+#--------------------------------------
