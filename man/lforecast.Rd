@@ -23,6 +23,13 @@ Returns a numeric vector with the multi-step predictions.
 }
 \references{
 \itemize{
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
+
 \item To check for more details:\cr
 P. Cortez.\cr
 Sensitivity Analysis for Time Lag Selection to Forecast Seasonal Time Series using Neural Networks and Support Vector Machines.\cr

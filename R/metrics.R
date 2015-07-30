@@ -791,9 +791,21 @@ xmiddle_point<-function(X1,X2,Y1,Y2,X3)
 # returns tpravg with samples+1 rows and 3+nrocs columns: fpr, tpr, mean, confint95, tpr_roc[[1]],...,tpr_roc[[nrocs]]
 vaveraging<-function(samples,ROCS,min=0,max=1)
 {
+  #SAMPLES<<-samples;ROCS<<-ROCS;MIN<<-min;MAX<<-max;
   s=1
   nrocs=length(ROCS)
-  fprsamples=seq(min,max,length.out=samples)
+  if(is.character(max)) 
+  {
+    fprsamples=1:length(ROCS[[1]][,1])
+    for(i in 1:nrocs)
+      {
+        ROCS[[i]][,1]=fprsamples
+        ROCS[[i]]=apply(ROCS[[1]][],2,as.numeric)
+      }
+  }
+  else fprsamples=seq(min,max,length.out=samples)
+
+
 #cat("min:",min,"max:",max,"\n")
   tpravg=matrix(ncol=(3+nrocs),nrow=length(fprsamples))
   for(k in fprsamples)

@@ -28,8 +28,8 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
                        \item \code{CE} -- classification error or misclassification error rate (classification, "<", [0-\%100]). 
                        \item \code{MAEO} -- mean absolute error for ordinal classification (classification, "<", [0-Inf[). 
                        \item \code{MSEO} -- mean squared error for ordinal classification (classification, "<", [0-Inf[). 
-                       \item \code{KENDALL} -- Kendalls's coefficient for ordinal classification or (mean if) ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
-                       \item \code{SPEARMAN} -- Mean Spearman's rho coefficient for ranking (classification, ">", [-1;-1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
+                       \item \code{KENDALL} -- Kendalls's coefficient for ordinal classification or (mean if) ranking (classification, ">", [-1;1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
+                       \item \code{SPEARMAN} -- Mean Spearman's rho coefficient for ranking (classification, ">", [-1;1]). Note: if ranking, \code{y} is a matrix and mean metric is computed.
                        \item \code{BER} -- balanced error rate (classification, "<", [0-\%100]). 
                        \item \code{KAPPA} -- kappa index (classification, "<", [0-\%100]). 
                        \item \code{CRAMERV} -- Cramer's V  (classification, ">", [0,1.0]). 
@@ -80,7 +80,7 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
                        \item \code{NAREC} -- normalized REC area (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
                        \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
                        \item \code{MAPE} --  Mean Absolute Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
-                       \item \code{MdAPE} -- Mean Absolute Percentage mmetric forecasting metric (regression, "<"), [0\%,Inf[).
+                       \item \code{MdAPE} -- Median Absolute Percentage mmetric forecasting metric (regression, "<"), [0\%,Inf[).
                        \item \code{RMSPE} -- Root Mean Square Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
                        \item \code{RMdSPE} -- Root Median Square Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
                        \item \code{SMAPE} --  Symmetric Mean Absolute Percentage mmetric forecasting metric (regression, "<", [0\%,200\%]).
@@ -153,11 +153,18 @@ In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspec
 @Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
+
 \item About the Brier and Global AUC scores:\cr
 A. Silva, P. Cortez, M.F. Santos, L. Gomes and J. Neves.\cr
 Rating Organ Failure via Adverse Events using Data Mining in the Intensive Care Unit.\cr
 In Artificial Intelligence in Medicine, Elsevier, 43 (3): 179-193, 2008.\cr
-\url{http://dx.doi.org/10.1016/j.artmed.2008.03.010}\cr
+\url{http://www.sciencedirect.com/science/article/pii/S0933365708000390}\cr
 
 \item About the classification and regression metrics:\cr
 I. Witten and E. Frank.\cr
@@ -179,7 +186,7 @@ In International Journal of Pattern Recognition and Artificial Intelligence, 25(
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \note{
-See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
+See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 \seealso{

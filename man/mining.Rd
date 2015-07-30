@@ -115,13 +115,20 @@ Data Mining with Neural Networks and Support Vector Machines Using the R/rminer 
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
 @Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
+
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
 }
 }
 \author{
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \note{
-See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
+See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 \seealso{
@@ -149,7 +156,8 @@ data(sin1reg)
 # model selection: 5 searches for size, internal 2-fold cross validation fixed seed 123
 #                  with optimization for minimum MAE metric 
 M=mining(y~.,data=sin1reg,Runs=5,method=c("holdout",2/3,12345),model="mlpe",
-         search=list(search="heuristic5",method=c("kfold",2,123),metric="MAE"),feature="sabs")
+         search=list(search=mparheuristic("mlpe",n=5),method=c("kfold",2,123),metric="MAE"),
+         feature="sabs")
 print(mmetric(M,metric="MAE"))
 print(M$mpar)
 print("median hidden nodes (size) and number of MLPs (nr):")
@@ -171,7 +179,7 @@ data(sin1reg)
 # rolling with 20 test samples, training window size of 300 and increment of 50 in each run:
 # note that Runs argument is automatically set to 14 in this example:
 M=mining(y~.,data=sin1reg,method=c("holdoutrol",20,300,50),
-         model="mlpe",search="heuristic",debug=TRUE)
+         model="mlpe",debug=TRUE)
 }
 
 ### regression example with all rminer models:
@@ -214,7 +222,7 @@ data(iris)
 #                  internal 3-fold validation, random seed, minimum "AUC" is assumed
 # feature selection: none, "s" is used only to store input importance values
 M=mining(Species~.,data=iris,Runs=2,method=c("kfold",2,NA),model="ksvm",
-         search=list(search="heuristic",method=c("kfold",3)),feature="s")
+         search=list(search=mparheuristic("ksvm"),method=c("kfold",3)),feature="s")
 
 print(mmetric(M,metric="AUC",TC=2))
 mgraph(M,graph="ROC",TC=2,baseline=TRUE,Grid=10,leg="SVM",main="ROC",intbar=FALSE)
@@ -238,7 +246,7 @@ for(model in models)
 }
 }
 
-### for more fitting examples check the help of function fit: ?fit
+### for more fitting examples check the help of function fit: help(fit,package="rminer")
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

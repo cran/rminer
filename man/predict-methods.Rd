@@ -40,6 +40,13 @@ Data Mining with Neural Networks and Support Vector Machines Using the R/rminer 
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
 @Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
+
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
 }
 }
 

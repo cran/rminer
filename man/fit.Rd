@@ -1,7 +1,6 @@
 \name{fit}
 \alias{fit} %- Also NEED an '\alias' for EACH other topic documented here.
 \alias{model-class} %- Also NEED an '\alias' for EACH other topic documented here.
-\alias{svmgrid} %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Fit a supervised data mining model (classification or regression) model
 }
@@ -71,10 +70,11 @@ fit(x, data = NULL, model = "default", task = "default",
 							\code{ksvm} -- gaussian kernel parameter (\emph{sigma});
 							\code{randomForest} -- \code{mtry} parameter). Valid options for a simpler \code{search} use:
               \itemize{
-                       \item \code{heuristic} -- simple heuristic, one search parameter (e.g. \emph{k}=3 for \code{knn}, \emph{size}=inputs/2 for \code{mlp} or 
+                       \item \code{heuristic} -- simple heuristic, one search parameter (e.g. \emph{size}=inputs/2 for \code{mlp} or 
 \emph{size}=10 if classification and inputs/2>10, \emph{sigma} is set using \code{kpar="automatic"} and \code{kernel="rbfdot"} 
-of \code{\link{ksvm}}). Note: all "heuristic" options (e.g. \code{"heuristic5"}) only work currently for 
-\code{kknn}, \code{mlp} or \code{mlpe}, \code{ksvm} (with \code{kernel="rbfdot"}) and \code{randomForest}.
+of \code{\link{ksvm}}). Important Note: instead of the "heuristic" options, it is advisable to use the explicit \code{\link{mparheuristic}} function
+that is designed for a wider option of models (all "heuristic" options were kept due to compatibility issues and work 
+only for: \code{kknn}; \code{mlp} or \code{mlpe}; \code{ksvm}, with \code{kernel="rbfdot"}; and \code{randomForest}). 
                        \item \code{heuristic5} -- heuristic with a 5 range grid-search (e.g. \code{seq(1,9,2)} for \code{kknn}, \code{seq(0,8,2)} for \code{mlp} or \code{mlpe}, 
      										 	     \code{2^seq(-15,3,4)} for \code{ksvm}, \code{1:5} for \code{randomRorest})
                        \item \code{heuristic10} -- heuristic with a 10 range grid-search (e.g. \code{seq(1,10,1)} for \code{kknn}, \code{seq(0,9,1)} for \code{mlp} or \code{mlpe}, 
@@ -227,6 +227,13 @@ In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspec
 @Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
+
 \item For the grid search and other optimization methods:\cr
 P. Cortez.\cr
 Modern Optimization with R.\cr
@@ -250,13 +257,13 @@ In Computational Statistics & Data Analysis, 52(1):335-346, 2007.\cr
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \note{
-See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
+See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-\code{\link{mining}}, \code{\link{predict.fit}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}, \code{\link{CasesSeries}}, \code{\link{lforecast}},
+\code{\link{mparheuristic}},\code{\link{mining}}, \code{\link{predict.fit}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}, \code{\link{CasesSeries}}, \code{\link{lforecast}},
 \code{\link{holdout}} and \code{\link{Importance}}. Check all rminer functions using: \code{help(package=rminer)}.
 }
 
@@ -318,14 +325,20 @@ for(m in models)
  }
 }
 
-### classification example with hyperparameter selection
+### classification example with hyperparameter selection 
+###    note: for regression, similar code can be used
 ### SVM 
 \dontrun{
 data(iris)
 # large list of SVM configurations:
 # SVM with kpar="automatic" sigma rbfdot kernel estimation and default C=1:
+#  note: each execution can lead to different M@mpar due to sigest stochastic nature:
 M=fit(Species~.,iris,model="ksvm")
 print(M@mpar) # model hyperparameters/arguments
+# same thing, explicit use of mparheuristic:
+M=fit(Species~.,iris,model="ksvm",search=list(search=mparheuristic("ksvm")))
+print(M@mpar) # model hyperparameters
+
 # SVM with C=3, sigma=2^-7
 M=fit(Species~.,iris,model="ksvm",C=3,kpar=list(sigma=2^-7))
 print(M@mpar)
@@ -334,16 +347,23 @@ M=fit(Species~.,iris,model="ksvm",kernel="polydot",kpar="automatic")
 print(M@mpar)
 # fit already has a scale argument, thus the only way to fix scale of "tanhdot"
 # is to use the special search argument with the "none" method:
-search=list(smethod="none",search=list(scale=2,offset=2))
-M=fit(Species~.,iris,model="ksvm",kernel="tanhdot",search=search) 
+s=list(smethod="none",search=list(scale=2,offset=2))
+M=fit(Species~.,iris,model="ksvm",kernel="tanhdot",search=s) 
 print(M@mpar)
-# 10 grid search values for sigma, rbfdot kernel (fdebug is used only for more verbose):
+# heuristic: 10 grid search values for sigma, rbfdot kernel (fdebug is used only for more verbose):
+s=list(search=mparheuristic("ksvm",10)) # advised "heuristic10" usage
+M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
+print(M@mpar)
+# same thing, uses older search="heuristic10" that works for fewer rminer models
 M=fit(Species~.,iris,model="ksvm",search="heuristic10",fdebug=TRUE)
 print(M@mpar)
-# identical search under a different argument use:
+# identical search under a different and explicit code:
+s=list(search=2^seq(-15,3,2))
 M=fit(Species~.,iris,model="ksvm",search=2^seq(-15,3,2),fdebug=TRUE)
 print(M@mpar)
-# UD for sigma and C, rbfdot kernel, two level of grid searches, exponential (2^x) search scale:
+
+# uniform design "UD" for sigma and C, rbfdot kernel, two level of grid searches, 
+# under exponential (2^x) search scale:
 M=fit(Species~.,iris,model="ksvm",search="UD",fdebug=TRUE)
 print(M@mpar)
 M=fit(Species~.,iris,model="ksvm",search="UD1",fdebug=TRUE)
@@ -352,68 +372,108 @@ M=fit(Species~.,iris,model="ksvm",search=2^seq(-15,3,2),fdebug=TRUE)
 print(M@mpar)
 # now the more powerful search argument is used for modeling SVM:
 # grid 3 x 3 search:
-search=list(smethod="grid",search=list(sigma=2^c(-15,-5,3),C=2^c(-5,0,15)),convex=0,
+s=list(smethod="grid",search=list(sigma=2^c(-15,-5,3),C=2^c(-5,0,15)),convex=0,
             metric="AUC",method=c("kfold",3,12345))
-print(search)
-M=fit(Species~.,iris,model="ksvm",search=search,fdebug=TRUE)
+print(s)
+M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
 print(M@mpar)
 # identical search with different argument smethod="matrix" 
-search$smethod="matrix"
-search$search=list(sigma=rep(2^c(-15,-5,3),times=3),C=rep(2^c(-5,0,15),each=3))
-print(search)
-M=fit(Species~.,iris,model="ksvm",search=search,fdebug=TRUE)
+s$smethod="matrix"
+s$search=list(sigma=rep(2^c(-15,-5,3),times=3),C=rep(2^c(-5,0,15),each=3))
+print(s)
+M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
 print(M@mpar)
 # search for best kernel (only works for kpar="automatic"):
-search=list(smethod="grid",search=list(kernel=c("rbfdot","laplacedot","polydot","vanilladot")),
-            convex=0,metric="AUC",method=c("kfold",3,12345))
-print(search)
-M=fit(Species~.,iris,model="ksvm",search=search,fdebug=TRUE)
+s=list(smethod="grid",search=list(kernel=c("rbfdot","laplacedot","polydot","vanilladot")),
+       convex=0,metric="AUC",method=c("kfold",3,12345))
+print(s)
+M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
 print(M@mpar)
 # search for best parameters of "rbfdot" or "laplacedot" (which use same kpar):
-search$search=list(kernel=c("rbfdot","laplacedot"),sigma=2^seq(-15,3,5))
-print(search)
-M=fit(Species~.,iris,model="ksvm",search=search,fdebug=TRUE)
+s$search=list(kernel=c("rbfdot","laplacedot"),sigma=2^seq(-15,3,5))
+print(s)
+M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
 print(M@mpar)
 
 ### randomForest
 # search for mtry and ntree
-search=list(smethod="grid",search=list(mtry=c(1,2,3),ntree=c(100,200,500)),
+s=list(smethod="grid",search=list(mtry=c(1,2,3),ntree=c(100,200,500)),
             convex=0,metric="AUC",method=c("kfold",3,12345))
 print(search)
-M=fit(Species~.,iris,model="randomForest",search=search,fdebug=TRUE)
+M=fit(Species~.,iris,model="randomForest",search=s,fdebug=TRUE)
+print(M@mpar)
+
+### rpart
+# simpler way to tune cp in 0.01 to 0.9 (10 searches):
+s=list(search=mparheuristic("rpart",n=10,lower=0.01,upper=0.9),method=c("kfold",3,12345))
+M=fit(Species~.,iris,model="rpart",search=s,fdebug=TRUE)
+print(M@mpar)
+
+# same thing but with more lines of code
+# note: this code can be adapted to tune other rpart parameters,
+#       while mparheuristic only tunes cp
+# a vector list needs to be used for the search$search parameter
+lcp=vector("list",10) # 10 grid values for the complexity cp
+names(lcp)=rep("cp",10) # same cp name 
+scp=seq(0.01,0.9,length.out=10) # 10 values from 0.01 to 0.18
+for(i in 1:10) lcp[[i]]=scp[i] # cycle needed due to [[]] notation
+s=list(smethod="grid",search=list(control=lcp),
+            convex=0,metric="AUC",method=c("kfold",3,12345))
+M=fit(Species~.,iris,model="rpart",search=s,fdebug=TRUE)
+print(M@mpar)
+
+### ctree 
+# simpler way to tune mincriterion in 0.1 to 0.98 (9 searches):
+mint=c("kfold",3,123) # internal validation method
+s=list(search=mparheuristic("ctree",n=8,lower=0.1,upper=0.99),method=mint)
+M=fit(Species~.,iris,model="ctree",search=s,fdebug=TRUE)
+print(M@mpar)
+# same thing but with more lines of code
+# note: this code can be adapted to tune other ctree parameters,
+#       while mparheuristic only tunes mincriterion
+# a vector list needs to be used for the search$search parameter
+lmc=vector("list",9) # 9 grid values for the mincriterion
+smc=seq(0.1,0.99,length.out=9)
+for(i in 1:9) lmc[[i]]=party::ctree_control(mincriterion=smc[i]) 
+s=list(smethod="grid",search=list(controls=lmc),method=mint,convex=0)
+M=fit(Species~.,iris,model="ctree",search=s,fdebug=TRUE)
 print(M@mpar)
 
 ### some MLP fitting examples:
 # simplest use:
 M=fit(Species~.,iris,model="mlpe")  
+print(M@mpar)
+# same thing, with explicit use of mparheuristic:
+M=fit(Species~.,iris,model="mlpe",search=list(search=mparheuristic("mlpe")))
+print(M@mpar)
+
 print(M@mpar) # hidden nodes and number of ensemble mlps
 # setting some nnet parameters:
 M=fit(Species~.,iris,model="mlpe",size=3,decay=0.1,maxit=100,rang=0.9) 
 print(M@mpar) # mlpe hyperparameters
 # MLP, 5 grid search fdebug is only used to put some verbose in the console:
-M=fit(Species~.,iris,model="mlpe",search="heuristic5",fdebug=TRUE)
-print(M@mpar)
-# identical search, using explicit search:
-M=fit(Species~.,iris,model="mlpe",search=seq(0,8,2),fdebug=TRUE)
+s=list(search=mparheuristic("mlpe",n=5)) # 5 searches for size
+print(s) # show search
+M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # previous searches used a random holdout (seed=NULL), now a fixed seed (123) is used:
-search=list(smethod="grid",search=list(size=seq(0,8,2)),convex=0,metric="AUC",
+s=list(smethod="grid",search=mparheuristic("mlpe",n=5),convex=0,metric="AUC",
             method=c("holdout",2/3,123))
 print(search)
-M=fit(Species~.,iris,model="mlpe",search=search,fdebug=TRUE)
+M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # faster and greedy grid search:
-search$convex=1;search$search=list(size=0:9)
+s$convex=1;s$search=list(size=0:9)
 print(search)
-M=fit(Species~.,iris,model="mlpe",search=search,fdebug=TRUE)
+M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # 2 level grid with total of 5 searches 
 #  note of caution: some "2L" ranges may lead to non integer (e.g. 1.3) values at
 #  the 2nd level search. And some R functions crash if non integer values are used for
 #  integer parameters.
-search$smethod="2L";search$convex=0;search$search=list(size=c(4,8,12))
-print(search)
-M=fit(Species~.,iris,model="mlpe",search=search,fdebug=TRUE)
+s$smethod="2L";s$convex=0;s$search=list(size=c(4,8,12))
+print(s)
+M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 }
 
@@ -438,7 +498,7 @@ for(m in models)
  }
 }
 
-### regression example with hyperparameter detection:
+### regression example with hyperparameter selection:
 \dontrun{
 data(sa_ssin)
 # some SVM experiments:
@@ -453,7 +513,7 @@ M=fit(y~.,data=sa_ssin,model="ksvm",search="UD",fdebug=TRUE)
 print(M@mpar)
 
 # sensitivity analysis feature selection
-M=fit(y~.,data=sa_ssin,model="ksvm",search="heuristic5",feature="sabs") 
+M=fit(y~.,data=sa_ssin,model="ksvm",search=list(search=mparheuristic("ksvm",n=5)),feature="sabs") 
 print(M@mpar)
 print(M@attributes) # selected attributes (1, 2 and 3 are the relevant inputs)
 

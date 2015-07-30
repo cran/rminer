@@ -29,6 +29,13 @@ Sensitivity Analysis for Time Lag Selection to Forecast Seasonal Time Series usi
 In Proceedings of the IEEE International Joint Conference on Neural Networks (IJCNN 2010), pp. 3694-3701, Barcelona, Spain, July, 2010. 
 IEEE Computer Society, ISBN: 978-1-4244-6917-8 (DVD edition).\cr
 \url{http://dx.doi.org/10.1109/IJCNN.2010.5596890}\cr
+
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
 }
 }
 \author{

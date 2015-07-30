@@ -173,7 +173,6 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
    else if(graph=="IMP") MC=meanint(y$sen)
    else if(graph=="VEC") 
    { 
-    #cat("j:",j,"xval:",xval,"PTS:",PTS,"ranges:",ranges[xval,],"\n")
     if(xval!=-1 && !is.null(y$sresponses[[xval]]))
       {
        AUX=resp_to_list(y$sresponses[[xval]],TC)
@@ -244,7 +243,7 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
     if(runs>1 && intbar) intbar=MC[[i]][,3] else intbar=NULL
     resp=vector("list",length=1)
     x=y$sresponses[[XATT]]$x
-    if(is.factor(x)) x=levels(x) else x=MC[[i]][,1]
+    if(is.factor(x)) x=levels(x) else if(!is.character(x)) x=MC[[i]][,1]
     resp[[1]]=list(n="",l=nrow(MC[[i]]),x=x,y=MC[[i]][,2])
     IMC=list(imp=c(1),val=c(1),sresponses=resp)
     vecplot(I=IMC,graph="VEC",leg=leg,xval=1,sort=sort,data=data[,c(xval,xval)],digits=digits,TC=TC,intbar=intbar,lty=lty,col=col,datacol="gray90",main=main,Grid=Grid,xlab=xlab,ylab=ylab)
@@ -929,6 +928,7 @@ tsacf=function(file="",ts,test=12,xlab="Lags",ylab="Autocorrelations",main="",di
  if(file!="") dev.off()
 }
 
+# experimental
 forplot=function(file="",ts,test=12,PRED,xlab="lead time",ylab="Values",disp=2,disp2=0,left=0.4,names=NULL,leg=-1,MIN=0.9,MAX=1.1,start=1,main="")
 {
  if(file!="") pdf(file=paste(file,".pdf",sep=""),paper="special",width=5,height=5)
@@ -940,10 +940,11 @@ forplot=function(file="",ts,test=12,PRED,xlab="lead time",ylab="Values",disp=2,d
  TS=ts[LI:L]
  ymin=min(TS,PRED)*MIN
  ymax=max(TS,PRED)*MAX
- cat("min:",ymin,"max:",ymax,"\n")
+ #cat("min:",ymin,"max:",ymax,"\n")
+ iend=start+test
  if(start>1) { plot(ts[LI:L],type="l",lwd=2,ylim=c(ymin,ymax),xlab=xlab,ylab=ylab,main=main,xaxt="n",panel.first = grid(10,10))
                #AT=axis(1)
-               AT=round(seq(start,end,length=5))
+               AT=round(seq(start,iend,length=5))
                cat("AT:",AT,"\n")
                axis(1,(AT-start+1),AT)
              }

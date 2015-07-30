@@ -24,15 +24,27 @@ imputation(imethod = "value", D, Attribute = NULL, Missing = NA, Value = 1)
 A data.frame without missing data.
 }
 \references{
-M. Brown and J. Kros.\cr
+\itemize{
+\item M. Brown and J. Kros.\cr
 Data mining and the impact of missing data.\cr
 In Industrial Management & Data Systems, 103(8):611-621, 2003.\cr
+
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
+}
 }
 \author{
 Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 }
 \seealso{
 \code{\link{fit}} and \code{\link{delevels}}.
+}
+\note{
+See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
 }
 \examples{
 d=matrix(ncol=5,nrow=5)

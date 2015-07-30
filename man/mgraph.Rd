@@ -87,11 +87,19 @@ Data Mining with Neural Networks and Support Vector Machines Using the R/rminer 
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
 @Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
+
+\item This tutorial shows additional code examples:\cr
+P. Cortez.\cr
+A tutorial on using the rminer R package for data mining tasks.\cr
+Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
+Portugal, July 2015.\cr
+\url{http://hdl.handle.net/1822/36210}\cr
 }
 }
 
 \author{ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez} }
-\note{See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html} }
+\note{See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}}
+
 \seealso{
 \code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mining}}, \code{\link{mmetric}}, \code{\link{savemining}} and \code{\link{Importance}}.
 }
@@ -109,13 +117,24 @@ L=vector("list",3); pred=vector("list",1); test=vector("list",1);
 pred[[1]]=y; test[[1]]=x; L[[1]]=list(pred=pred,test=test,runs=1)
 test[[1]]=x2; L[[2]]=list(pred=pred,test=test,runs=1)
 test[[1]]=x3; L[[3]]=list(pred=pred,test=test,runs=1)
+# distance line comparison graph:
 mgraph(L,graph="DLC",metric="MAE",leg=c("x1","x2","x3"),main="MAE errors")
+
+# new REC multi-curve single graph with NAREC (normalized Area of REC) values
+# for maximum tolerance of val=0.5 (other val values can be used)
+e1=mmetric(y,x,metric="NAREC",val=5)
+e2=mmetric(y,x2,metric="NAREC",val=5)
+e3=mmetric(y,x3,metric="NAREC",val=5)
+l1=paste("x1, NAREC=",round(e1,digits=2))
+l2=paste("x2, NAREC=",round(e2,digits=2))
+l3=paste("x3, NAREC=",round(e3,digits=2))
+mgraph(L,graph="REC",leg=list(pos="bottom",leg=c(l1,l2,l3)),main="REC curves")
 
 ### regression example with mining
 \dontrun{
 data(sin1reg)
 M1=mining(y~.,sin1reg[,c(1,2,4)],model="mr",Runs=5)
-M2=mining(y~.,sin1reg[,c(1,2,4)],model="mlpe",nr=3,maxit=50,search=4,Runs=5,feature="simp")
+M2=mining(y~.,sin1reg[,c(1,2,4)],model="mlpe",nr=3,maxit=50,size=4,Runs=5,feature="simp")
 L=vector("list",2); L[[1]]=M2; L[[2]]=M1
 mgraph(L,graph="REC",xval=0.1,leg=c("mlpe","mr"),main="REC curve")
 mgraph(L,graph="DLC",metric="TOLERANCE",xval=0.01,
@@ -133,8 +152,8 @@ data(iris)
 M1=mining(Species~.,iris,model="rpart",Runs=5) # decision tree (DT)
 M2=mining(Species~.,iris,model="ksvm",Runs=5) # support vector machine (SVM)
 L=vector("list",2); L[[1]]=M2; L[[2]]=M1
-mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="mr ROC")
-mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="mr ROC",intbar=FALSE)
+mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="ROC")
+mgraph(M1,graph="ROC",TC=3,leg=-1,baseline=TRUE,Grid=10,main="ROC",intbar=FALSE)
 mgraph(L,graph="ROC",TC=3,leg=c("SVM","DT"),baseline=TRUE,Grid=10,
        main="ROC for virginica")
 mgraph(L,graph="LIFT",TC=3,leg=list(pos=c(0.4,0.2),leg=c("SVM","DT")),

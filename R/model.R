@@ -137,9 +137,8 @@ else if(task=="reg" && transform_needed(transform)) data[,outindex]=xtransform(d
 feature=defaultfeature(feature) # process feature
 
 search=readsearch(search,model,task,mpar,...)
-#cat("SEARCH:\n"); print(search); #mpause()
 
-if(feature_needed(feature[1])) # will treat this better in next version: 2/9/2014
+if(feature_needed(feature[1])) # will treat this better in next big (improved) version: 2/9/2014
   { 
 #print(feature)
 #print("--")
@@ -213,9 +212,11 @@ if(search$smethod=="none") # no search
 { # --- if for all models, assumes one fit per model:
   #args=c(args,search$search) # need to add extra parameters to args? yes but no duplicates should be in args!
   #cat("search2:",search$smethod,"\n")
+#if(is.list(search$search) && is.vector(search$search)) # vector list
+#    search$search=search$search[[1]] # XXX 
   args=addSearch(args,search$search,model)
   #AAA<<-args
-  #print(">> none fit >> args in fit main function:"); print(args)
+  #print(">> none fit >> args in fit main function:"); print(class(search)); print(args)
   if(is.list(model)) # new way, list(fit=FITFUNCTION,predict=PREDICTFUNCTION,name=NAME)
     M=try( do.call(model$fit,c(list(x,data),args)), silent=TRUE ) # execute model$fit with x, data and extra args (if any!)
   else # model is character
@@ -260,8 +261,12 @@ if(search$smethod=="none") # no search
       }
      #sink("/dev/null")
      #cat(">>fargs:\n")
-     #print(fargs)
-     M=try( do.call(fitfun,c(list(x,data=data),fargs)), silent=TRUE) # FIT!!!
+     #print(fargs)# capture to avoid "maximum number of iterations reached" verbose:
+
+ capture.output({
+     M=try( do.call(fitfun,c(list(x,data=data),fargs)), silent=TRUE) 
+                }) # do not show any text??? 
+     # FIT!!!
      #sink()
      if(class(M)[1]!="try-error") args=modelargs(args,model,M) # update args if needed
 
@@ -324,12 +329,13 @@ modelargs=function(args,model,M) # not sure if needed
   { if(!is.null(args$kpar)) # automatic estimation was used, or exponential scale or normal
       {
        # get kernel:
-       args[["kpar"]]=M$svm@kernelf@kpar
+       #if(model=="ksvm") args[["kpar"]]=M$svm@kernelf@kpar else 
+       args[["kpar"]]=M@kernelf@kpar
       }
     if( model=="ksvm" && ( is.null(args$C) || (!is.null(args$C) && is.na(args$C)) ))
-       if(!is.null(M$svm@param$C)) args[["C"]]=M$svm@param$C
+       if(!is.null(M@param$C)) args[["C"]]=M@param$C
     if( model=="ksvm" && ( is.null(args$epsilon) || (!is.null(args$epsilon) && is.na(args$epsilon)) ))
-       if(!is.null(M$svm@param$epsilon)) args[["epsilon"]]=M$svm@param$epsilon
+       if(!is.null(M@param$epsilon)) args[["epsilon"]]=M@param$epsilon
    }
  else if(model=="randomForest")
   { if(is.null(args$mtry) || is.na(args$mtry)) # automatic estimation was used!
@@ -376,6 +382,10 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
         else if(is.null(args$kpar)) search="automatic" # other kernels
       }
    }
+   # Manuel JMLR paper:
+   # args$kernel=="polydot", s = {0.001,0.01,0.1}, offset o = 1, degree d = {1,2,3}, C={0.25,0.5,1}  
+   # "rpart", control$cp with 10 values from 0.18 to 0.01: seq(0.01,0.18,length.out=10)
+   # "ctree", mincriterion, tuned with the values 0.1:0.11:0.99, control$mincriterion=seq(0.1,0.98,by=0.11)
    else if(search=="heuristic5") # simple heuristic
      { smethod="grid"
        if(model=="kknn") search=seq(1,9,2)
@@ -411,7 +421,7 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
         }
      }
  }
- if( (!is.list(search)||is.null(search$smethod) ) && !is.list(model)) # search can be a factor
+ if( (is.na(search)||is.character(search)||is.numeric(search)||is.factor(search)) && !is.list(model))
  {
    if(substr(model,1,3)=="mlp") search2[["size"]]=search
    else if(model=="ksvm") 
@@ -423,10 +433,12 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
    else if(model=="randomForest" && !is.character(search)) search2[["mtry"]]=search
    else if(model=="kknn" && !is.character(search)) search2[["k"]]=search
    if(smethod!="grid" && smethod!="none" && substr(smethod,1,2)!="UD") { if(length(search)<2) smethod="none" else smethod="grid" }
-   search=list(smethod=smethod,search=search2,convex=0)
+   if(length(search2)==0) search=list(smethod=smethod) else search=list(smethod=smethod,search=search2,convex=0) ###
  }
- else if(is.character(search) && search=="heuristic" && is.list(model)) search=list(smethod="none")
-
+ else if(is.character(search) && search=="heuristic" && is.list(model)) 
+ { # model is a list!
+   search=list(smethod="none")
+ }
  if(!is.null(mpar))
  {
   Lmpar=length(mpar)
@@ -457,7 +469,27 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
        }
    }
  }
- else search$metric=getmetric(mpar,task) # default metric
+ else 
+   { # fill some search components if missing: 
+     if(is.list(search))
+       { 
+        if(is.null(search$smethod) && !is.null(search$search)) 
+          { N=length(search$search)
+            L=vector(length=N)
+            for(i in 1:N) L[i]=length(search$search[[i]])
+            LS=prod(L) 
+            if(LS>1) search$smethod="grid" else search$smethod="none" 
+          }
+        if(is.null(search$search)) search$smethod="none"
+        if(!is.null(search$smethod) && search$smethod!="none")
+          {
+           if(is.null(search$convex)) search$convex=0
+           if(is.null(search$method)) search$method=c("holdout",2/3,NA)
+          }
+        if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
+       }
+   }
+
  return (search)
 }
 
@@ -474,6 +506,67 @@ midrangesearch=function(midpoint,search,mode="seq")
      search$search[[i]]=seq(Min,Max,length.out=L)
    }
  return(search) 
+}
+
+mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,kernel="rbfdot")
+{
+ if(model=="ksvm" || model=="rvm") model=paste(model,kernel,sep="")
+
+ if(is.na(lower))
+ { lower=switch(model,kknn=1,randomForest=1,mlp=,mlpe=0,rvmrbfdot=,ksvmrbfdot=-15,ksvmvanilladot=-2,rvmpolydot=,ksvmpolydot=1,
+                      rpart=0.01,ctree=0.1,NA)
+ }
+ if(is.na(upper))
+ { upper=switch(model,kknn=10,randomForest=10,mlp=,mlpe=9,rvmrbfdot=,ksvmrbfdot=3,ksvmvanilladot=7,rvmpolydot=,ksvmpolydot=3,
+                      rpart=0.18,ctree=0.98,NA)
+ } 
+ #if(is.na(by) && is.na(n) && !is.na(upper) && !is.na(lower))
+ #{ by=switch(model,kknn=1,randomForest=1,mlp=,mlpe=1,ksvmrbfdot=2,ksvmvanilladot=1,ksvmpolydot=1,
+ #                     rpart=0.017,ctree=0.11,NA)
+ #} 
+
+ # not na(n) 
+ if(!is.na(n) && n>1) by=(upper-lower)/(n-1)
+
+ if(is.na(n) && is.na(by)) n=1
+
+ if(!is.na(by)) 
+  { s=seq(lower,upper,by=by) 
+    if(model=="kknn"||model=="mlp"||model=="mlpe"||model=="randomForest") s=round(s) # integer for these models
+    s=unique(s) # remove duplicates if any
+    n=length(s) 
+  }
+
+ if(n>1)
+  {
+   if(model=="kknn"||model=="rvm") l=list(k=s)
+   else if(model=="randomForest") l=list(mtry=s)
+   else if(model=="mlp" || model=="mlpe") l=list(size=s)
+   else if(model=="ksvmrbfdot" || model=="rvmrbfdot") l=list(kernel=kernel,sigma=2^s) # SVMLIB authors suggestion
+   else if(model=="ksvmvanilladot") l=list(kernel=kernel,C=2^s) # Fernandez-Delgado et al, 2014 
+   else if(model=="ksvmpolydot" || model=="rvmpolydot") l=list(kernel=kernel,scale=(1/10)^s,offset=1,degree=s) # Fernandez-Delgado et al, 2014
+   else if(model=="rpart")
+    {
+     vl=vector("list",n) 
+     names(vl)=rep("cp",n) # same cp name 
+     for(i in 1:n) vl[[i]]=s[i] # cycle needed due to [[]] notation
+     l=list(control=vl)
+    }
+   else if(model=="ctree")
+    {
+     vl=vector("list",n) 
+     for(i in 1:n) vl[[i]]=party::ctree_control(mincriterion=s[i]) 
+     l=list(controls=vl)
+    }
+   else l=NULL # not available
+  }
+ else  # special case: n=1
+  {
+   l=NULL
+   if(substr(model,1,4)=="ksvm" || substr(model,1,3)=="rvm") l=list(kernel=kernel,kpar="automatic") # default heuristic
+   if(substr(model,1,3)=="mlp") l=list(size=NA) # default heuristic
+  }
+ return(l)
 }
 
 # -------------------------------------------------------------------------
@@ -504,6 +597,7 @@ defaultfeature=function(feature)
 # future: put some control in feature, in order to change default smeasure = gradient???
 bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,scale,transform,smeasure="g",fstop=-1,debug=FALSE)
 { 
+ #debug=TRUE
  #cat("alg:",algorithm,"smeasure:",smeasure,"\n")
  #debug=TRUE; cat("debug:",debug,"\n")
  metric=search$metric
@@ -528,7 +622,7 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,scale,tr
     J=mean(M$error); K=centralpar(M$mpar,medianfirst=TRUE)
     LZ=length(Z);Imp=vector(length=LZ);for(i in 1:LZ) Imp[i]=mean(M$sen[,i]);
    }
-   else if(algorithm=="sbs")
+   else if(algorithm=="sbs") # initial step with all Z values
    { if(t==0) { M=mining(x,data[,Z],Runs=Runs,model=model,method=method,task=task,feature="none",search=search,scale=scale,transform=transform)
                J=mean(M$error); K=centralpar(M,medianfirst=TRUE)
               }
@@ -606,12 +700,15 @@ mgrid=function(search,x,data,model,task,scale,transform,fdebug,...)
  bestval=worst(metric)
  stop=FALSE; notimprove=0
 
+ # check type of search$search parameter: vector or object
+ if(!is.vector(search$search[[1]][[1]])) object=TRUE else object=FALSE
+ ###cat("object:",object,"\n")
  N=length(search$search); si=list(smethod="none",convex=search$convex,metric=metric); nsi=names(search$search)
  saux=list()
  # set saux names:
  for(i in 1:N) saux[[ nsi[i] ]]= search$search [[ nsi[i] ]] [1]
  L=vector(length=N)
- for(i in 1:N) L[i]=length(search$search[[i]])
+ for(i in 1:N) L[i]=length(search$search[[i]])  
 
  if(search$smethod=="grid"||search$smethod=="2L") # explore combinations of combinations
  {
@@ -620,7 +717,7 @@ mgrid=function(search,x,data,model,task,scale,transform,fdebug,...)
   for(i in 1:N) #
     {
      if(i==1) E=1 else E=E*L[i-1]
-     s[,i]=rep(1:length(search$search[[i]]),length.out=LS,each=E) 
+     s[,i]=rep(1:length(search$search[[i]]),length.out=LS,each=E) #
     }
  }
  else if(search$smethod=="matrix" ||substr(search$smethod,1,2)=="UD") # generate s
@@ -639,7 +736,13 @@ mgrid=function(search,x,data,model,task,scale,transform,fdebug,...)
  i=1 
  while(!stop)
    {
-    for(j in 1:N) saux[[ j ]]= search$search[[ j ]] [s[i,j]]
+    for(j in 1:N) 
+      { 
+        if(object) #{ cat("object IF:\n"); 
+                     saux[[j]]=search$search[[j]][[s[i,j]]] #}
+        else #{ cat("object ELSE:\n"); 
+           saux[[ j ]]= search$search[[ j ]] [s[i,j]] # }
+      }
     si$search=saux
  
     eval=try( mining(x,data,Runs=1,method=search$method,model=model,task=task,scale=scale,search=si,transform=transform,...)$error, silent= TRUE) 
@@ -804,9 +907,9 @@ else # test all character models
    }
  else if(object@model=="ksvm") 
    {
-      if(object@task=="prob") P=predict(object@object$svm,newdata,type="probabilities")
-      else if(object@task=="class") P=predict(object@object$svm,newdata) 
-      else P=predict(object@object$svm,newdata,type="response")[,1]
+      if(object@task=="prob") P=predict(object@object,newdata,type="probabilities")
+      else if(object@task=="class") P=predict(object@object,newdata) 
+      else P=predict(object@object,newdata,type="response")[,1]
    }
  else if(object@model=="rvm") P=predict(object@object,newdata,type="response")[,1]
 
@@ -886,7 +989,7 @@ svm.fit = function(x,data,task,exponentialscale=FALSE,...)
  # capture to avoid "maximum number of iterations reached" verbose:
  capture.output( { M = do.call("ksvm",c(list(x,data),args)) } )
  #sink()
- return(list(svm=M))
+ return(M)
 }
 
 #------------------------------------------------------------------------------------------
@@ -1324,6 +1427,8 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
  if(method=="randomForest" || method=="randomforest") # user should be sure this is a randomforest!
  { if(class(M)=="model") Sv=randomForest::importance(M@object,type=1)
    else Sv=randomForest::importance(M,type=1) # true randomforest
+   # need to change this code!!! it seems that negative values mean less important inputs when compared with positive ones
+   # the problem is how to scale and get a percentage ? 0% for the most negative input?
    ASv=abs(Sv)
    imp=100*abs(ASv)/sum(ASv) 
    RESP=NULL

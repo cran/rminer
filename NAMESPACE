@@ -1,4 +1,8 @@
-importFrom("methods","setGeneric","setMethod")
+importFrom("methods","new","setGeneric","setMethod")
+importFrom("graphics","abline","axis","barplot","boxplot","filled.contour","grid","hist","legend","lines","par","plot","points","segments","text","title")
+importFrom("stats","acf","as.formula","chisq.test","kmeans","lm","median","model.frame","quantile","runif","sd","t.test","var")
+importFrom("utils","capture.output")
+importFrom("grDevices","dev.off","gray","pdf")
 importFrom("plotrix","color2D.matplot","color.legend")
 importFrom("lattice","wireframe")
 importFrom("nnet","nnet","multinom")
@@ -18,6 +22,7 @@ importFrom("pls","pcr","plsr","cppls","pls.options")
 export(	
        ## rminer high level functions (most relevant):
        "fit",
+       "mparheuristic", # new in 1.4.1
        # predict (included in methods, check ?predict.fit)
        "mining",
        "Importance",
