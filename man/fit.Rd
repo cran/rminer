@@ -5,8 +5,8 @@
 Fit a supervised data mining model (classification or regression) model
 }
 \description{
-Fit a supervised data mining model (classification or regression) model. Wrapper function that allows to fit distinct data mining (14 classification
-and 15 regression) methods under the same coherent function structure. 
+Fit a supervised data mining model (classification or regression) model. Wrapper function that allows to fit distinct data mining (16 classification
+and 18 regression) methods under the same coherent function structure. 
 Also, it tunes the hyperparameters of the models (e.g. \code{kknn}, \code{mlpe} and \code{ksvm}) and performs some feature selection methods.
 }
 \usage{
@@ -27,12 +27,14 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{naive} most common class (classification) or mean output value (regression)
 
               \item \code{ctree} -- conditional inference tree (classification and regression, uses \code{\link{ctree}} from \code{party} package)
+              \item \code{cv.glmnet} -- generalized linear model with lasso or elasticnet regularization (classification and regression, uses \code{\link{cv.glmnet}} from \code{glmnet} package; note: cross-validation is used to automatically set the lambda parameter that is needed to compute the predictions)
               \item \code{rpart} or \code{dt} -- decision tree (classification and regression, uses \code{\link{rpart}} from \code{rpart} package)
               \item \code{kknn} or \code{knn} -- k-nearest neighbor (classification and regression, uses \code{\link{kknn}} from \code{kknn} package)
+              \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link{ksvm}} from \code{kernlab} package)
               \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
               \item \code{mlpe} -- multilayer perceptron ensemble (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
-              \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link{ksvm}} from \code{kernlab} package)
               \item \code{randomForest} or \code{randomforest} -- random forest algorithm (classification and regression, uses \code{\link{randomForest}} from \code{randomForest} package)
+              \item \code{xgboost} -- eXtreme Gradient Boosting (Tree) (classification and regression, uses \code{\link{xgboost}} from \code{xgboost} package; note: \code{nrounds} parameter is set by default to 2)
 
               \item \code{bagging} -- bagging (classification, uses \code{\link{bagging}} from \code{adabag} package)
               \item \code{boosting} -- boosting (classification, uses \code{\link{boosting}} from \code{adabag} package)
@@ -41,9 +43,10 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{naiveBayes} or \code{naivebayes} -- naive bayes (classification, uses \code{\link{naiveBayes}} from \code{e1071} package)
               \item \code{qda} -- quadratic discriminant analysis (classification, uses \code{\link{qda}} from \code{MASS} package)
 
+              \item \code{cubist} -- M5 rule-based model (regression, uses \code{\link{cubist}} from \code{Cubist} package)
+              \item \code{lm} -- standard multiple/linear regression (uses \code{\link{lm}})
               \item \code{mr} -- multiple regression (regression, equivalent to \code{\link{lm}} but uses \code{\link{nnet}} from \code{nnet} package with zero hidden nodes and linear output function)
               \item \code{mars} -- multivariate adaptive regression splines (regression, uses \code{\link{mars}} from \code{mda} package)
-              \item \code{cubist} -- M5 rule-based model (regression, uses \code{\link{cubist}} from \code{Cubist} package)
               \item \code{pcr} -- principal component regression (regression, uses \code{\link{pcr}} from \code{pls} package)
               \item \code{plsr} -- partial least squares regression (regression, uses \code{\link{plsr}} from \code{pls} package)
               \item \code{cppls} -- canonical powered partial least squares (regression, uses \code{\link{cppls}} from \code{pls} package)
@@ -301,6 +304,39 @@ M3=fit(Species~.,iris,model="ctree",controls = party::ctree_control(testtype="Mo
 plot(M3@object) # show model
 }
 
+### simple binary classification example with cv.glmnet and xgboost
+\dontrun{
+data(sa_ssin_2)
+H=holdout(sa_ssin_2$y,ratio=2/3)
+# cv.glmnet:
+M=fit(y~.,sa_ssin_2[H$tr,],model="cv.glmnet",task="cla") # pure classes
+P=predict(M,sa_ssin_2[H$ts,])
+cat("1st prediction, class:",as.character(P[1]),"\n")
+cat("Confusion matrix:\n")
+print(mmetric(sa_ssin_2[H$ts,]$y,P,"CONF")$conf)
+
+M2=fit(y~.,sa_ssin_2[H$tr,],model="cv.glmnet") # probabilities
+P2=predict(M2,sa_ssin_2[H$ts,])
+L=M2@levels
+cat("1st prediction, prob:",L[1],"=",P2[1,1],",",L[2],"=",P2[1,2],"\n")
+cat("Confusion matrix:\n")
+print(mmetric(sa_ssin_2[H$ts,]$y,P2,"CONF")$conf)
+cat("AUC of ROC curve:\n")
+print(mmetric(sa_ssin_2[H$ts,]$y,P2,"AUC"))
+
+M3=fit(y~.,sa_ssin_2[H$tr,],model="cv.glmnet",nfolds=3) # use 3 folds instead of 10
+plot(M3@object) # show cv.glmnet object
+P3=predict(M3,sa_ssin_2[H$ts,])
+
+# xgboost:
+M4=fit(y~.,sa_ssin_2[H$tr,],model="xgboost",verbose=1) # nrounds=2, show rounds:
+P4=predict(M4,sa_ssin_2[H$ts,])
+print(mmetric(sa_ssin_2[H$ts,]$y,P4,"AUC"))
+M5=fit(y~.,sa_ssin_2[H$tr,],model="xgboost",nrounds=3,verbose=1) # nrounds=3, show rounds:
+P5=predict(M5,sa_ssin_2[H$ts,])
+print(mmetric(sa_ssin_2[H$ts,]$y,P5,"AUC"))
+}
+
 ### classification example with discrete classes, probabilities and holdout
 \dontrun{
 data(iris)
@@ -316,7 +352,7 @@ print(mmetric(iris$Species[H$ts],P2,"CONF",TC=1))
 print(mmetric(iris$Species[H$ts],P2,"AUC"))
 
 ### exploration of some rminer classification models:
-models=c("lda","naiveBayes","kknn","randomForest")
+models=c("lda","naiveBayes","kknn","randomForest","cv.glmnet","xgboost")
 for(m in models)
  { cat("model:",m,"\n") 
    M=fit(Species~.,iris[H$tr,],model=m)
@@ -489,7 +525,7 @@ print(M@object)
 \dontrun{
 data(sa_ssin)
 H=holdout(sa_ssin$y,ratio=2/3,seed=12345)
-models=c("mr","ctree","mars","cubist","rvm")
+models=c("lm","mr","ctree","mars","cubist","cv.glmnet","xgboost","rvm")
 for(m in models)
  { cat("model:",m,"\n") 
    M=fit(y~.,sa_ssin[H$tr,],model=m)

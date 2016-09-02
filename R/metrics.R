@@ -1,4 +1,4 @@
-# Paulo Cortez @ 2013
+# Paulo Cortez @ 2016
 
 isbest=function(Cur,Best,metric)
 {if(length(Cur)==0 || is.na(Cur)) return (FALSE) 
@@ -38,11 +38,12 @@ is.mmetric=function(metric)
 { M=c("MAEO","MSEO","KENDALL",
       "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC",
       "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC",
-      "SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3"
+      "SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3"
       ) 
   return(sum(M==metric)>0)
 }
 
+# val = yrange if not null and metric="NMAE"
 mmetric=function(y,x=NULL,metric,D=0.5,TC=-1,val=NULL,aggregate="no")
 { 
  if(is.list(y) && is.null(x)) # mining object
@@ -386,7 +387,7 @@ else if(is.factor(y)) # classification
  {
     # absolute measures:
     res=NULL;nres=NULL;LM=length(metric)
-    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
+    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
 
     LM=length(metric)
     if(sum(metric=="SAE")>0) SAE=TRUE else SAE=FALSE
@@ -395,6 +396,7 @@ else if(is.factor(y)) # classification
     if(sum(metric=="GMAE")>0) GMAE=TRUE else GMAE=FALSE
     if(sum(metric=="MaxAE")>0) MaxAE=TRUE else MaxAE=FALSE
     if(sum(metric=="RAE")>0) RAE=TRUE else RAE=FALSE
+    if(sum(metric=="NMAE")>0) NMAE=TRUE else NMAE=FALSE
     # Square measures:
     if(sum(metric=="SSE")>0) SSE=TRUE else SSE=FALSE
     if(sum(metric=="MSE")>0) MSE=TRUE else MSE=FALSE
@@ -436,10 +438,10 @@ else if(is.factor(y)) # classification
     if(REC) reslist=TRUE # list
     else reslist=FALSE# named vector
 
-    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R22||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
-    if(SAE||MAE||MdAE||GMAE||MaxAE||RAE||SMAPE||SMdAPE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
+    if(SAE||MAE||MdAE||GMAE||MaxAE||NMAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R22||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
+    if(SAE||MAE||MdAE||GMAE||MaxAE||NMAE||RAE||SMAPE||SMdAPE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
     if(SAE||RAE) {sae=sum(eabs); if(rsingle && SAE) return(sae) else if(SAE){res=c(res,sae);nres=c(nres,"SAE")}} else sae=NULL
-    if(MAE) {mae=mean(eabs);     if(rsingle) return(mae) else{res=c(res,mae);nres=c(nres,"MAE")}} else mae=NULL
+    if(MAE||NMAE) {mae=mean(eabs);     if(rsingle && MAE) return(mae) else if(MAE) {res=c(res,mae);nres=c(nres,"MAE")}} else mae=NULL
     if(MdAE) {mdae=median(eabs); if(rsingle) return(mdae) else{res=c(res,mdae);nres=c(nres,"MdAE")}} else mdae=NULL
     if(GMAE) {gmae=prod(eabs)^(1/(length(eabs)));  if(rsingle) return(gmae) else{res=c(res,gmae);nres=c(nres,"GMAE")}} else gmae=NULL
     if(MaxAE) {maxae=max(eabs);  if(rsingle) return(maxae) else{res=c(res,maxae);nres=c(nres,"MaxAE")}} else maxae=NULL
@@ -455,6 +457,12 @@ else if(is.factor(y)) # classification
     if(ME) { me=mean(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} else me=NULL
 
     if(RAE||RSE||RRSE||R22||LQ2) {ymean=mean(y)}
+
+    if(NMAE){ if(is.null(val)) yrange=diff(range(y)) else yrange=val
+              #cat("yrange:",yrange,"\n")
+              nmae=100*mae/yrange;
+              if(rsingle) return(nmae) else{res=c(res,nmae);nres=c(nres,"NMAE")}
+            } else nmae=NULL
 
     if(RAE) {rae=100*sae/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} else rae=NULL
     if(RSE||RRSE||R22||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}

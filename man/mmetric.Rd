@@ -58,6 +58,7 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
                        \item \code{MdAE} -- median absolute error (regression, "<", [0,Inf[).
                        \item \code{GMAE} -- geometric mean absolute error (regression, "<", [0,Inf[).
                        \item \code{MaxAE} -- maximum absolute error (regression, "<", [0,Inf[).
+                       \item \code{NMAE} -- normalized mean absolute error (regression, "<", [0\%,Inf[). Note: by default, this metric assumes the range of \code{y} as the denominator of \code{NMAE}; a different range can be set by setting the optional \code{val} argument (see example).
                        \item \code{RAE} -- relative absolute error (regression, "<", [0\%,Inf[).
                        \item \code{SSE} -- sum squared error (regression, "<", [0,Inf[).
                        \item \code{MSE} -- mean squared error (regression, "<", [0,Inf[).
@@ -199,9 +200,15 @@ print(mmetric(y,x,"ALL"))
 print(mmetric(y,x,"MAE"))
 m=mmetric(y,x,c("MAE","RMSE","RAE","RSE"))
 print(m)
+# getting NMAE:
+m=mmetric(y,x,"NMAE")
+cat("NMAE:",round(m,digits=3),"(denominator=",diff(range(y)),")\n")
+m=mmetric(y,x,"NMAE",val=5) # usage of different range
+cat("NMAE:",round(m,digits=3),"(denominator=",5,")\n")
+
 cat(names(m)[3],"=",round(m[3],digit=2),"\n",sep="")
 print(mmetric(y,x,c("COR","R2","Q2")))
-print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.5))
+print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.5)) # if admitted/accepted absolute error is 0.5
 print(mmetric(y,x,"THEILSU2",val=94.1)) # val = 1-ahead random walk, c(y,94.1), same as below
 print(mmetric(y,x,"THEILSU2",val=c(94.1,y[1:5]))) # val = 1-ahead random walk (previous y values)
 print(mmetric(y,x,"MASE",val=c(88.1,89.9,93.2,94.1))) # val = in-samples

@@ -37,6 +37,7 @@ mhistogram=function(x,Levels=NULL,PDF="",main="",xlab="Values",ylab="Frequency",
 
 
 # todo: add xlab and ylab options?
+#       add ... options for more flexibly graphs?
 # mgraph
 # graph options:
 # "REC"

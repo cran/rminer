@@ -1,3 +1,8 @@
+# to do:
+# check predict with 1 row ??? for new methods???
+# - pcr => scale Email of Nurseda Yurusen, 5th May 2016
+# - add XGBoost ?
+# - question about Peter Wang: B1<-fit(log2(price)~.,rtaipei[H$tr,],model = "cubist") => error
 #-------------------------------------------------------------------------------------------------
 # "model.R" code by Paulo Cortez 2010-2014@, Department of Information Systems, University of Minho
 #
@@ -16,6 +21,7 @@
 #
 #-------------------------------------------------------------------------------------------------
 # libraries that need to be installed:
+#library(stats) # get lm
 #library(nnet)   # get nnet: MLP and Multiple Logistic Regression
 #library(pls) # get pls methods
 #library(MASS) # lda and qda
@@ -28,6 +34,9 @@
 #library(kknn)   # get kknn: k-nearest neighbours
 #library(kernlab)# get the ksvm
 #library(e1071) # get naiveBayes
+#library(glmnet) # lasso and others, new
+
+# note: nnet uses model.matrix ( C-1 dummy variables for an input factor with C classes)
 
 # not used:
 ##library(neuralnet) # get neuralnet # still experimental stuff
@@ -142,8 +151,8 @@ if(feature_needed(feature[1])) # will treat this better in next big (improved) v
   { 
 #print(feature)
 #print("--")
-    smeasure=switch(feature[1],sabsv="v",sabsr="r","g")
-    feature[1]=switch(feature[1],sabsv=,sabsr=,sabsg="sabs",feature[1])
+    smeasure=switch(feature[1],sabsv="v",sabsr="r",sabsg="g","a") # new line!!!
+    feature[1]=switch(feature[1],sabsa=,sabsv=,sabsr=,sabsg="sabs",feature[1]) # new line!!!
     #cat("f:",feature[1],"sm:",smeasure,"\n")
     fstop=as.numeric(feature[2]) # -1 or number of delections
     Runs=as.numeric(feature[3]) 
@@ -233,6 +242,37 @@ if(search$smethod=="none") # no search
     # -outindex regression models that use x, y ...
     else if(model=="mars"||model=="cubist") # M=mda::mars(data[,-outindex],data[,outindex],...) 
          M=try( do.call(model,c(list(x=data[,-outindex],y=data[,outindex]),fargs)), silent=TRUE) # FIT!!!
+    else if(model=="cv.glmnet" || model=="xgboost") # NEW
+    { # process factors
+        y=data[,outindex]
+        data=model.matrix(x,data)[,-1]
+        if(model=="cv.glmnet" && is.null(fargs[["family"]]))
+          { 
+           if(is.factor(y[1])) { if(length(levels(y[1]))>2) { family="multinomial"; typemultinomial="grouped";}
+                              else { family="binomial"; typemultinomial="ungrouped"}
+                              fargs[["family"]]=family
+                              fargs[["type.multinomial"]]=typemultinomial
+                            }
+          }
+        if(model=="xgboost") # NEW
+          { 
+           if(is.null(fargs[["nrounds"]])) fargs[["nrounds"]]=2
+           if(is.null(fargs[["verbose"]])) fargs[["verbose"]]=0
+           if(is.null(fargs[["objective"]])) 
+                    { 
+                     if(is.factor(y[1])) { if(length(levels(y[1]))>2) { objective="multi:softprob"; 
+                                                                        if(is.null(fargs[["num_class"]])) fargs[["num_class"]]=length(levels(y[1]))
+                                                                        y=as.numeric(y)-1
+                                                                      }
+                                           else { objective="binary:logistic"; y=as.numeric(y==levels(y[1])[2])}
+                                         }
+                     else objective="reg:linear"
+                     fargs[["objective"]]=objective
+                    }
+          }
+        if(model=="cv.glmnet") M=suppressWarnings( try( do.call(model,c(list(x=data,y=y),fargs)), silent=TRUE) ) # FIT!!!
+        else if(model=="xgboost") M=suppressWarnings( try( do.call(model,c(list(data=data,label=y),fargs)), silent=TRUE) ) # FIT!!!
+    }
     else # equal do.call fits:
     {
      fitfun=model # true for most models
@@ -610,7 +650,7 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,scale,tr
  JBest=worst(metric);BK=search; # worst error
  notimprove=0 # iterations with improvement
  if(algorithm=="sabs") imethod=switch(smeasure,g="sensg",v="sensv",r="sensr",a="sensa")
-#cat("smeasure:",smeasure,"imethod:",imethod,"\n") 
+#cat("BSS smeasure:",smeasure,"imethod:",imethod,"alg:",algorithm,"\n") 
 #print(BK)
 #debug=TRUE ###
  stop=FALSE;t=0;
@@ -768,12 +808,12 @@ output_index=function(x,namesdata)
 }
 
 transform_needed=function(transform) { return (switch(transform,log=,logpositive=,positive=,scale=TRUE,FALSE)) }
-feature_needed=function(feature) { return (switch(feature,sbs=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE)) }
+feature_needed=function(feature) { return (switch(feature,sbs=,sabsa=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE)) }
 
 defaultask=function(task="default",model="default",output=1)
 { if(task=="default") 
     { 
-      if(is.character(model)) task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,qda="prob",cubist=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
+      if(is.character(model)) task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,qda="prob",cubist=,lm=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
       if(task=="default") { if (is.factor(output)) task="prob" else task="reg" }
     }
   else if(substr(task,1,1)=="c") task="class" else if(substr(task,1,1)=="p") task="prob"
@@ -813,6 +853,12 @@ setMethod("predict",signature(object="model"),
 function(object,newdata,...){
 
 if(NCOL(newdata)>length(object@attributes)) newdata=newdata[,object@attributes] # due to feature selection
+# deal with 1 example for some methods:
+if( NROW(newdata)==1 && 
+    (object@model=="xgboost" || object@model=="cv.glmnet") ) # models with 1 example problems
+    SINGLE=TRUE else SINGLE=FALSE
+
+if(SINGLE) newdata=rbind(newdata,newdata)
 # --- if code for the models ---
 if(is.list(object@model)) P=object@model$predict(object@object,newdata)
 else # test all character models
@@ -846,9 +892,33 @@ else # test all character models
   { P=predict(object@object,newdata)
     if(object@task=="class") P=P$class else P=P$prob
   }
+ # lasso et al:
+ else if(object@model=="cv.glmnet") 
+    { newdata=model.matrix(object@formula,newdata)[,-1]
+      P=predict(object@object,newdata,type="response") # 1 prob? 
+      if(object@task=="prob" || object@task=="class") 
+       { if(length(object@levels)==2) {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
+         else P=P[,,1]
+       }
+      if(object@task=="class") { P=majorClass(P,object@levels) } # factor
+    }
+ else if(object@model=="xgboost") # NEW
+    { newdata=model.matrix(object@formula,newdata)[,-1]
+      P=predict(object@object,newdata) # 1 prob? 
+      if(object@task=="prob" || object@task=="class") 
+       { if(length(object@levels)==2) {MM=matrix(ncol=2,nrow=length(P));MM[,2]=P;MM[,1]=1-P;P=MM;}
+         else{ L=length(object@levels)
+               P=t(array(P,dim=c(L,NROW(newdata))))
+             }
+       }
+      if(object@task=="class") { P=majorClass(P,object@levels) } # factor
+    }
+ # pure regression:
  # pure regression:
  else if(object@model=="mr")
     { P=predict(object@object$mlp,newdata)[,1] }
+ else if(object@model=="lm")
+    { P=as.numeric( predict(object@object,newdata) ) }
  else if(object@model=="mars")
     { P=predict(object@object,newdata[,-object@outindex])[,1] }
  else if(object@model=="cubist")
@@ -929,6 +999,7 @@ else # test all character models
         }
 } # end test all model character types
  if(substr(object@task,1,3)=="reg" && transform_needed(object@transform))P=invtransform(P,object@transform)
+ if(SINGLE) { if(object@task!="prob") P=P[1] else P=P[1,] }
  return(P)
 })
 
@@ -1138,7 +1209,10 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
        SEN=matrix(ncol=NCOL(data),nrow=(Runs*MULT) )
        if(substr(feature[1],1,4)!="sens") { SRESP=TRUE;FSRESP=TRUE;}
        else {SRESP=NULL; FSRESP=FALSE;}
-       imethod=switch(feature[1],sabsv=,simpv="sensv",sabsg=,sabs=,simp=,simpg="sensg",sabsr=,simpr="sensr",simpa="sensa",feature[1])
+       imethod=switch(feature[1],sabsv=,simpv="sensv", 
+                                 sabsg=,simpg="sensg",
+                                 sabsr=,simpr="sensr",
+                                 sabs=,simp=,sabsa=,simpa="sensa",feature[1]) # new line!!!
     }
  else {SEN=NULL; SRESP=NULL;FSRESP=FALSE;imethod="none"}
 
@@ -1285,7 +1359,7 @@ centralpar=function(mpar,medianfirst=FALSE)
  Args=length(par)
  A=sapply(mpar,unlist) # 
  # AA<<-A
- RA=nrow(A)
+ RA=NROW(A) # new line!!!
  DIST=RA/Folds
  # compute now the median value:
 
@@ -1313,7 +1387,7 @@ centralpar=function(mpar,medianfirst=FALSE)
 centralaux=function(elem,k,Folds,Rows,BY,A,medianfirst=FALSE)
 {
  if(Folds==0) ROWS=k else ROWS=seq(k,Rows,by= BY )
- aux=A[ROWS,]
+ if(is.matrix(A)) aux=A[ROWS,] else aux=A[ROWS] # new line
  if(is.numeric(elem)) 
   { aux=as.numeric(aux) 
     if(medianfirst) res=medianfirst(aux)$val
@@ -1442,6 +1516,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
 
   if(method=="SA") method="sens"
   if(method=="sens" && is.null(interactions)) method="1D-SA" else if(method=="sens") method="GSA"
+  # method="GSA" ?
 
   if(responses) YSTORE=TRUE else YSTORE=FALSE
 
