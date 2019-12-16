@@ -1,4 +1,12 @@
-# Paulo Cortez @ 2016
+#OO Paulo Cortez @ 2019
+
+# to do: Usage of cost matrix? (MAP is object image dependent)
+# regression metric used by carlos silva
+# recall-precision curves
+
+# tolerance with % of range and not absolute value = TOLERANCEPERC
+
+# micro-F1 = micro-precision = micro-recall = accuracy: micro, macro, weighted measures
 
 isbest=function(Cur,Best,metric)
 {if(length(Cur)==0 || is.na(Cur)) return (FALSE) 
@@ -6,8 +14,12 @@ isbest=function(Cur,Best,metric)
       if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
       if(is.function(metric)) return (Cur<Best)
       else { return (switch(metric,
-                CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,SPEARMAN=,TOLERANCE=,
-                TNR=,R2=,R22=,NAREC=,NAUC=,TPRATFPR=,AUCCLASS=,AUC=Cur>Best,
+                CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,BAL_ACC=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,SPEARMAN=,TOLERANCE=,TOLERANCEPERC=,
+                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+                #microPRECISION=,microTPR=,microF1=,
+		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                TNR=,macroTNR=,microTNR=,weightedTNR=,
+                R2=,R22=,EV=,NAREC=,NAUC=,TPRATFPR=,AUCCLASS=,AUC=Cur>Best,
                 Cur<Best))
            }
      } 
@@ -17,11 +29,15 @@ worst=function(metric)
   if(is.function(metric)) return (Inf) # assumption that metric should follow (i.e. "<" is better)
   else{
   return (switch(metric, 
-                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,AUC=,TPRATFPR=,TOLERANCE=,NAREC=-0.1, # [0-1 or 100]
+                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+                #microPRECISION=,microTPR=,microF1=, # equal to ACC
+		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                TNR=,macroTNR=,microTNR=,weightedTNR=,
+                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,AUC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=-0.1, # [0-1 or 100]
                 MCC=,COR=,KENDALL=,SPEARMAN=-1.1, # [-1,1]
-                q2=1.1,
+                q2=1.1,Q2=Inf,
                 R2=-0.1,
-                R22=-Inf,
+                R22=-Inf,EV=-Inf,
                 CE=,BER=100.1, # [0,100], %
                 Inf)) # other regression metrics
       }
@@ -36,14 +52,17 @@ metrics=function(y,x=NULL,D=0.5,TC=-1,val=NULL,aggregate="no")
 
 is.mmetric=function(metric)
 { M=c("MAEO","MSEO","KENDALL",
-      "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC",
-      "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC",
-      "SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3"
+      "ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","BAL_ACC","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC",
+      "macroPRECISION","macroTPR","macroF1","macroACC","macroTNR",
+      #"microPRECISION","microTPR","microF1",
+      "microTNR",
+      "weightedPRECISION","weightedTPR","weightedF1","weightedACC","weightedTNR",
+      "SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","R22","EV","Q2","NAREC","TOLERANCE","TOLERANCEPERC","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3"
       ) 
   return(sum(M==metric)>0)
 }
 
-# val = yrange if not null and metric="NMAE"
+# val = yrange if not null and metric="NMAE". # XXX
 mmetric=function(y,x=NULL,metric,D=0.5,TC=-1,val=NULL,aggregate="no")
 { 
  if(is.list(y) && is.null(x)) # mining object
@@ -132,14 +151,20 @@ else if(is.factor(y)) # classification
     if(length(metric)==1 && metric=="ALL")
          { 
            if(is.ordered(y)) metric=c("MAEO","MSEO","KENDALL")
-           else if(is.factor(x)) metric=c("ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC") 
-           else metric=c("ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC")
+           else{
+                if(is.factor(x)) metric=c("ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","BAL_ACC","TPR","TNR","PRECISION","F1","MCC") # pure class
+                else metric=c("ACC","CE","BER","KAPPA","CRAMERV","ACCLASS","BAL_ACC","TPR","TNR","PRECISION","F1","MCC","BRIER","BRIERCLASS","AUC","AUCCLASS","NAUC","TPRATFPR","ALIFT","NALIFT","ALIFTATPERC") #prob
+                if(length(levels(y[1]))>2) metric=c(metric,"macroTNR","microTNR","weightedTNR","macroPRECISION","weightedPRECISION","macroTPR",
+                                                      "weightedTPR","macroF1","weightedF1","macroACC","weightedACC")
+               }
          }
     LM=length(metric)
     if(sum(metric=="CONF")>0) CONF=TRUE else CONF=FALSE
     if(sum(metric=="ROC")>0) ROC=TRUE else ROC=FALSE
     if(sum(metric=="LIFT")>0) LIFT=TRUE else LIFT=FALSE
     if(sum(metric=="ACC")>0) ACC=TRUE else ACC=FALSE
+    if(sum(metric=="macroACC")>0) MACROACC=TRUE else MACROACC=FALSE 
+    if(sum(metric=="weightedACC")>0) WEIGHTEDACC=TRUE else WEIGHTEDACC=FALSE 
     if(sum(metric=="CE"|metric=="MER")>0) CE=TRUE else CE=FALSE
     if(sum(metric=="MAEO")>0) MAEO=TRUE else MAEO=FALSE
     if(sum(metric=="MSEO")>0) MSEO=TRUE else MSEO=FALSE
@@ -149,10 +174,23 @@ else if(is.factor(y)) # classification
     if(sum(metric=="CRAMERV")>0) CRAMERV=TRUE else CRAMERV=FALSE 
 
     if(sum(metric=="ACCLASS")>0) ACCLASS=TRUE else ACCLASS=FALSE
+    if(sum(metric=="BAL_ACC")>0) BALANCEDACC=TRUE else BALANCEDACC=FALSE
     if(sum(metric=="TPR")>0) TPR=TRUE else TPR=FALSE 
+    if(sum(metric=="macroTPR")>0) MACROTPR=TRUE else MACROTPR=FALSE 
+    #if(sum(metric=="microTPR")>0) MICROTPR=TRUE else MICROTPR=FALSE 
+    if(sum(metric=="weightedTPR")>0) WEIGHTEDTPR=TRUE else WEIGHTEDTPR=FALSE 
     if(sum(metric=="TNR")>0) TNR=TRUE else TNR=FALSE 
+    if(sum(metric=="macroTNR")>0) MACROTNR=TRUE else MACROTNR=FALSE 
+    if(sum(metric=="microTNR")>0) MICROTNR=TRUE else MICROTNR=FALSE 
+    if(sum(metric=="weightedTNR")>0) WEIGHTEDTNR=TRUE else WEIGHTEDTNR=FALSE 
     if(sum(metric=="PRECISION")>0) PRECISION=TRUE else PRECISION=FALSE 
+    if(sum(metric=="macroPRECISION")>0) MACROPRECISION=TRUE else MACROPRECISION=FALSE 
+    #if(sum(metric=="microPRECISION")>0) MICROPRECISION=TRUE else MICROPRECISION=FALSE 
+    if(sum(metric=="weightedPRECISION")>0) WEIGHTEDPRECISION=TRUE else WEIGHTEDPRECISION=FALSE 
     if(sum(metric=="F1")>0) F1=TRUE else F1=FALSE 
+    if(sum(metric=="macroF1")>0) MACROF1=TRUE else MACROF1=FALSE 
+    #if(sum(metric=="microF1")>0) MICROF1=TRUE else MICROF1=FALSE 
+    if(sum(metric=="weightedF1")>0) WEIGHTEDF1=TRUE else WEIGHTEDF1=FALSE 
     if(sum(metric=="MCC")>0) MCC=TRUE else MCC=FALSE
 
     if(!is.factor(x)) # prob
@@ -174,27 +212,38 @@ else if(is.factor(y)) # classification
 
     if(TC>0) C=2 else C=length(levels(y[1]))
     Total=length(y)
-    if(CONF||ACC||CE||MAEO||MSEO||BER||KAPPA||CRAMERV||KENDALL||ACCLASS||TPR||TNR||PRECISION||F1||MCC) # conf
+    if(CONF||ACC||MACROACC||WEIGHTEDACC
+           ||CE||MAEO||MSEO||BER||KAPPA||CRAMERV||KENDALL||ACCLASS||BALANCEDACC||TPR||MACROTPR||WEIGHTEDTPR||TNR||MACROTNR||MICROTNR||WEIGHTEDTNR
+           ||PRECISION||MACROPRECISION||WEIGHTEDPRECISION
+           ||F1||MACROF1||WEIGHTEDF1||MCC) # conf
     { conf=Conf(y,x,D=D,TC=TC,predreturn=TRUE)
       if(CRAMERV||KENDALL) pred=conf$pred
       conf=conf$conf
     } else conf=NULL
 
-    if(ACC||CE||KAPPA){diag=0;diagr=rep(0,C);}
+    if(ACC||CE||KAPPA){ fullTP=0}
+    if(KAPPA) {diagr=rep(0,C)}
+    if(MICROTNR){ fullTN=0; fullFP=0 }
+    #if(MICROTPR||MICROF1){ fullFN=0 }
     if(MAEO) maeo=0 else maeo=NULL
     if(MSEO) mseo=0 else mseo=NULL
     if(BER) ber=vector(length=C)
-    if(ACCLASS) acclass=rep(0,C) else acclass=NULL
-    if(TPR||F1) tpr=rep(0,C) else tpr=NULL
-    if(TNR) tnr=rep(0,C) else tnr=NULL
-    if(PRECISION||F1) precision=rep(0,C) else precision=NULL
+    if(ACCLASS||MACROACC||WEIGHTEDACC) acclass=rep(0,C) else acclass=NULL
+    if(TPR||MACROTPR||WEIGHTEDTPR||F1||MACROF1||WEIGHTEDF1||BALANCEDACC) tpr=rep(0,C) else tpr=NULL
+    if(TNR||MACROTNR||WEIGHTEDTNR||BALANCEDACC) tnr=rep(0,C) else tnr=NULL
+    if(PRECISION||MACROPRECISION||WEIGHTEDPRECISION||F1||MACROF1||WEIGHTEDF1) precision=rep(0,C) else precision=NULL
     if(MCC) mcc=rep(0,C) else mcc=NULL
-    if(F1) f1=rep(0,C) else f1=NULL
-    if(ACC||CE||MAEO||MSEO||KAPPA||BER||ACCLASS||TPR||TNR||PRECISION||F1||MCC)
+    if(F1||MACROF1||WEIGHTEDF1) f1=rep(0,C) else f1=NULL
+    if(ACC||CE||MAEO||MSEO||KAPPA||BER||ACCLASS||BALANCEDACC||MACROACC||WEIGHTEDACC||TPR||MACROTPR||WEIGHTEDTPR
+          ||TNR||MACROTNR||MICROTNR||WEIGHTEDTNR
+          ||PRECISION||MACROPRECISION||WEIGHTEDPRECISION
+          ||F1||MACROF1||WEIGHTEDF1||MCC)
     {
          for(k in 1:C) 
          { 
-           if(ACC||CE||KAPPA) diag=diag+conf[k,k]
+           if(ACC||CE||KAPPA) fullTP=fullTP+conf[k,k]
+           if(MICROTNR) {fullFP=fullFP+sum(conf[-k,k]); fullTN=fullTN+sum(conf[-k,-k]) }
+           #if(MICROTPR||MICROF1) fullFN=fullFN+sum(conf[k,-k])
            if(KAPPA||BER) sum_conf_k=sum(conf[k,])
            if(KAPPA) diagr[k]=sum_conf_k*(sum(conf[,k])/Total)
            if(MAEO||MSEO) { for(i in 1:C) 
@@ -205,7 +254,10 @@ else if(is.factor(y)) # classification
                             }
                           }
            if(BER) ber[k]=sum(conf[k,-k])/sum_conf_k
-           if(ACCLASS||TPR||TNR||PRECISION||F1||MCC)
+           if(ACCLASS||MACROACC||WEIGHTEDACC||BALANCEDACC||TPR||MACROTPR||WEIGHTEDTPR
+              ||TNR||MACROTNR||WEIGHTEDTNR
+              ||PRECISION||MACROPRECISION||WEIGHTEDPRECISION
+              ||F1||MACROF1||WEIGHTEDF1||MCC)
            {TP=conf[k,k]
 	    FN=0
  	    for(i in 1:C) # iterator?
@@ -214,21 +266,51 @@ else if(is.factor(y)) # classification
  	    for(i in 1:C) # iterator?
 		if(i!=k) FP=FP+conf[i,k]
             TN=Total-TP-FN-FP
-            if(ACCLASS) acclass[k]=100*(TP+TN)/Total 
-            if((TPR||F1) && TP!=0) tpr[k]=100*TP/(FN+TP)
-            if(TNR && TN!=0) tnr[k]=100*TN/(TN+FP) 
-            if((PRECISION||F1) && TP!=0) precision[k]=100*TP/(TP+FP)
-            if(F1 && precision[k]!=0 && tpr[k]!=0) f1[k]=2*((precision[k]*tpr[k])/(precision[k]+tpr[k]))
+            if(ACCLASS||MACROACC||WEIGHTEDACC) acclass[k]=100*(TP+TN)/Total 
+            if((TPR||MACROTPR||WEIGHTEDTPR||F1||MACROF1||WEIGHTEDF1||BALANCEDACC) && TP!=0) tpr[k]=100*TP/(FN+TP)
+            if((TNR||MACROTNR||WEIGHTEDTNR||BALANCEDACC) && TN!=0) tnr[k]=100*TN/(TN+FP) 
+            if((PRECISION||MACROPRECISION||WEIGHTEDPRECISION||F1||MACROF1||WEIGHTEDF1) && TP!=0) precision[k]=100*TP/(TP+FP)
+            if( (F1||MACROF1||WEIGHTEDF1) && precision[k]!=0 && tpr[k]!=0) f1[k]=2*((precision[k]*tpr[k])/(precision[k]+tpr[k]))
             if(MCC) { mcc[k]=TP*TN+FP*FN; if(mcc[k]!=0) mcc[k]=mcc[k]/sqrt((TP+FP)*(TP+FN)*(TN+FP)*(TN+FN)) else mcc[k]=0 }
            }
          }
     }
-    if(ACC||CE) {acc=c(diag/Total)*100; 
-                 if(rsingle && ACC) return(acc) else if(ACC){res=c(res,acc);nres=c(nres,"ACC")}
-               } else acc=NULL # total accuracy, in percentage
-    if(CE) {ce=100-acc; if(rsingle) return(ce) else{res=c(res,ce);nres=c(nres,"CE")}} else ce=NULL
-    if(KAPPA) {kappa=100*(diag-sum(diagr))/(Total-sum(diagr)); if(rsingle) return(kappa) else{res=c(res,kappa);nres=c(nres,"KAPPA")}} else kappa=NULL # G
-    if(BER) {ber=100*mean(ber);if(rsingle) return(ber) else{res=c(res,ber);nres=c(nres,"BER")}}else ber=NULL # G
+    if(ACC||CE) {acc=c(fullTP/Total)*100; # MICROACC is ACC!
+                 if(rsingle && (ACC) ) return(acc) else if(ACC){res=c(res,acc);nres=c(nres,"ACC")}
+               } #else acc=NULL # total accuracy, in percentage
+    if(CE) {ce=100-acc; if(rsingle) return(ce) else{res=c(res,ce);nres=c(nres,"CE")}} #else ce=NULL
+    if(KAPPA) {kappa=100*(fullTP-sum(diagr))/(Total-sum(diagr)); if(rsingle) return(kappa) else{res=c(res,kappa);nres=c(nres,"KAPPA")}} #else kappa=NULL # G
+
+    if(WEIGHTEDPRECISION||WEIGHTEDTPR||WEIGHTEDF1||WEIGHTEDACC) { propy=table(y)[]/length(y) ###}
+ #print("propy:")
+ #print(propy)
+     }
+ ##print("accclass:")
+ ##print(acclass)
+    if(MACROACC) { macroacc=mean(acclass); if(rsingle) return(macroacc) else{res=c(res,macroacc);nres=c(nres,"macroACC")}} #else macroacc=NULL 
+    if(WEIGHTEDACC) { weightedacc=sum(acclass*propy); if(rsingle) return(weightedacc) else{res=c(res,weightedacc);nres=c(nres,"weightedACC")}} #else weightedacc=NULL 
+
+    
+    if(MACROTNR) { macrotnr=mean(tnr); if(rsingle) return(macrotnr) else{res=c(res,macrotnr);nres=c(nres,"macroTNR")}} #else macrotnr=NULL 
+    if(MICROTNR) { microtnr=100*fullTN/(fullTN+fullFP); if(rsingle) return(microtnr) else{res=c(res,microtnr);nres=c(nres,"microTNR")}} #else microtnr=NULL 
+
+    if(WEIGHTEDTNR) { weightedtnr=sum(tnr*propy); if(rsingle) return(weightedtnr) else{res=c(res,weightedtnr);nres=c(nres,"weightedTNR")}} #else weightedtnr=NULL 
+
+    if(MACROPRECISION) { macroprecision=mean(precision); if(rsingle) return(macroprecision) else{res=c(res,macroprecision);nres=c(nres,"macroPRECISION")}} #else macroprecision=NULL 
+    #if(MICROPRECISION||MICROF1) { microprecision=100*fullTP/(fullTP+fullFP) }
+    #if(MICROPRECISION) { if(rsingle) return(microprecision) else{res=c(res,microprecision);nres=c(nres,"microPRECISION")}} #else microprecision=NULL 
+    if(WEIGHTEDPRECISION) { weightedprecision=sum(precision*propy); if(rsingle) return(weightedprecision) else{res=c(res,weightedprecision);nres=c(nres,"weightedPRECISION")}} #else weightedprecision=NULL 
+
+    if(MACROTPR) { macrotpr=mean(tpr); if(rsingle) return(macrotpr) else{res=c(res,macrotpr);nres=c(nres,"macroTPR")}} #else macroprecision=NULL 
+    #if(MICROTPR||MICROF1) { microtpr=100*fullTP/(fullTP+fullFN) }
+    #if(MICROTPR) { if(rsingle) return(microtpr) else{res=c(res,microtpr);nres=c(nres,"microTPR")}} #else microtpr=NULL 
+    if(WEIGHTEDTPR) { weightedtpr=sum(tpr*propy); if(rsingle) return(weightedtpr) else{res=c(res,weightedtpr);nres=c(nres,"weightedTPR")}} #else weightedtpr=NULL 
+
+    if(MACROF1) { macrof1=mean(f1); if(rsingle) return(macrof1) else{res=c(res,macrof1);nres=c(nres,"macroF1")}} #else macrof1=NULL 
+    #if(MICROF1) { microf1=1/mean(1/c(microprecision,microtpr)); if(rsingle) return(microf1) else{res=c(res,microf1);nres=c(nres,"microF1")}} #else microtpr=NULL 
+    if(WEIGHTEDF1) { weightedf1=sum(f1*propy); if(rsingle) return(weightedf1) else{res=c(res,weightedf1);nres=c(nres,"weightedF1")}} #else weightedf1=NULL 
+
+    if(BER) {ber=100*mean(ber);if(rsingle) return(ber) else{res=c(res,ber);nres=c(nres,"BER")}}else #ber=NULL # G
     if(MAEO){maeo=maeo/Total;if(rsingle) return(maeo) else{res=c(res,maeo);nres=c(nres,"MAEO")}} 
     if(MSEO){mseo=mseo/Total;if(rsingle) return(mseo) else{res=c(res,mseo);nres=c(nres,"MSEO")}} 
     if(CRAMERV) # single
@@ -238,7 +320,7 @@ else if(is.factor(y)) # classification
       if(!is.numeric(T)) T=0
       cramerv=sqrt(T/(Total*(C-1)))
       if(rsingle) return(cramerv) else{res=c(res,cramerv);nres=c(nres,"CRAMERV")}
-    } else cramerv=NULL
+    } #else cramerv=NULL
     if(KENDALL && is.ordered(y)) 
      { 
        if(!is.ordered(pred)) pred=ordered(pred,levels=levels(y[1]))
@@ -254,11 +336,14 @@ else if(is.factor(y)) # classification
            }
        kendall=(c-d)/(sqrt(c+d+et)*sqrt(c+d+ep)) 
        if(rsingle) return(kendall) else{res=c(res,kendall);nres=c(nres,"KENDALL")}
-     } else kendall=NULL
+     } #else kendall=NULL
 
-    if( (ACCLASS||TPR||TNR||PRECISION||F1||MCC)||(!is.factor(x)&& (BRIERCLASS||AUCCLASS)) ) naux=vector(length=C) else NAUX=FALSE
+    if( (ACCLASS||BALANCEDACC||TPR||TNR||PRECISION||F1||MCC)||(!is.factor(x)&& (BRIERCLASS||AUCCLASS)) ) naux=vector(length=C) else NAUX=FALSE
 
     if(ACCLASS){if(rsingle) return(acclass) else {res=c(res,acclass); for(i in 1:C) naux[i]=paste("ACCLASS",i,sep=""); nres=c(nres,naux)}}
+    if(BALANCEDACC){ balancedacc=(tpr+tnr)/2
+                     if(rsingle) return(balancedacc) else {res=c(res,balancedacc); for(i in 1:C) naux[i]=paste("BAL_ACC",i,sep=""); nres=c(nres,naux)}
+                   }
     if(TPR){if(rsingle) return(tpr) else {res=c(res,tpr); for(i in 1:C) naux[i]=paste("TPR",i,sep=""); nres=c(nres,naux)}}
     if(TNR) {if(rsingle) return(tnr) else {res=c(res,tnr); for(i in 1:C) naux[i]=paste("TNR",i,sep=""); nres=c(nres,naux)}}
     if(PRECISION) {if(rsingle) return(precision) else {res=c(res,precision); for(i in 1:C) naux[i]=paste("PRECISION",i,sep=""); nres=c(nres,naux)}}
@@ -299,7 +384,7 @@ else if(is.factor(y)) # classification
                     }
                     if(BRIER) { if(rsingle) return(tbrier) else {res=c(res,tbrier);nres=c(nres,"BRIER")}}
                     if(BRIERCLASS){if(rsingle) return(brier) else{res=c(res,brier); for(i in 1:C) naux[i]=paste("BRIERCLASS",i,sep=""); nres=c(nres,naux)}}
-                  } else {brier=NULL;tbrier=NULL}
+                  } #else {brier=NULL;tbrier=NULL}
          if(ROC||AUC||AUCCLASS||NAUC||TPRATFPR)
                 { if(TC<1) TC2=C else TC2=TC
                   if(C>2) {roc=ROCcurve(y,x);tauc=roc$auc;auc=vector(length=C); for(i in 1:C) auc[i]=roc$roc[[i]]$auc;}
@@ -314,7 +399,7 @@ else if(is.factor(y)) # classification
                             if(C>2) roc2=partialcurve(roc$roc[[TC2]]$roc,val2) else roc2=partialcurve(roc$roc,val2)
                             nauc=curvearea(roc2,val2)
                             if(rsingle) return(nauc) else{res=c(res,nauc);nres=c(nres,"NAUC")}
-                          } else nauc=NULL
+                          } #else nauc=NULL
                   if(TPRATFPR) {  if(is.null(val)) val2=1 
                                   else if(is.list(val)) val2=val[[which(metric=="TPRATFPR")[1]]]
                                   else if(length(val)>1) val2=val[which(metric=="TPRATFPR")[1]]
@@ -324,14 +409,14 @@ else if(is.factor(y)) # classification
                                   else roc2=partialcurve(roc$roc,val2)
                                   if(is.vector(roc2)) tpratfpr=roc2[2] else tpratfpr=roc2[nrow(roc2),2]
                                   if(rsingle) return(tpratfpr) else{res=c(res,tpratfpr);nres=c(nres,"TPRATFPR")}
-                          } else tpratfpr=NULL
-                } else {roc=NULL;auc=NULL;tauc=NULL;nauc=NULL;tpratfpr=NULL}
+                          } #else tpratfpr=NULL
+                } else {roc=NULL}
          if(LIFT||ALIFTATPERC||ALIFT||NALIFT)
                 {
                   if(TC<1) TC2=C else TC2=TC
                   lift=LIFTcurve(y,x,TC=TC2) # does not work for more than 2 classes
                   if(ALIFT) {alift=lift$area;if(rsingle) return(alift) else{res=c(res,alift);nres=c(nres,"ALIFT")}}
-                  else alift=NULL
+                  #else alift=NULL
                   if(NALIFT) { 
                                if(is.null(val)) val2=1 
                                else if(is.list(val)) val2=val[[which(metric=="NALIFT")[1]]]
@@ -340,7 +425,7 @@ else if(is.factor(y)) # classification
                                if(val2>1) val2=1
                                lift2=partialcurve(lift$alift,val2); nalift=curvearea(lift2,val2)
                                if(rsingle) return(nalift) else{res=c(res,nalift);nres=c(nres,"NALIFT")}
-                               } else nalift=NULL
+                               } #else nalift=NULL
                   if(ALIFTATPERC)
                              {
                                if(is.null(val)) val2=1 
@@ -351,24 +436,27 @@ else if(is.factor(y)) # classification
                                lift2=partialcurve(lift$alift,val2)
                                if(is.vector(lift2)) aliftatperc=lift2[2] else aliftatperc=lift2[nrow(lift2),2]
                                if(rsingle) return(aliftatperc) else{res=c(res,aliftatperc);nres=c(nres,"ALIFTATPERC")}
-                             } else aliftatperc=NULL 
-                } else {lift=NULL;alift=NULL;nalift=NULL;aliftatperc=NULL}
+                             } #else aliftatperc=NULL 
+                } else {lift=NULL} #;alift=NULL;nalift=NULL;aliftatperc=NULL}
         }
-    else {roc=NULL;tauc=NULL;auc=NULL;brier=NULL;tbrier=NULL;nauc=NULL;tpratfpr=NULL;lift=NULL;alift=NULL;nalift=NULL;aliftatperc=NULL}
+    else {roc=NULL;lift=NULL}
 
     if(!is.null(res)) { names(res)=nres;
-                        I=NULL # for classification: problem with multi-class!!! XXX
+                        I=NULL 
                         Lnres=length(nres)
                         nmetric=vector(length=Lnres) 
                         i=1;k=1;stop=FALSE
                         while(!stop)
                         {
                          m=metric[i] 
-                         if(m!="ACCLASS"&&m!="TPR"&&m!="TNR"&&m!="PRECISION"&&m!="F1"&&m!="MCC"&&m!="AUCCLASS"&&m!="BRIERCLASS"){nmetric[k]=m;k=k+1;}
-                         else {
+                         if(m!="CONF" && m!="ROC" && m!="LIFT") 
+                          {
+                           if(m!="BAL_ACC"&&m!="ACCLASS"&&m!="TPR"&&m!="TNR"&&m!="PRECISION"&&m!="F1"&&m!="MCC"&&m!="AUCCLASS"&&m!="BRIERCLASS"){nmetric[k]=m;k=k+1}
+                           else {
                                for(j in 1:C) {nmetric[k]=paste(metric[i],j,sep="");k=k+1;}
                               }
-                         i=i+1;
+                          }
+                         i=i+1
                          if(i>LM) stop=TRUE
                         }
                         I=NULL
@@ -379,7 +467,6 @@ else if(is.factor(y)) # classification
                         }
                         res=res[I]
                       }
-
     if(reslist) {res=list(res=res,conf=conf,roc=roc,lift=lift)}
     return(res)
  } # y factor
@@ -387,7 +474,7 @@ else if(is.factor(y)) # classification
  {
     # absolute measures:
     res=NULL;nres=NULL;LM=length(metric)
-    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","Q2","NAREC","TOLERANCE","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
+    if(length(metric)==1 && metric=="ALL") metric=c("SAE","MAE","MdAE","GMAE","MaxAE","NMAE","RAE","SSE","MSE","MdSE","RMSE","GMSE","HRMSE","RSE","RRSE","ME","COR","q2","R2","R22","EV","Q2","NAREC","TOLERANCE","TOLERANCEPERC","MAPE","MdAPE","RMSPE","RMdSPE","SMAPE","SMdAPE","SMinkowski3","MMinkowski3","MdMinkowski3")
 
     LM=length(metric)
     if(sum(metric=="SAE")>0) SAE=TRUE else SAE=FALSE
@@ -413,11 +500,13 @@ else if(is.factor(y)) # classification
 
     if(sum(metric=="R2")>0) R2=TRUE else R2=FALSE
     if(sum(metric=="R22")>0) R22=TRUE else R22=FALSE
+    if(sum(metric=="EV")>0) EV=TRUE else EV=FALSE
     if(sum(metric=="Q2")>0) LQ2=TRUE else LQ2=FALSE
     # REC measures: 
     if(sum(metric=="REC")>0) REC=TRUE else REC=FALSE
     if(sum(metric=="NAREC")>0) NAREC=TRUE else NAREC=FALSE
     if(sum(metric=="TOLERANCE")>0) TOLERANCE=TRUE else TOLERANCE=FALSE
+    if(sum(metric=="TOLERANCEPERC")>0) TOLERANCEPERC=TRUE else TOLERANCEPERC=FALSE
     # forecasting measures:
     if(sum(metric=="MdAPE")>0) MdAPE=TRUE else MdAPE=FALSE
     if(sum(metric=="RMSPE")>0) RMSPE=TRUE else RMSPE=FALSE
@@ -438,53 +527,55 @@ else if(is.factor(y)) # classification
     if(REC) reslist=TRUE # list
     else reslist=FALSE# named vector
 
-    if(SAE||MAE||MdAE||GMAE||MaxAE||NMAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R22||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
+    if(SAE||MAE||MdAE||GMAE||MaxAE||NMAE||RAE||MAPE||SMAPE||SMdAPE||MdAPE||ME||SSE||MSE||MdSE||RMSE||RSE||RRSE||GMSE||R22||EV||LQ2||MRAE||MdRAE||GMRAE||RMSPE||RMdSPE||THEILSU2||MASE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) err=y-x
     if(SAE||MAE||MdAE||GMAE||MaxAE||NMAE||RAE||SMAPE||SMdAPE||SMINKOWSKI3||MMINKOWSKI3||MdMINKOWSKI3) eabs=abs(err)
-    if(SAE||RAE) {sae=sum(eabs); if(rsingle && SAE) return(sae) else if(SAE){res=c(res,sae);nres=c(nres,"SAE")}} else sae=NULL
-    if(MAE||NMAE) {mae=mean(eabs);     if(rsingle && MAE) return(mae) else if(MAE) {res=c(res,mae);nres=c(nres,"MAE")}} else mae=NULL
-    if(MdAE) {mdae=median(eabs); if(rsingle) return(mdae) else{res=c(res,mdae);nres=c(nres,"MdAE")}} else mdae=NULL
-    if(GMAE) {gmae=prod(eabs)^(1/(length(eabs)));  if(rsingle) return(gmae) else{res=c(res,gmae);nres=c(nres,"GMAE")}} else gmae=NULL
-    if(MaxAE) {maxae=max(eabs);  if(rsingle) return(maxae) else{res=c(res,maxae);nres=c(nres,"MaxAE")}} else maxae=NULL
+    if(SAE||RAE) {sae=sum(eabs); if(rsingle && SAE) return(sae) else if(SAE){res=c(res,sae);nres=c(nres,"SAE")}} #else sae=NULL
+    if(MAE||NMAE) {mae=mean(eabs);     if(rsingle && MAE) return(mae) else if(MAE) {res=c(res,mae);nres=c(nres,"MAE")}} #else mae=NULL
+    if(MdAE) {mdae=median(eabs); if(rsingle) return(mdae) else{res=c(res,mdae);nres=c(nres,"MdAE")}} #else mdae=NULL
+    if(GMAE) {gmae=prod(eabs)^(1/(length(eabs)));  if(rsingle) return(gmae) else{res=c(res,gmae);nres=c(nres,"GMAE")}} #else gmae=NULL
+    if(MaxAE) {maxae=max(eabs);  if(rsingle) return(maxae) else{res=c(res,maxae);nres=c(nres,"MaxAE")}} #else maxae=NULL
  
     if(SSE||MSE||MdSE||RMSE||GMSE||RSE||RRSE||R22||LQ2||THEILSU2) esqr=(err)^2
-    if(SSE||RSE||RRSE||R22||LQ2) {sse=sum(esqr);if(rsingle && SSE) return(sse) else if(SSE){res=c(res,sse);nres=c(nres,"SSE")}} else sse=NULL
-    if(MSE||RMSE||THEILSU2) {mse=mean(esqr);if(rsingle && MSE) return(mse) else if(MSE){res=c(res,mse);nres=c(nres,"MSE")}} else mse=NULL
-    if(RMSE||THEILSU2) {rmse=sqrt(mse);if(rsingle && RMSE) return(rmse) else if(RMSE){res=c(res,rmse);nres=c(nres,"RMSE")}} else rmse=NULL 
-    if(MdSE) {mdse=median(esqr);if(rsingle) return(mdse) else{res=c(res,mdse);nres=c(nres,"MdSE")}} else mdse=NULL
-    if(GMSE) {gmse=prod(esqr)^(1/(length(esqr)));if(rsingle) return(gmse) else{res=c(res,gmse);nres=c(nres,"GMSE")}} else gmse=NULL
-    if(HRMSE) {hrmse=sqrt( mean((1-(x/y))^2) ) ;if(rsingle) return(hrmse) else{res=c(res,hrmse);nres=c(nres,"HRMSE")}} else hrmse=NULL
+    if(SSE||RSE||RRSE||R22||LQ2) {sse=sum(esqr);if(rsingle && SSE) return(sse) else if(SSE){res=c(res,sse);nres=c(nres,"SSE")}} #else sse=NULL
+    if(MSE||RMSE||THEILSU2) {mse=mean(esqr);if(rsingle && MSE) return(mse) else if(MSE){res=c(res,mse);nres=c(nres,"MSE")}} #else mse=NULL
+    if(RMSE||THEILSU2) {rmse=sqrt(mse);if(rsingle && RMSE) return(rmse) else if(RMSE){res=c(res,rmse);nres=c(nres,"RMSE")}} #else rmse=NULL 
+    if(MdSE) {mdse=median(esqr);if(rsingle) return(mdse) else{res=c(res,mdse);nres=c(nres,"MdSE")}} #else mdse=NULL
+    if(GMSE) {gmse=prod(esqr)^(1/(length(esqr)));if(rsingle) return(gmse) else{res=c(res,gmse);nres=c(nres,"GMSE")}} #else gmse=NULL
+    if(HRMSE) {hrmse=sqrt( mean((1-(x/y))^2) ) ;if(rsingle) return(hrmse) else{res=c(res,hrmse);nres=c(nres,"HRMSE")}} #else hrmse=NULL
 
-    if(ME) { me=mean(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} else me=NULL
+    if(ME) { me=mean(err);if(rsingle && ME) return(me) else{res=c(res,me);nres=c(nres,"ME")}} #else me=NULL
 
     if(RAE||RSE||RRSE||R22||LQ2) {ymean=mean(y)}
 
-    if(NMAE){ if(is.null(val)) yrange=diff(range(y)) else yrange=val
+    if(NMAE){
+              if(is.null(val)) yrange=diff(range(y)) else yrange=val
               #cat("yrange:",yrange,"\n")
               nmae=100*mae/yrange;
               if(rsingle) return(nmae) else{res=c(res,nmae);nres=c(nres,"NMAE")}
-            } else nmae=NULL
+            } #else nmae=NULL
 
-    if(RAE) {rae=100*sae/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} else rae=NULL
+    if(RAE) {rae=100*sae/sum(abs(y-ymean));if(rsingle) return(rae) else{res=c(res,rae);nres=c(nres,"RAE")}} #else rae=NULL
     if(RSE||RRSE||R22||LQ2) {sum_ym_esqr=sum((y-ymean)^2)}
 
-    if(RSE) {rse=100*sse/sum_ym_esqr;if(rsingle) return(rse) else{res=c(res,rse);nres=c(nres,"RSE")}} else rse=NULL
-    if(RRSE){rrse=100*sqrt(sse/sum_ym_esqr);if(rsingle) return(rrse) else {res=c(res,rrse);nres=c(nres,"RRSE")}} else rrse=NULL
-    if(R22) {r22=1-sse/sum_ym_esqr;if(rsingle) return(r22) else {res=c(res,r22);nres=c(nres,"R22")}} else r22=NULL
+    if(RSE) {rse=100*sse/sum_ym_esqr;if(rsingle) return(rse) else{res=c(res,rse);nres=c(nres,"RSE")}} #else rse=NULL
+    if(RRSE){rrse=100*sqrt(sse/sum_ym_esqr);if(rsingle) return(rrse) else {res=c(res,rrse);nres=c(nres,"RRSE")}} #else rrse=NULL
+    if(R22) {r22=1-sse/sum_ym_esqr;if(rsingle) return(r22) else {res=c(res,r22);nres=c(nres,"R22")}} #else r22=NULL
+    if(EV)  {ev= 1 - var(err)/var(y); if(rsingle) return(ev) else {res=c(res,ev);nres=c(nres,"EV")}}
 # problem with this formulation, check better:
-    if(LQ2) {Q2=sse/sum_ym_esqr;if(rsingle) return(Q2) else {res=c(res,Q2);nres=c(nres,"Q2")}} else Q2=NULL
+    if(LQ2) {Q2=sse/sum_ym_esqr;if(rsingle) return(Q2) else {res=c(res,Q2);nres=c(nres,"Q2")}} #else Q2=NULL
 
     if(MAPE||MdAPE||RMSPE||RMdSPE) pe=err/y
     if(MAPE||MdAPE) ape=abs(pe)
-    if(MAPE) {mape=100*mean(ape);if(rsingle) return(mape) else {res=c(res,mape);nres=c(nres,"MAPE")}} else mape=NULL
-    if(MdAPE) {mdape=100*median(ape);if(rsingle) return(mdape) else {res=c(res,mdape);nres=c(nres,"MdAPE")}} else mdape=NULL
+    if(MAPE) {mape=100*mean(ape);if(rsingle) return(mape) else {res=c(res,mape);nres=c(nres,"MAPE")}} #else mape=NULL
+    if(MdAPE) {mdape=100*median(ape);if(rsingle) return(mdape) else {res=c(res,mdape);nres=c(nres,"MdAPE")}} #else mdape=NULL
 
     if(RMSPE||RMdSPE) pe2=pe^2
-    if(RMSPE) {rmspe=sqrt(100*mean(pe2));if(rsingle) return(rmspe) else {res=c(res,rmspe);nres=c(nres,"RMSPE")}} else rmspe=NULL
-    if(RMdSPE) {rmdspe=sqrt(100*median(pe2));if(rsingle) return(rmdspe) else {res=c(res,rmdspe);nres=c(nres,"RMdSPE")}} else rmdspe=NULL
+    if(RMSPE) {rmspe=sqrt(100*mean(pe2));if(rsingle) return(rmspe) else {res=c(res,rmspe);nres=c(nres,"RMSPE")}} #else rmspe=NULL
+    if(RMdSPE) {rmdspe=sqrt(100*median(pe2));if(rsingle) return(rmdspe) else {res=c(res,rmdspe);nres=c(nres,"RMdSPE")}} #else rmdspe=NULL
 
     if(SMAPE||SMdAPE) map=eabs/(abs(x)+abs(y)) 
-    if(SMAPE) {smape=200*mean(map); if(rsingle) return(smape) else {res=c(res,smape);nres=c(nres,"SMAPE")}} else smape=NULL
-    if(SMdAPE){smdape=200*median(map); if(rsingle) return(smdape) else {res=c(res,smdape);nres=c(nres,"SMdAPE")}} else smdape=NULL
+    if(SMAPE) {smape=200*mean(map); if(rsingle) return(smape) else {res=c(res,smape);nres=c(nres,"SMAPE")}} #else smape=NULL
+    if(SMdAPE){smdape=200*median(map); if(rsingle) return(smdape) else {res=c(res,smdape);nres=c(nres,"SMdAPE")}} #else smdape=NULL
 
     # same val for all: randomwalk, see Hyndman paper
     if(MRAE||MdRAE||GMRAE||THEILSU2) { if(!is.null(val)) { if(is.list(val))  val2=val[[which(metric=="MRAE"|metric=="MdRAE"|metric=="GMRAE"|metric=="THEILSU2")[1]]]
@@ -497,34 +588,34 @@ else if(is.factor(y)) # classification
     if(RESULT && (MRAE||MdRAE||GMRAE)) abs_rt=abs(err/errb)
     if(MRAE) { if(RESULT) mrae=mean(abs_rt) else mrae=NA
                if(rsingle) return(mrae) else {res=c(res,mrae);nres=c(nres,"MRAE")}
-             } else mrae=NULL
+             } #else mrae=NULL
     if(MdRAE){ if(RESULT) mdrae=median(abs_rt) else mdrae=NA
                if(rsingle) return(mdrae) else {res=c(res,mdrae);nres=c(nres,"MdRAE")}
-             } else mdrae=NULL
+             } #else mdrae=NULL
     if(GMRAE){ if(RESULT) gmrae=prod(abs_rt)^(1/(length(abs_rt))) else gmrae=NA
                if(rsingle) return(gmrae) else {res=c(res,gmrae);nres=c(nres,"GMRAE")}
-             } else gmrae=NULL
+             } #else gmrae=NULL
     if(THEILSU2){ if(RESULT) theilsu2=rmse/sqrt(mean(errb^2)) else theilsu2=NA
                   if(rsingle) return(theilsu2) else {res=c(res,theilsu2);nres=c(nres,"THEILSU2")}
-                } else theilsu2=NULL
+                } #else theilsu2=NULL
 
     if(MASE){ if(is.list(val)){val2=val[[which(metric=="MASE")[1]]]}
               else if(length(val)>1) val2=val else val2=NULL
               if(!is.null(val2)){mmase=mean(abs(diff(val2)));mase=mean(abs(err/mmase))} else mase=NA
               if(rsingle) return(mase) else {res=c(res,mase);nres=c(nres,"MASE")}
-            } else mase=NULL
+            } #else mase=NULL
 
-    if(SMINKOWSKI3){sminkowski3=sum(eabs^3);if(rsingle) return(sminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"SMinkowski3")}} else sminkowski3=NULL
-    if(MMINKOWSKI3){mminkowski3=mean(eabs^3);if(rsingle) return(mminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MMinkowski3")}} else mminkowski3=NULL 
-    if(MdMINKOWSKI3){mdminkowski3=median(eabs^3);if(rsingle) return(mdminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MdMinkowski3")}} else mdminkowski3=NULL
+    if(SMINKOWSKI3){sminkowski3=sum(eabs^3);if(rsingle) return(sminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"SMinkowski3")}} #else sminkowski3=NULL
+    if(MMINKOWSKI3){mminkowski3=mean(eabs^3);if(rsingle) return(mminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MMinkowski3")}} #else mminkowski3=NULL 
+    if(MdMINKOWSKI3){mdminkowski3=median(eabs^3);if(rsingle) return(mdminkowski3) else {res=c(res,sminkowski3);nres=c(nres,"MdMinkowski3")}} #else mdminkowski3=NULL
 
     if(COR||q2||R2){cor=suppressWarnings(cor(y,x));if(is.na(cor)) cor=0;
                 if(rsingle && COR) return(cor) else {res=c(res,cor);nres=c(nres,"COR")}
-               } else cor=NULL
-    if(R2) {r2=cor^2; if(rsingle) return (r2) else {res=c(res,r2);nres=c(nres,"R2")}} else r2=NULL
-    if(q2){q2=1-cor^2;if(rsingle) return(q2) else {res=c(res,q2);nres=c(nres,"q2")}} else q2=NULL
+               } #else cor=NULL
+    if(R2) {r2=cor^2; if(rsingle) return (r2) else {res=c(res,r2);nres=c(nres,"R2")}} #else r2=NULL
+    if(q2){q2=1-cor^2;if(rsingle) return(q2) else {res=c(res,q2);nres=c(nres,"q2")}} #else q2=NULL
 
-    if(REC||NAREC||TOLERANCE) { if((NAREC||TOLERANCE)&& is.null(val)) val=1 
+    if(REC||NAREC||TOLERANCE||TOLERANCEPERC) { if((NAREC||TOLERANCE||TOLERANCEPERC)&& is.null(val)) val=1 
                                 rec=RECcurve(y,x)
                               } else rec=NULL
     if(NAREC){ 
@@ -534,15 +625,27 @@ else if(is.factor(y)) # classification
                if(rec[nrow(rec),1]>val2) {rec2=partialcurve(rec,val2);narec=curvearea(rec2,val2)} 
                else {val2=rec[nrow(rec),1];narec=curvearea(rec,val2)}
                if(rsingle) return(narec) else {res=c(res,narec);nres=c(nres,"NAREC")}
-             } else narec=NULL
-    if(TOLERANCE){ # warning last REC metric, changes rec 
+             } #else narec=NULL
+    if(TOLERANCE){ 
                    if(is.list(val)) val2=val[[which(metric=="TOLERANCE")[1]]]
                    else if(length(val)>1) val2=val[which(metric=="TOLERANCE")[1]]
                    else val2=val
-                   if(rec[nrow(rec),1]>val2) rec=partialcurve(rec,val2)
-                   if(is.vector(rec)) tolerance=rec[2] else tolerance=rec[nrow(rec),2]
+                   if(rec[nrow(rec),1]>val2) rec2=partialcurve(rec,val2) else rec2=rec
+                   if(is.vector(rec2)) tolerance=rec2[2] else tolerance=rec2[nrow(rec2),2]
                    if(rsingle) return(tolerance) else {res=c(res,tolerance);nres=c(nres,"TOLERANCE")}
-                 } else tolerance=NULL
+                 } #else tolerance=NULL 
+    if(TOLERANCEPERC){ 
+                   if(is.list(val)) val2=val[[which(metric=="TOLERANCEPERC")[1]]]
+                   else if(length(val)>1) val2=val[which(metric=="TOLERANCEPERC")[1]]
+                   else val2=val
+                   # convert percentage to a value:
+                   yrange=diff(range(y))
+                   val2= val2*yrange
+                   if(rec[nrow(rec),1]>val2) rec2=partialcurve(rec,val2) else rec2=rec
+                   if(is.vector(rec2)) tolerance=rec2[2] else tolerance=rec2[nrow(rec2),2]
+                   if(rsingle) return(tolerance) else {res=c(res,tolerance);nres=c(nres,"TOLERANCEPERC")}
+                 } #else tolerance=NULL
+
    # regression return: 
    if(!is.null(res)) {names(res)=nres; 
                       # sort res:
@@ -857,12 +960,6 @@ INTERPOLATE<-function(ROCP1,ROCP2,X)
  slope=(ROCP2[2]-ROCP1[2])/(ROCP2[1]-ROCP1[1])
  return (ROCP1[2]+slope*(X-ROCP1[1]))
 }
-# 95% confidence interval according to a t-student distribution
-conflevel=function(x,level=0.95)
-{
- RES=try( (t.test(x,conf.level=level)$conf[2]-t.test(x,conf.level=level)$conf[1])/2 , silent=TRUE)
- if(class(RES)=="numeric") return(RES) else return (0)
-}
 
 # partial curve (roc, rec, ...)
 partialcurve=function(Curve,threshold=1) #,method="int")
@@ -913,7 +1010,14 @@ tolerance<-function(REC,tol=0.5)
  else if(i>1) return ( xmiddle_point(REC[(i-1),1],REC[i,1],REC[(i-1),2],REC[i,2],tol) )
 }
 
-# mean and confidence interval using t.test
+# 95% confidence interval according to a t-student distribution. add wilcoxon?
+conflevel=function(x,level=0.95)
+{
+ RES=try( (t.test(x,conf.level=level)$conf[2]-t.test(x,conf.level=level)$conf[1])/2 , silent=TRUE)
+ if(class(RES)=="numeric") return(RES) else return (0)
+}
+
+# mean and confidence interval using t.test. add wilcoxon?
 meanint<-function(x,level=0.95)
 {
  if(is.matrix(x)||is.data.frame(x))

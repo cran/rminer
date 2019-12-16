@@ -38,7 +38,7 @@
 P. Cortez.\cr
 Data Mining with Neural Networks and Support Vector Machines Using the R/rminer Tool.\cr
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
-@Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
+@Springer: \url{https://link.springer.com/chapter/10.1007/978-3-642-14400-4_44}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
 \item This tutorial shows additional code examples:\cr

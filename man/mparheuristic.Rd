@@ -10,24 +10,54 @@ The result is to be put in a \code{search} argument, used by \code{\link{fit}} o
 like: \code{search=list(search=mparheuristic(...),...)}.
 }
 \usage{
-mparheuristic(model, n = NA, lower = NA, upper = NA, by = NA, kernel = "rbfdot")
+mparheuristic(model, n = NA, lower = NA, upper = NA, by = NA, exponential = NA, 
+              kernel = "rbfdot")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{model}{model type name. See \code{\link{fit}} for details.
-} 
-  \item{n}{number of searches (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}).
+  \item{model}{model type name. See \code{\link{fit}} for the model details (e.g., \code{"ksvm"}).}
+  \item{n}{number of searches or heuristic (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}). By default, the searches are linear for all models 
+except support vector machine based models (\code{"ksvm"},\code{"rsvm"},\code{"lssvm"}, which assume \code{2^}{search-range}). 
+If this argument is a character type, then it is assumed to be an heuristic. Possible heuristic values are:
+\itemize{
+           \item \code{heuristic} - only one model is fit, uses default rminer values, same as \code{mparheuristic(model)}.
+           \item \code{heuristic5} - 5 hyperparameter searches from lower to upper, only works for the following models: 
+\code{ctree}, \code{rpart}, \code{kknn}, \code{ksvm}, \code{lssvm}, \code{mlp}, \code{mlpe}, \code{randomForest}, \code{multinom}, \code{rvm}.
+Notes: 
+\code{rpart} - different \code{cp} values (see \code{\link{rpart.control}}); 
+\code{ctree} - different \code{mincriterion} values (see \code{\link{ctree_control}}); 
+\code{randomForest} -- upper argument should be set to the number of inputs, since \code{mtry} is searched; 
+\code{ksvm}, \code{lssvm} or \code{rvm} - the optional \code{kernel} argument can be used.
+           \item \code{heuristic10} - same as \code{heuristic5} but with 10 searches from \code{lower} to \code{upper}.
+           \item \code{mlp_t} - heuristic 33 from Delgado 2014 paper, 10 searches, works only when \code{model=mlp} or \code{model=mlpe}.
+           \item \code{avNNet_t} - heuristic 34 from Delgado 2014 paper, 9 searches, works only when \code{model=mlpe}.
+           \item \code{nnet_t} - heuristic 36 from Delgado 2014 paper, 25 searches, works only when \code{model=mlp} or \code{model=mlpe}.
+           \item \code{svm_C} - heuristic 48 from Delgado 2014 paper, 130 searches (may take time), works only when \code{model=ksvm}.
+           \item \code{svmRadial_t} - heuristic 52 from Delgado 2014 paper, 25 searches, works only when \code{model=ksvm}.
+           \item \code{svmLinear_t} - heuristic 54 from Delgado 2014 paper, 5 searches, works only when \code{model=ksvm}.
+           \item \code{svmPoly_t} - heuristic 55 from Delgado 2014 paper, 27 searches, works only when \code{model=ksvm}.
+           \item \code{lsvmRadial_t} - heuristic 56 from Delgado 2014 paper, 10 searches, works only when \code{model=lssvm}.
+           \item \code{rpart_t} - heuristic 59 from Delgado 2014 paper, 10 searches, works only when \code{model=rpart}.
+           \item \code{rpart2_t} - heuristic 60 from Delgado 2014 paper, 10 searches, works only when \code{model=rpart}.
+           \item \code{ctree_t} - heuristic 63 from Delgado 2014 paper, 10 searches, works only when \code{model=ctree}.
+           \item \code{ctree2_t} - heuristic 64 from Delgado 2014 paper, 10 searches, works only when \code{model=ctree}.
+           \item \code{rf_t} - heuristic 131 from Delgado 2014 paper, 10 searches, works only when \code{model=randomForest}.
+           \item \code{knn_R} - heuristic 154 from Delgado 2014 paper, 19 searches, works only when \code{model=kknn}.
+           \item \code{knn_t} - heuristic 155 from Delgado 2014 paper, 10 searches, works only when \code{model=kknn}.
+           \item \code{multinom_t} - heuristic 167 from Delgado 2014 paper, 10 searches, works only when \code{model=multinom}.
+}
+
 }
   \item{lower}{lower bound for the (hyper)parameter (if \code{NA} a default value is assumed).
 }
   \item{upper}{upper bound for the (hyper)parameter (if \code{NA} a default value is assumed).
 }
   \item{by}{increment in the sequence (if \code{NA} a default value is assumed depending on \code{n}).
-%%     ~~Describe \code{by} here~~
 }
-  \item{kernel}{optional kernel type, only used when \code{model="ksvm"}. Currently mapped kernels are \code{"rbfdot"}, \code{"polydot"} and
-\code{"vanilladot"}; see \code{\link{ksvm}} for kernel details.
-%%     ~~Describe \code{kernel} here~~
+  \item{exponential}{if an exponential scale should be used in the search sequence (the \code{NA} is a default value that assumes a linear scale unless \code{model} is a support vector machine).
+}
+  \item{kernel}{optional kernel type, only used when \code{model="ksvm"}, \code{model="rsvm"} or \code{model="lssvm"}. Currently mapped kernels are \code{"rbfdot"} (Gaussian), 
+\code{"polydot"} (polynomial) and \code{"vanilladot"} (linear); see \code{\link{ksvm}} for kernel details.
 }
 }
 \details{
@@ -49,7 +79,7 @@ A list with one ore more (hyper)parameter values to be searched.
 P. Cortez.\cr
 Data Mining with Neural Networks and Support Vector Machines Using the R/rminer Tool.\cr
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
-@Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
+@Springer: \url{https://link.springer.com/chapter/10.1007/978-3-642-14400-4_44}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
 \item This tutorial shows additional code examples:\cr
@@ -59,7 +89,7 @@ Teaching Report, Department of Information Systems, ALGORITMI Research Centre, E
 Portugal, July 2015.\cr
 \url{http://hdl.handle.net/1822/36210}\cr
 
-\item Some bounds were retrieved from:\cr
+\item Some lower/upper bounds and heuristics were retrieved from:\cr
 M. Fernandez-Delgado, E. Cernadas, S. Barro and D. Amorim.
 Do we need hundreds of classifiers to solve real world classification problems?. 
 In The Journal of Machine Learning Research, 15(1), 3133-3181, 2014.
@@ -80,21 +110,32 @@ See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.
 }
 \examples{
 ## "kknn"
-s=mparheuristic("kknn",n=1)
-print(s)
-s=mparheuristic("kknn",n=10)
+s=mparheuristic("kknn",n="heuristic")
+print(s) 
+s=mparheuristic("kknn",n=1) # same thing
+print(s) 
+s=mparheuristic("kknn",n="heuristic5")
+print(s) 
+s=mparheuristic("kknn",n=5) # same thing
 print(s)
 s=mparheuristic("kknn",lower=5,upper=15,by=2)
+print(s)
+# exponential scale:
+s=mparheuristic("kknn",lower=1,upper=5,by=1,exponential=2)
 print(s)
 
 ## "mlpe"
 s=mparheuristic("mlpe")
-print(s) # "NA" means set size with inputs/2 in fit
-s=mparheuristic("mlpe",n=10)
+print(s) # "NA" means set size with min(inputs/2,10) in fit
+s=mparheuristic("mlpe",n="heuristic10")
+print(s) 
+s=mparheuristic("mlpe",n=10) # same thing
+print(s) 
+s=mparheuristic("mlpe",n=10,lower=2,upper=20) 
 print(s) 
 
-## "randomForest"
-s=mparheuristic("randomForest",n=10)
+## "randomForest", upper should be set to the number of inputs = max mtry
+s=mparheuristic("randomForest",n=10,upper=6)
 print(s) 
 
 ## "ksvm"
@@ -105,31 +146,120 @@ print(s)
 s=mparheuristic("ksvm",n=10,kernel="polydot")
 print(s) 
 
-## "rpart" and "ctree" are special cases (see help(fit,package=rminer) examples):
-s=mparheuristic("rpart",n=3)
+## lssvm
+s=mparheuristic("lssvm",n=10)
 print(s) 
-s=mparheuristic("ctree",n=3)
+
+## rvm 
+s=mparheuristic("rvm",n=5)
+print(s) 
+s=mparheuristic("rvm",n=5,kernel="vanilladot")
+print(s) 
+
+## "rpart" and "ctree" are special cases (see help(fit,package=rminer) examples):
+s=mparheuristic("rpart",n=3) # 3 cp values
+print(s) 
+s=mparheuristic("ctree",n=3) # 3 mincriterion values
 print(s) 
 
 ### examples with fit
 \dontrun{
 ### classification
 data(iris)
-s=mparheuristic("ksvm",n=3,kernel="vanilladot")
-print(s)
+# ksvm and rbfdot:
+model="ksvm";kernel="rbfdot"
+s=mparheuristic(model,n="heuristic5",kernel=kernel)
+print(s) # 5 sigma values
 search=list(search=s,method=c("holdout",2/3,123))
-M=fit(Species~.,data=iris,model="ksvm",search=search,fdebug=TRUE)
+# task "prob" is assumed, optimization of "AUC":
+M=fit(Species~.,data=iris,model=model,search=search,fdebug=TRUE)
 print(M@mpar)
 
+# different lower and upper range:
+s=mparheuristic(model,n=5,kernel=kernel,lower=-5,upper=1)
+print(s) # from 2^-5 to 2^1 
+search=list(search=s,method=c("holdout",2/3,123))
+# task "prob" is assumed, optimization of "AUC":
+M=fit(Species~.,data=iris,model=model,search=search,fdebug=TRUE)
+print(M@mpar)
+
+# different exponential scale: 
+s=mparheuristic(model,n=5,kernel=kernel,lower=-4,upper=0,exponential=10)
+print(s) # from 10^-5 to 10^1 
+search=list(search=s,method=c("holdout",2/3,123))
+# task "prob" is assumed, optimization of "AUC":
+M=fit(Species~.,data=iris,model=model,search=search,fdebug=TRUE)
+print(M@mpar)
+
+# "lssvm" Gaussian model, pure classification and ACC optimization, full iris:
+model="lssvm";kernel="rbfdot"
+s=mparheuristic("lssvm",n=3,kernel=kernel)
+print(s)
+search=list(search=s,method=c("holdout",2/3,123))
+M=fit(Species~.,data=iris,model=model,search=search,fdebug=TRUE)
+print(M@mpar)
+
+# test several heuristic5 searches, full iris:
+n="heuristic5";inputs=ncol(iris)-1
+model=c("ctree","rpart","kknn","ksvm","lssvm","mlpe","randomForest")
+for(i in 1:length(model))
+ {
+  cat("--- i:",i,"model:",model[i],"\n")
+  if(model[i]=="randomForest") s=mparheuristic(model[i],n=n,upper=inputs) 
+  else s=mparheuristic(model[i],n=n)
+  print(s)
+  search=list(search=s,method=c("holdout",2/3,123))
+  M=fit(Species~.,data=iris,model=model[i],search=search,fdebug=TRUE)
+  print(M@mpar)
+ }
+
+
+# test several Delgado 2014 searches (some cases launch warnings):
+model=c("mlp","mlpe","mlp","ksvm","ksvm","ksvm",
+        "ksvm","lssvm","rpart","rpart","ctree",
+        "ctree","randomForest","kknn","kknn","multinom")
+n=c("mlp_t","avNNet_t","nnet_t","svm_C","svmRadial_t","svmLinear_t",
+    "svmPoly_t","lsvmRadial_t","rpart_t","rpart2_t","ctree_t",
+    "ctree2_t","rf_t","knn_R","knn_t","multinom_t")
+inputs=ncol(iris)-1
+for(i in 1:length(model))
+ {
+  cat("--- i:",i,"model:",model[i],"heuristic:",n[i],"\n")
+  if(model[i]=="randomForest") s=mparheuristic(model[i],n=n[i],upper=inputs) 
+  else s=mparheuristic(model[i],n=n[i])
+  print(s)
+  search=list(search=s,method=c("holdout",2/3,123))
+  M=fit(Species~.,data=iris,model=model[i],search=search,fdebug=TRUE)
+  print(M@mpar)
+ }
+} #dontrun
+
 ### regression
+\dontrun{
 data(sa_ssin)
 s=mparheuristic("ksvm",n=3,kernel="polydot")
 print(s)
 search=list(search=s,metric="MAE",method=c("holdout",2/3,123))
 M=fit(y~.,data=sa_ssin,model="ksvm",search=search,fdebug=TRUE)
 print(M@mpar)
-}
 
+# regression task, predict iris "Petal.Width":
+data(iris)
+ir2=iris[,1:4]
+names(ir2)[ncol(ir2)]="y" # change output name
+n=3;inputs=ncol(ir2)-1 # 3 hyperparameter searches
+model=c("ctree","rpart","kknn","ksvm","mlpe","randomForest","rvm")
+for(i in 1:length(model))
+ {
+  cat("--- i:",i,"model:",model[i],"\n")
+  if(model[i]=="randomForest") s=mparheuristic(model[i],n=n,upper=inputs)
+  else s=mparheuristic(model[i],n=n)
+  print(s)
+  search=list(search=s,method=c("holdout",2/3,123))
+  M=fit(y~.,data=ir2,model=model[i],search=search,fdebug=TRUE)
+  print(M@mpar)
+ }
+} #dontrun
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

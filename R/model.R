@@ -1,10 +1,11 @@
 # to do:
-# check predict with 1 row ??? for new methods???
+# 10/12/2019: implement "UD" and its variants under mparheuristic? 
+
+# old to to:
 # - pcr => scale Email of Nurseda Yurusen, 5th May 2016
-# - add XGBoost ?
 # - question about Peter Wang: B1<-fit(log2(price)~.,rtaipei[H$tr,],model = "cubist") => error
 #-------------------------------------------------------------------------------------------------
-# "model.R" code by Paulo Cortez 2010-2014@, Department of Information Systems, University of Minho
+# "model.R" code by Paulo Cortez 2010-2019@, Department of Information Systems, University of Minho
 #
 # This file deals will all Data Mining models
 #
@@ -327,7 +328,7 @@ addSearch=function(args,search,model)
  ##call=match.call() # does not occupy too much memory!
  ##print(call)
  kpar=list()
- if(is.character(model) && (model=="ksvm"||model=="rvm") )
+ if(is.character(model) && (model=="ksvm"||model=="rvm"||model=="lssvm") )
    {
     N=names(search)
     hyper=c("sigma","degree","scale","offset","order","length","lambda","normalized")
@@ -365,7 +366,7 @@ modelargs=function(args,model,M) # not sure if needed
        args[["nr"]]=M$nr
       }
   }
- else if(model=="ksvm"||model=="rvm")
+ else if(model=="ksvm"||model=="rvm"||model=="lssvm")
   { if(!is.null(args$kpar)) # automatic estimation was used, or exponential scale or normal
       {
        # get kernel:
@@ -388,8 +389,10 @@ modelargs=function(args,model,M) # not sure if needed
 # 
 readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+output
 {
- #S<<-search;M<<-model;TT<<-task;MP<<-mpar
- #mpause()
+#print(" >>> in:")
+#print(search)
+#S<<-search;M<<-model;TT<<-task;MP<<-mpar
+#mpause()
  #search=S;model=M;task=TT;mpar=MP
  #search="heuristic"; model="ksvm"; task="prob";mpar=NULL;args=list()
  args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
@@ -461,6 +464,8 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
         }
      }
  }
+if(!is.list(search))
+{
  if( (is.na(search)||is.character(search)||is.numeric(search)||is.factor(search)) && !is.list(model))
  {
    if(substr(model,1,3)=="mlp") search2[["size"]]=search
@@ -479,6 +484,7 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
  { # model is a list!
    search=list(smethod="none")
  }
+}
  if(!is.null(mpar))
  {
   Lmpar=length(mpar)
@@ -509,7 +515,7 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
        }
    }
  }
- else 
+ else # move this up? 
    { # fill some search components if missing: 
      if(is.list(search))
        { 
@@ -529,7 +535,8 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
         if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
        }
    }
-
+#print("--- end:")
+#print(search)
  return (search)
 }
 
@@ -548,43 +555,130 @@ midrangesearch=function(midpoint,search,mode="seq")
  return(search) 
 }
 
-mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,kernel="rbfdot")
+# 26/11/2019: changes here
+# lssvm, ... 
+mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel="rbfdot")
 {
- if(model=="ksvm" || model=="rvm") model=paste(model,kernel,sep="")
-
- if(is.na(lower))
- { lower=switch(model,kknn=1,randomForest=1,mlp=,mlpe=0,rvmrbfdot=,ksvmrbfdot=-15,ksvmvanilladot=-2,rvmpolydot=,ksvmpolydot=1,
-                      rpart=0.01,ctree=0.1,NA)
+ # 59 rpart1: cp complexity parameter: 0.18 to 0.01 (10 searches)
+ # 64 ctree1: mincriterion (0.1:0.11:0.99) 10 searches
+ # 131 rf_t: ntree = 500, mtry 2:3:39
+ # 154: knn: 1:2:37
+ # 167: multinom 10 values, decay 0 to 0.1
+ 	### to do later:
+ 	# 60 rpart2: maxdepth: 1 to 10 ? (10 searches)
+ 	# 159: mvr, components from 1 to 10 => ncomp (# issues with nominal variables)
+ 	# 65 ctree2: maxdepth: 1 to 10?
+ l=NULL # default return value
+ if(is.character(n)) # heuristic
+ {
+  if(n=="heuristic") l=mparheuristic(model) # 1 search
+  else if(n=="heuristic5") l=mparheuristic(model,n=5,lower=lower,upper=upper,by=by,exponential=exponential,kernel=kernel) # 5 searches
+  else if(n=="heuristic10") l=mparheuristic(model,n=10,lower=lower,upper=upper,by=by,exponential=exponential,kernel=kernel) # 10 searches
+  else if(n=="mlp_t") # model 33 from (Delgado 2014), 10 searches
+   { if(model=="mlp"||model=="mlpe") l=list(size=seq(1,19,2)) }
+  else if(n=="avNNet_t") # model 34 from (Delgado 2014), 3x3= 9 searches
+   { if(model=="mlpe") l=list(nr=5,size=c(1,3,5),decay=c(0,0.1,0.0001)) }
+  else if(n=="nnet_t") # model 36 from (Delgado 2014), 5x5= 25 searches
+   { if(model=="mlp"||model=="mlpe") l=list(size=seq(1,9,2),decay=c(0,10^(-1*(1:4)))) }
+  else if(n=="svm_C") # model 48 from (Delgado 2014), 10x13=130 searches!
+   { if(model=="ksvm") l=list(kernel="rbfdot",sigma=2^seq(-5,14,2),C=2^seq(-16,8,2) ) }
+  else if(n=="svmRadial_t") # model 52 from (Delgado 2014), 25 searches!
+   { if(model=="ksvm") l=list(kernel="rbfdot",sigma=2^seq(-2,2,1),C=10^seq(-2,2,1) ) }
+  else if(n=="svmLinear_t") # model 54 from (Delgado 2014), 5 searches!
+   { if(model=="ksvm") l=list(kernel="vanilladot",C=10^seq(-2,2,1) ) }
+  else if(n=="svmPoly_t") # model 55 from (Delgado 2014), 27 searches!
+   { if(model=="ksvm") l=list(kernel="polydot",scale=c(0.001,0.01,0.1),offset=1,degree=1:3,C=c(0.25,0.5,1) ) }
+  else if(n=="lsvmRadial_t") # model 56 from (Delgado 2014), 10 searches!
+   { if(model=="lssvm") l=list(kernel="rbfdot",sigma=10^seq(-2,7,1) ) }
+  else if(n=="rpart_t") # model 59 from (Delgado 2014), 10 searches!
+   { if(model=="rpart") 
+      { s=seq(0.01,0.18,length.out=10); n=length(s); vl=vector("list",n) 
+        names(vl)=rep("cp",n) # same cp name 
+        for(i in 1:n) vl[[i]]=s[i] # cycle needed due to [[]] notation
+        l=list(control=vl)
+      }
+   }
+  else if(n=="rpart2_t") # model 60 from (Delgado 2014), 10 searches!
+   { if(model=="rpart") 
+      { s=1:10; n=length(s); vl=vector("list",n) 
+        names(vl)=rep("maxdepth",n) # same cp name 
+        for(i in 1:n) vl[[i]]=s[i] # cycle needed due to [[]] notation
+        l=list(control=vl)
+      }
+   }
+  else if(n=="ctree_t") # model 63 from (Delgado 2014), 10 searches!
+   { if(model=="ctree") 
+      { s=seq(0.1,0.99,length.out=10); n=length(s); vl=vector("list",n) 
+        for(i in 1:n) vl[[i]]=party::ctree_control(mincriterion=s[i]) 
+        l=list(controls=vl)
+      }
+   }
+  else if(n=="ctree2_t") # model 64 from (Delgado 2014), 10 searches!
+   { if(model=="ctree") 
+      { s=1:10; n=length(s); vl=vector("list",n) 
+        for(i in 1:n) vl[[i]]=party::ctree_control(maxdepth=s[i]) 
+        l=list(controls=vl)
+      }
+   }
+  else if(n=="rf_t") # model 131 from (Delgado 2014), 10 searches!
+   { if(model=="randomForest") { if(is.na(upper)) upper=29
+                                 l=list(ntree=500,mtry=seq(2,upper,3) ) 
+                               }
+   }
+  else if(n=="knn_R") # model 154 from (Delgado 2014), 19 searches!
+   { if(model=="kknn") l=list(k=seq(1,37,2) ) }
+  else if(n=="knn_t") # model 155 from (Delgado 2014), 10 searches!
+   { if(model=="kknn") l=list(k=seq(5,23,2) ) }
+  else if(n=="multinom_t") # model 167 from (Delgado 2014), 10 searches!
+   { if(model=="multinom") l=list(decay=seq(0,0.1,length.out=10) ) }
  }
- if(is.na(upper))
- { upper=switch(model,kknn=10,randomForest=10,mlp=,mlpe=9,rvmrbfdot=,ksvmrbfdot=3,ksvmvanilladot=7,rvmpolydot=,ksvmpolydot=3,
-                      rpart=0.18,ctree=0.98,NA)
- } 
- #if(is.na(by) && is.na(n) && !is.na(upper) && !is.na(lower))
- #{ by=switch(model,kknn=1,randomForest=1,mlp=,mlpe=1,ksvmrbfdot=2,ksvmvanilladot=1,ksvmpolydot=1,
- #                     rpart=0.017,ctree=0.11,NA)
- #} 
+ # non heuristic:
+ else
+ {
+  if(is.na(lower)) # need to update this
+  { 
+   lower=switch(model,kknn=1,randomForest=1,mlp=,mlpe=0,rpart=0.01,ctree=0.1,multinom=0,NA)
+   if(model=="ksvm"||model=="rvm") lower=switch(kernel,rbfdot=-15,vanilladot=-2,polydot=-10,NA)
+   else if(model=="lssvm") lower=switch(kernel,rbfdot=-6,vanilladot=-2,polydot=-10,NA)
+  }
+  if(is.na(upper)) # need to update this
+  { upper=switch(model,kknn=10,randomForest=10,mlp=,mlpe=9,rpart=0.18,ctree=0.99,multinom=0.1,NA)
+    if(model=="ksvm"||model=="rvm"||model=="lssvm") upper=switch(kernel,rbfdot=3,vanilladot=7,polydot=-3,NA)
+  } 
 
- # not na(n) 
- if(!is.na(n) && n>1) by=(upper-lower)/(n-1)
+  # not na(n) 
+  if(!is.na(n) && n>1) by=(upper-lower)/(n-1)
 
- if(is.na(n) && is.na(by)) n=1
+  if(is.na(n) && is.na(by)) n=1
 
- if(!is.na(by)) 
-  { s=seq(lower,upper,by=by) 
+  if(!is.na(by)) 
+  { 
+    if(is.na(exponential)) # no explicit exponential
+      { # treat special SVM case:
+        if(model=="ksvm" || model=="rvm" || model=="lssvm") 
+          {
+             exponential=2 # 2 scale
+             s=exponential ^ seq(lower,upper,by=by)
+          }
+        else s=seq(lower,upper,by=by) # pure linear case
+      }
+    else s= exponential ^ seq(lower,upper,by=by)
     if(model=="kknn"||model=="mlp"||model=="mlpe"||model=="randomForest") s=round(s) # integer for these models
     s=unique(s) # remove duplicates if any
     n=length(s) 
   }
 
- if(n>1)
+  if(n>1)
   {
-   if(model=="kknn"||model=="rvm") l=list(k=s)
+   if(model=="kknn") l=list(k=s)
    else if(model=="randomForest") l=list(mtry=s)
    else if(model=="mlp" || model=="mlpe") l=list(size=s)
-   else if(model=="ksvmrbfdot" || model=="rvmrbfdot") l=list(kernel=kernel,sigma=2^s) # SVMLIB authors suggestion
-   else if(model=="ksvmvanilladot") l=list(kernel=kernel,C=2^s) # Fernandez-Delgado et al, 2014 
-   else if(model=="ksvmpolydot" || model=="rvmpolydot") l=list(kernel=kernel,scale=(1/10)^s,offset=1,degree=s) # Fernandez-Delgado et al, 2014
+   else if(model=="multinom") l=list(decay=s)
+   else if(model=="ksvm" || model=="rvm" || model=="lssvm") 
+      { if(kernel=="rbfdot") l=list(kernel=kernel,sigma=s) # SVMLIB authors suggestion
+        else if (kernel=="vanilladot") l=list(kernel=kernel,C=s) # Fernandez-Delgado et al, 2014 
+        else if (kernel=="polydot") l=list(kernel=kernel,scale=s,offset=1,degree=1) # based on Fernandez-Delgado et al, 2014
+      }
    else if(model=="rpart")
     {
      vl=vector("list",n) 
@@ -603,9 +697,12 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,kernel="rbfdot")
  else  # special case: n=1
   {
    l=NULL
-   if(substr(model,1,4)=="ksvm" || substr(model,1,3)=="rvm") l=list(kernel=kernel,kpar="automatic") # default heuristic
+   if(model=="kknn") l=list(k=1)
+   if(model=="ksvm" || model=="rvm" || model=="lssvm") l=list(kernel=kernel,kpar="automatic") # default heuristic
    if(substr(model,1,3)=="mlp") l=list(size=NA) # default heuristic
+   if(model=="xgboost") l=list(nrounds=2) # rminer default
   }
+ }
  return(l)
 }
 
@@ -813,7 +910,7 @@ feature_needed=function(feature) { return (switch(feature,sbs=,sabsa=,sabsg=,sab
 defaultask=function(task="default",model="default",output=1)
 { if(task=="default") 
     { 
-      if(is.character(model)) task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,qda="prob",cubist=,lm=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
+      if(is.character(model)) task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,mvr=,qda="prob",lssvm="class",cubist=,lm=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
       if(task=="default") { if (is.factor(output)) task="prob" else task="reg" }
     }
   else if(substr(task,1,1)=="c") task="class" else if(substr(task,1,1)=="p") task="prob"
@@ -914,7 +1011,6 @@ else # test all character models
       if(object@task=="class") { P=majorClass(P,object@levels) } # factor
     }
  # pure regression:
- # pure regression:
  else if(object@model=="mr")
     { P=predict(object@object$mlp,newdata)[,1] }
  else if(object@model=="lm")
@@ -982,6 +1078,8 @@ else # test all character models
       else P=predict(object@object,newdata,type="response")[,1]
    }
  else if(object@model=="rvm") P=predict(object@object,newdata,type="response")[,1]
+ # pure classification
+ else if(object@model=="lssvm") P=predict(object@object,newdata) # class labels only
 
  # transform P into the same standard format: 
  if(object@task=="reg")

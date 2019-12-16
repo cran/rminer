@@ -35,12 +35,18 @@ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
 \code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mining}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}, \code{\link{Importance}}.
 }
 \examples{
+### dontrun is used here to avoid the creation of a new file
+### in the CRAN servers. The example should work fine:
+\dontrun{
 data(iris)
 M=fit(Species~.,iris,model="rpart")
-savemodel(M,"iris.model") # saves to file
+tempdirpath=tempdir()
+filename=paste(tempdirpath,"/iris.model",sep="")
+savemodel(M,filename) # saves to file
 M=NULL # cleans M
-M=loadmodel("iris.model") # load from file
+M=loadmodel(filename) # load from file
 print(M)
+}
 }
 \keyword{file}
 \keyword{classif}

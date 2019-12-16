@@ -24,7 +24,9 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
 
                        \item \code{CONF} -- confusion matrix (classification, matrix). 
 
-                       \item \code{ACC} -- classification accuracy rate (classification, ">", [0-\%100]). 
+                       \item \code{ACC} -- classification accuracy rate, equal to micro averaged F1 score (classification, ">", [0-\%100]). 
+                       \item \code{macroACC} -- macro average ACC score, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{weightedACC} -- weighted average ACC score, for multiclass tasks (classification, ">", [0-\%100]). 
                        \item \code{CE} -- classification error or misclassification error rate (classification, "<", [0-\%100]). 
                        \item \code{MAEO} -- mean absolute error for ordinal classification (classification, "<", [0-Inf[). 
                        \item \code{MSEO} -- mean squared error for ordinal classification (classification, "<", [0-Inf[). 
@@ -35,10 +37,20 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
                        \item \code{CRAMERV} -- Cramer's V  (classification, ">", [0,1.0]). 
 
                        \item \code{ACCLASS} -- classification accuracy rate per class (classification, ">", [0-\%100]). 
+                       \item \code{BAL_ACC} -- balanced accuracy rate per class (classification, ">", [0-\%100]). 
                        \item \code{TPR} -- true positive rate, sensitivity or recall (classification, ">", [0-\%100]). 
+                       \item \code{macroTPR} -- macro average TPR score, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{weightedTPR} -- weighted average TPR score, for multiclass tasks (classification, ">", [0-\%100]). 
                        \item \code{TNR} -- true negative rate or specificity (classification, ">", [0-\%100]). 
+                       \item \code{macroTNR} -- macro average TNR score, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{weightedTNR} -- weighted average TNR score, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{microTNR} -- micro average TNR score, for multiclass tasks (classification, ">", [0-\%100]). 
                        \item \code{PRECISION} -- precision (classification, ">", [0-\%100]). 
+                       \item \code{macroPRECISION} -- macro average precision, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{weightedPRECISION} -- weighted average precision, for multiclass tasks (classification, ">", [0-\%100]). 
                        \item \code{F1} -- F1 score (classification, ">", [0-\%100]). 
+                       \item \code{macroF1} -- macro average F1 score, for multiclass tasks (classification, ">", [0-\%100]). 
+                       \item \code{weightedF1} -- weighted average F1 score, for multiclass tasks (classification, ">", [0-\%100]). 
                        \item \code{MCC} -- Matthews correlation coefficient (classification, ">", [-1,1]). 
                        
                        \item \code{BRIER} -- overall Brier score (classification "prob", "<", [0,1.0]).
@@ -72,14 +84,16 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
                        \item \code{SMinkowski3} -- sum of Minkowski loss function (q=3, heavier penalty for large errors when compared with SSE, regression, "<", [0\%,Inf[).
                        \item \code{MMinkowski3} -- mean of Minkowski loss function (q=3, heavier penalty for large errors when compared with SSE, regression, "<", [0\%,Inf[).
                        \item \code{MdMinkowski3} -- median of Minkowski loss function (q=3, heavier penalty for large errors when compared with SSE, regression, "<", [0\%,Inf[).
-                       \item \code{COR} -- correlation (regression, ">", [-1,1]).
+                       \item \code{COR} -- Pearson correlation (regression, ">", [-1,1]).
                        \item \code{q2} -- =1-correlation^2 test error metric, as used by M.J. Embrechts  (regression, "<", [0,1.0]).
                        \item \code{R2} -- coefficient of determination R^2 (regression, ">", squared pearson correlation coefficient: [0,1]).
                        \item \code{R22} -- 2nd variant of coefficient of determination R^2 (regression, ">", most general definition that however can lead to negative values: ]-Inf,1]. In previous rminer versions, this variant was known as "R2").
+                       \item \code{EV} -- explained variance, 1 - var(y-x)/var(y) (regression, ">", ]-Inf,1]).
                        \item \code{Q2} -- R^2/SD test error metric, as used by M.J. Embrechts (regression, "<", [0,Inf[).
                        \item \code{REC} --  Regression Error Characteristic curve (regression, list with several components).
                        \item \code{NAREC} -- normalized REC area (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
-                       \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve (given a fixed \code{val=}tolerance, regression, ">", [0,1.0]).
+                       \item \code{TOLERANCE} -- the tolerance (y-axis value) of a REC curve given a fixed \code{val=}tolerance value, regression, ">", [0,1.0]).
+                       \item \code{TOLERANCEPERC} -- the tolerance (y-axis value) of a REC curve given a percentage \code{val=} value (in terms of y range), regression, ">", [0,1.0]).
                        \item \code{MAPE} --  Mean Absolute Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
                        \item \code{MdAPE} -- Median Absolute Percentage mmetric forecasting metric (regression, "<"), [0\%,Inf[).
                        \item \code{RMSPE} -- Root Mean Square Percentage mmetric forecasting metric (regression, "<", [0\%,Inf[).
@@ -151,7 +165,7 @@ Returns the computed error metric(s):
 P. Cortez.\cr
 Data Mining with Neural Networks and Support Vector Machines Using the R/rminer Tool.\cr
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
-@Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
+@Springer: \url{https://link.springer.com/chapter/10.1007/978-3-642-14400-4_44}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
 \item This tutorial shows additional code examples:\cr
@@ -194,40 +208,12 @@ See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.
 \code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mining}}, \code{\link{mgraph}}, \code{\link{savemining}} and \code{\link{Importance}}.
 }
 \examples{
-### regression examples: y - desired values; x - predictions
-y=c(95.01,96.1,97.2,98.0,99.3,99.7);x=95:100
-print(mmetric(y,x,"ALL"))
-print(mmetric(y,x,"MAE"))
-m=mmetric(y,x,c("MAE","RMSE","RAE","RSE"))
-print(m)
-# getting NMAE:
-m=mmetric(y,x,"NMAE")
-cat("NMAE:",round(m,digits=3),"(denominator=",diff(range(y)),")\n")
-m=mmetric(y,x,"NMAE",val=5) # usage of different range
-cat("NMAE:",round(m,digits=3),"(denominator=",5,")\n")
-
-cat(names(m)[3],"=",round(m[3],digit=2),"\n",sep="")
-print(mmetric(y,x,c("COR","R2","Q2")))
-print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.5)) # if admitted/accepted absolute error is 0.5
-print(mmetric(y,x,"THEILSU2",val=94.1)) # val = 1-ahead random walk, c(y,94.1), same as below
-print(mmetric(y,x,"THEILSU2",val=c(94.1,y[1:5]))) # val = 1-ahead random walk (previous y values)
-print(mmetric(y,x,"MASE",val=c(88.1,89.9,93.2,94.1))) # val = in-samples
-val=vector("list",length=4)
-val[[2]]=0.5;val[[3]]=94.1;val[[4]]=c(88.1,89.9,93.2,94.1)
-print(mmetric(y,x,c("MAE","NAREC","THEILSU2","MASE"),val=val))
-# user defined error function example:
-# myerror = number of samples with absolute error above 0.1% of y: 
-myerror=function(y,x){return (sum(abs(y-x)>(0.001*y)))}
-print(mmetric(y,x,metric=myerror))
-# example that returns a list since "REC" is included:
-print(mmetric(y,x,c("MAE","REC","TOLERANCE"),val=1))
-
 ### pure binary classification 
 y=factor(c("a","a","a","a","b","b","b","b"))
 x=factor(c("a","a","b","a","b","a","b","a"))
 print(mmetric(y,x,"CONF")$conf)
-print(mmetric(y,x,"ALL"))
 print(mmetric(y,x,metric=c("ACC","TPR","ACCLASS")))
+print(mmetric(y,x,"ALL"))
 
 ### probabilities binary classification 
 y=factor(c("a","a","a","a","b","b","b","b"))
@@ -240,16 +226,44 @@ print(mmetric(y,px,"CONF",D=0.5,TC=2)$conf)
 print(mmetric(y,px,"CONF",D=0.3,TC=2)$conf)
 print(mmetric(y,px,metric="ALL",D=0.3,TC=2))
 print(mmetric(y,px,metric=c("ACC","AUC","AUCCLASS","BRIER","BRIERCLASS","CE"),D=0.3,TC=2))
+# ACC and confusion matrix:
+print(mmetric(y,px,metric=c("ACC","CONF"),D=0.3,TC=2))
+# ACC and ROC curve:
+print(mmetric(y,px,metric=c("ACC","ROC"),D=0.3,TC=2))
+# ACC, ROC and LIFT curve:
+print(mmetric(y,px,metric=c("ACC","ROC","LIFT"),D=0.3,TC=2))
 
 ### pure multi-class classification 
-y=factor(c("a","a","b","b","c","c"))
-x=factor(c("a","a","b","c","b","c"))
-print(mmetric(y,x,metric="CONF")$conf)
-print(mmetric(y,x,metric="CONF",TC=-1)$conf)
-print(mmetric(y,x,metric="CONF",TC=1)$conf)
-print(mmetric(y,x,metric="ALL"))
-print(mmetric(y,x,metric=c("ACC","ACCLASS","KAPPA")))
-print(mmetric(y,x,metric=c("ACC","ACCLASS","KAPPA"),TC=1))
+y=c('A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+'A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+'A','A','B','B','B','B','B','B','B','B','B','B','C','C','C','C','C','C','C','C','C','C',
+'C','C','C','C','C','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D',
+'D','D','D','D','D','D','D','D','E','E','E','E','E')
+x=c('A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A','A',
+'A','A','A','A','A','A','A','A','A','A','A','A','A','A','E','E','E','E','E','D','D','D',
+'D','D','B','B','B','B','B','B','B','B','B','D','C','C','C','C','C','C','C','B','B','B',
+'B','B','C','C','C','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D','D',
+'D','D','D','D','D','D','C','C','E','A','A','B','B')
+y=factor(y)
+x=factor(x)
+print(mmetric(y,x,metric="CONF")$conf) # confusion matrix
+print(mmetric(y,x,metric="CONF",TC=-1)$conf) # same thing
+print(mmetric(y,x,metric="CONF",TC=1)$conf) # for target class TC=1: "A"
+mshow=function(y,x,metric) print(round(mmetric(y,x,metric),digits=0))
+mshow(y,x,"ALL")
+mshow(y,x,c("ACCLASS","BAL_ACC","KAPPA"))
+mshow(y,x,c("PRECISION")) # precision
+mshow(y,x,c("TPR")) # recall 
+mshow(y,x,c("F1")) # F1 score
+
+# micro (=ACC), macro and weighted average:
+mshow(y,x,c("ACC","macroPRECISION","weightedPRECISION")) 
+mshow(y,x,c("ACC","macroTPR","weightedTPR")) 
+mshow(y,x,c("ACC","macroF1","weightedF1"))
+mshow(y,x,c("ACC","macroACC","weightedACC"))
+
+# several metrics in a single returned object:
+print(mmetric(y,x,metric=c("CONF","macroF1","weightedF1","ACC")))
 
 ### probabilities multi-class 
 y=factor(c("a","a","b","b","c","c"))
@@ -258,6 +272,7 @@ px[,1]=c(1.0,0.7,0.5,0.3,0.1,0.7)
 px[,2]=c(0.0,0.2,0.4,0.7,0.3,0.2)
 px[,3]=1-px[,1]-px[,2]
 print(px)
+print(mmetric(y,px,metric="ALL",TC=-1,val=0.1))
 print(mmetric(y,px,metric=c("AUC","AUCCLASS","NAUC"),TC=-1,val=0.1))
 print(mmetric(y,px,metric=c("AUC","NAUC"),TC=3,val=0.1))
 print(mmetric(y,px,metric=c("ACC","ACCLASS"),TC=-1))
@@ -275,6 +290,7 @@ print(mmetric(y,x,metric=c("CE","MAEO","MSEO","KENDALL")))
 x=factor(c(rep("b",4),rep("a",6),rep("d",3)),levels=c("a","b","c","d"))
 print(mmetric(y,x,metric="CONF")$conf)
 print(mmetric(y,x,metric=c("CE","MAEO","MSEO","KENDALL")))
+print(mmetric(y,x,metric="ALL"))
 
 ### ranking (multi-class) 
 y=matrix(nrow=1,ncol=12);x=y
@@ -290,6 +306,43 @@ y[2,]=7:1
 x[1,]=1:7
 x[2,]=1:7
 print(mmetric(y,x,metric="ALL"))
+
+### regression examples: y - desired values; x - predictions
+y=c(95.01,96.1,97.2,98.0,99.3,99.7);x=95:100
+print(mmetric(y,x,"ALL"))
+print(mmetric(y,x,"MAE"))
+mshow=function(y,x,metric) print(round(mmetric(y,x,metric),digits=2))
+mshow(y,x,c("MAE","RMSE","RAE","RSE"))
+# getting NMAE:
+m=mmetric(y,x,"NMAE")
+cat("NMAE:",round(m,digits=2)," (denominator=",diff(range(y)),")\n")
+m=mmetric(y,x,"NMAE",val=5) # usage of different range
+cat("NMAE:",round(m,digits=2)," (denominator=",5,")\n")
+# get REC curve and other measures:
+m=mmetric(y,x,c("REC","TOLERANCEPERC","MAE"),val=5)
+print(m)
+
+# correlation or similar measures:
+mshow(y,x,c("COR","R2","R22","EV")) # ideal is close to 1
+mshow(y,x,c("q2","Q2")) # ideal is close to 0
+# other measures:
+print(mmetric(y,x,c("TOLERANCE","NAREC"),val=0.5)) # if admitted/accepted absolute error is 0.5
+print(mmetric(y,x,"TOLERANCEPERC",val=0.05)) # tolerance for a 5% of yrange 
+# tolerance for fixed 0.1 value and 5% of yrange:
+print(mmetric(y,x,c("TOLERANCE","TOLERANCEPERC"),val=c(0.1,0.05))) 
+print(mmetric(y,x,"THEILSU2",val=94.1)) # val = 1-ahead random walk, c(y,94.1), same as below
+print(mmetric(y,x,"THEILSU2",val=c(94.1,y[1:5]))) # val = 1-ahead random walk (previous y values)
+print(mmetric(y,x,"MASE",val=c(88.1,89.9,93.2,94.1))) # val = in-samples
+val=vector("list",length=4)
+val[[2]]=0.5;val[[3]]=94.1;val[[4]]=c(88.1,89.9,93.2,94.1)
+print(mmetric(y,x,c("MAE","NAREC","THEILSU2","MASE"),val=val))
+# user defined error function example:
+# myerror = number of samples with absolute error above 0.1% of y: 
+myerror=function(y,x){return (sum(abs(y-x)>(0.001*y)))}
+print(mmetric(y,x,metric=myerror))
+# example that returns a list since "REC" is included:
+print(mmetric(y,x,c("MAE","REC","TOLERANCE","EV"),val=1))
+
 
 ### mining, several runs, prob multi-class
 \dontrun{

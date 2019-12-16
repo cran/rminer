@@ -357,10 +357,12 @@ CasesSeries=function(t,W,start=1,end=length(t))
  return (D)
 }
 
-lforecast=function(M,data,start,horizon)
+lforecast=function(M,data,start,horizon) # error with "ctree", 6/5/2019?
 {
  #cat("start:",start,"horizon:",horizon,"\n")
  #print(data)
+ # debug:
+ #M=fpred;data=CS;start=rows-H+1;horizon=H
 
  Y=NCOL(data)
  NW=names(data)
@@ -385,10 +387,11 @@ lforecast=function(M,data,start,horizon)
    x=data[1,] 
    for(j in 1:LW)
     {
-      x[1,j]=F[(ML+i)-W[(LW-j+1)]]
+      if(M@model=="ctree" && is.integer(data[1,1]))  x[1,j]=as.integer(F[(ML+i)-W[(LW-j+1)]]) # as.integer to avoid ctree issues, think later of better option for ctree
+      else x[1,j]=as.numeric(F[(ML+i)-W[(LW-j+1)]]) # normal usage 
     }
    F[ML+i]=predict(M,x)
-   #cat("i:",i,"d:",as.numeric(x[1,1:LW]),"f:",F[ML+i],"\n")
+#   cat("i:",i,"d:",as.numeric(x[1,1:LW]),"f:",F[ML+i],"\n") ###
  }
  return (F[(ML+1):(ML+horizon)])
 }

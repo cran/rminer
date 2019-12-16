@@ -113,7 +113,7 @@ Each element contains a list with the 1-D sensitivity analysis input responses
 P. Cortez.\cr
 Data Mining with Neural Networks and Support Vector Machines Using the R/rminer Tool.\cr
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
-@Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
+@Springer: \url{https://link.springer.com/chapter/10.1007/978-3-642-14400-4_44}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
 \item This tutorial shows additional code examples:\cr
@@ -122,6 +122,12 @@ A tutorial on using the rminer R package for data mining tasks.\cr
 Teaching Report, Department of Information Systems, ALGORITMI Research Centre, Engineering School, University of Minho, Guimaraes, 
 Portugal, July 2015.\cr
 \url{http://hdl.handle.net/1822/36210}\cr
+
+\item For the grid search and other optimization methods:\cr
+P. Cortez.\cr
+Modern Optimization with R.\cr
+Use R! series, Springer, September 2014, ISBN 978-3-319-08262-2.\cr
+\url{http://www.springer.com/mathematics/book/978-3-319-08262-2}\cr
 }
 }
 \author{
@@ -139,7 +145,7 @@ See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.
 ### dontrun is used when the execution of the example requires some computational effort.
 
 ### simple regression example
-x1=rnorm(200,100,20); x2=rnorm(200,100,20)
+set.seed(123); x1=rnorm(200,100,20); x2=rnorm(200,100,20)
 y=0.7*sin(x1/(25*pi))+0.3*sin(x2/(25*pi))
 # mining with an ensemble of neural networks, each fixed with size=2 hidden nodes
 # assumes a default holdout (random split) with 2/3 for training and 1/3 for testing:

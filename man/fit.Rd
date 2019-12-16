@@ -27,17 +27,18 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{naive} most common class (classification) or mean output value (regression)
 
               \item \code{ctree} -- conditional inference tree (classification and regression, uses \code{\link{ctree}} from \code{party} package)
-              \item \code{cv.glmnet} -- generalized linear model with lasso or elasticnet regularization (classification and regression, uses \code{\link{cv.glmnet}} from \code{glmnet} package; note: cross-validation is used to automatically set the lambda parameter that is needed to compute the predictions)
+              \item \code{cv.glmnet} -- generalized linear model (GLM) with lasso or elasticnet regularization (classification and regression, uses \code{\link{cv.glmnet}} from \code{glmnet} package; note: cross-validation is used to automatically set the lambda parameter that is needed to compute the predictions)
               \item \code{rpart} or \code{dt} -- decision tree (classification and regression, uses \code{\link{rpart}} from \code{rpart} package)
               \item \code{kknn} or \code{knn} -- k-nearest neighbor (classification and regression, uses \code{\link{kknn}} from \code{kknn} package)
               \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link{ksvm}} from \code{kernlab} package)
+              \item \code{lssvm}  -- least squares support vector machine (pure classification only, uses \code{\link{lssvm}} from \code{kernlab} package)
               \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
               \item \code{mlpe} -- multilayer perceptron ensemble (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
               \item \code{randomForest} or \code{randomforest} -- random forest algorithm (classification and regression, uses \code{\link{randomForest}} from \code{randomForest} package)
               \item \code{xgboost} -- eXtreme Gradient Boosting (Tree) (classification and regression, uses \code{\link{xgboost}} from \code{xgboost} package; note: \code{nrounds} parameter is set by default to 2)
 
-              \item \code{bagging} -- bagging (classification, uses \code{\link{bagging}} from \code{adabag} package)
-              \item \code{boosting} -- boosting (classification, uses \code{\link{boosting}} from \code{adabag} package)
+              \item \code{bagging} -- bagging from Breiman, 1996 (classification, uses \code{\link{bagging}} from \code{adabag} package)
+              \item \code{boosting} -- adaboost.M1 method from Freund and Schapire, 1996 (classification, uses \code{\link{boosting}} from \code{adabag} package)
               \item \code{lda} -- linear discriminant analysis (classification, uses \code{\link{lda}} from \code{MASS} package)
               \item \code{multinom} or \code{lr} -- logistic regression (classification, uses \code{\link{multinom}} from \code{nnet} package)
               \item \code{naiveBayes} or \code{naivebayes} -- naive bayes (classification, uses \code{\link{naiveBayes}} from \code{e1071} package)
@@ -227,7 +228,7 @@ Returns a model object. You can check all model elements with \code{str(M)}, whe
 P. Cortez.\cr
 Data Mining with Neural Networks and Support Vector Machines Using the R/rminer Tool.\cr
 In P. Perner (Ed.), Advances in Data Mining - Applications and Theoretical Aspects 10th Industrial Conference on Data Mining (ICDM 2010), Lecture Notes in Artificial Intelligence 6171, pp. 572-583, Berlin, Germany, July, 2010. Springer. ISBN: 978-3-642-14399-1.\cr
-@Springer: \url{http://www.springerlink.com/content/e7u36014r04h0334}\cr
+@Springer: \url{https://link.springer.com/chapter/10.1007/978-3-642-14400-4_44}\cr
 \url{http://www3.dsi.uminho.pt/pcortez/2010-rminer.pdf}\cr
 
 \item This tutorial shows additional code examples:\cr
@@ -342,10 +343,13 @@ print(mmetric(sa_ssin_2[H$ts,]$y,P5,"AUC"))
 data(iris)
 H=holdout(iris$Species,ratio=2/3)
 M=fit(Species~.,iris[H$tr,],model="ksvm",task="class")
+M1=fit(Species~.,iris[H$tr,],model="lssvm") # default task="class" is assumed
 M2=fit(Species~.,iris[H$tr,],model="ksvm",task="prob")
-P=predict(M,iris[H$ts,])
-P2=predict(M2,iris[H$ts,])
+P=predict(M,iris[H$ts,]) # classes
+P1=predict(M1,iris[H$ts,]) # classes
+P2=predict(M2,iris[H$ts,]) # probabilities
 print(mmetric(iris$Species[H$ts],P,"CONF"))
+print(mmetric(iris$Species[H$ts],P1,"CONF"))
 print(mmetric(iris$Species[H$ts],P2,"CONF"))
 print(mmetric(iris$Species[H$ts],P,"CONF",TC=1))
 print(mmetric(iris$Species[H$ts],P2,"CONF",TC=1))
@@ -511,6 +515,22 @@ s$smethod="2L";s$convex=0;s$search=list(size=c(4,8,12))
 print(s)
 M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
+
+# testing of all 17 rminer classification methods:
+model=c("naive","ctree","cv.glmnet","rpart","kknn","ksvm","lssvm","mlp","mlpe",
+ "randomForest","xgboost","bagging","boosting","lda","multinom","naiveBayes","qda")
+inputs=ncol(iris)-1
+ho=holdout(iris$Species,2/3,seed=123) # 2/3 for training and 1/3 for testing
+Y=iris[ho$ts,ncol(iris)]
+for(i in 1:length(model))
+ {
+  cat("i:",i,"model:",model[i],"\n")
+  search=list(search=mparheuristic(model[i])) # rminer default values
+  M=fit(Species~.,data=iris[ho$tr,],model=model[i],search=search,fdebug=TRUE)
+  P=predict(M,iris[ho$ts,])
+  cat("predicted ACC:",round(mmetric(Y,P,metric="ACC"),1),"\n")
+ }
+
 }
 
 ### example of an error (warning) generated using fit:
@@ -531,6 +551,29 @@ for(m in models)
    M=fit(y~.,sa_ssin[H$tr,],model=m)
    P=predict(M,sa_ssin[H$ts,])
    print(mmetric(sa_ssin$y[H$ts],P,"MAE"))
+ }
+}
+
+# testing of all 19 rminer regression methods:
+\dontrun{
+model=c("naive","ctree","cv.glmnet","rpart","kknn","ksvm","lssvm","mlp","mlpe",
+ "randomForest","xgboost","cubist","lm","mr","mars","pcr","plsr","cppls","rvm")
+# note: in this example, default values are considered for the hyperparameters.
+# better results can be achieved by tuning hyperparameters via improved usage
+# of the search argument (via mparheuristic function or written code)
+data(iris)
+ir2=iris[,1:4] # predict iris "Petal.Width"
+names(ir2)[ncol(ir2)]="y" # change output name
+inputs=ncol(ir2)-1
+ho=holdout(ir2$y,2/3,seed=123) # 2/3 for training and 1/3 for testing
+Y=ir2[ho$ts,ncol(ir2)]
+for(i in 1:length(model))
+ {
+  cat("i:",i,"model:",model[i],"\n")
+  search=list(search=mparheuristic(model[i])) # rminer default values
+  M=fit(y~.,data=ir2[ho$tr,],model=model[i],search=search,fdebug=TRUE)
+  P=predict(M,ir2[ho$ts,])
+  cat("predicted MAE:",round(mmetric(Y,P,metric="MAE"),1),"\n")
  }
 }
 
@@ -562,7 +605,7 @@ P=predict(M,data.frame(x1=-1000,x2=0,x3=0,x4=0,y=NA)) # P is not negative
 print(P)
 }
 
-### pure classification example with a generic R model ###
+### pure classification example with a generic R (not rminer default) model ###
 \dontrun{
 ### nnet is adopted here but virtually ANY fitting function/package could be used:
 
