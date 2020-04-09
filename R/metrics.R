@@ -42,6 +42,46 @@ worst=function(metric)
                 Inf)) # other regression metrics
       }
 }
+min_metric=function(metric)
+{ if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
+  if(is.function(metric)) return (0) # assumption that metric should follow (i.e. "<" is better)
+  else{
+  return (switch(metric, 
+                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+                #microPRECISION=,microTPR=,microF1=, # equal to ACC
+		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                TNR=,macroTNR=,microTNR=,weightedTNR=,
+                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=0.0, # [0-1 or 100]
+                AUC=0.5,
+                MCC=,COR=,KENDALL=,SPEARMAN=-1.0, # [-1,1]
+                q2=0.0,Q2=0.0,
+                R2=0.0,
+                R22=-Inf,EV=-Inf,
+                CE=,BRIER=,BER=0.0, # [0,100], %
+                MAEO=,MSEO=0,
+                0)) # other regression metrics
+      }
+}
+max_metric=function(metric)
+{ if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
+  if(is.function(metric)) return (Inf) # assumption that metric should follow (i.e. "<" is better)
+  else{
+  return (switch(metric, 
+                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+                #microPRECISION=,microTPR=,microF1=, # equal to ACC
+		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                TNR=,macroTNR=,microTNR=,weightedTNR=,
+                CRAMERV=,BRIER=,BRIERCLASS=1.0,
+                F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=100.0, # [0-1 or 100]
+                TOLERANCE=,NAREC=,NAUC=,AUC=,MCC=,COR=,KENDALL=,SPEARMAN=1.0, # [-1,1]
+                q2=0.0,Q2=0.0,
+                R2=0.0,
+                R22=-Inf,EV=-Inf,
+                CE=,BER=100.0, # [0,100], %
+                MAEO=,MSEO=Inf,
+                Inf)) # other regression metrics
+      }
+}
 
 # x - vector of predictions, y - vector of desired values  
 # metric - metric or vector of metrics
@@ -387,7 +427,7 @@ else if(is.factor(y)) # classification
                   } #else {brier=NULL;tbrier=NULL}
          if(ROC||AUC||AUCCLASS||NAUC||TPRATFPR)
                 { if(TC<1) TC2=C else TC2=TC
-                  if(C>2) {roc=ROCcurve(y,x);tauc=roc$auc;auc=vector(length=C); for(i in 1:C) auc[i]=roc$roc[[i]]$auc;}
+                  if(C>2) {roc=ROCcurve(y,x);tauc=roc$auc;auc=vector(length=C); for(i in 1:C) auc[i]=roc$roc[[i]]$auc; }
                      else {roc=twoclassROC(y,x[,TC2],Positive=levels(y[1])[TC2]);tauc=roc$auc;auc=c(tauc,tauc) }
                   if(AUC){if(rsingle) return(tauc) else{res=c(res,tauc);nres=c(nres,"AUC")}}
                   if(AUCCLASS){if(rsingle) return(auc) else{res=c(res,auc);for(i in 1:C) naux[i]=paste("AUCCLASS",i,sep="");nres=c(nres,naux)}}
@@ -780,7 +820,7 @@ ROCcurve<-function(y,x,TC=-1) #,method="int")
   # prevalence of each class:
   SUM=length(y)
   Lev=levels(y[1])
-  p=table(y)[]/SUM
+  p=as.numeric(table(y)[]/SUM)
   aux=0.0
   for(i in 1:C)
    { #print(paste("i:",i))

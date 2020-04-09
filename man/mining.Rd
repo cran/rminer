@@ -89,10 +89,11 @@ a large dataset and/or a high number of \code{Runs} is adopted.
 \value{
 A \code{list} with the components:
 \itemize{
+\item $object -- fitted object values of the last run (used by multiple model fitting: "auto" mode). For "holdout", it is equal to a \code{fit} object, while for "kfold" it is a list.
 \item $time -- vector with time elapsed for each run.
 \item $test -- vector list, where each element contains the test (target) results for each run.
 \item $pred -- vector list, where each element contains the predicted results for each test set and each run.
-\item $error -- vector with an error \code{metric} for each run (the error depends on the \code{metric} parameter of \code{mpar}, valid options are explained in \code{\link{mmetric}}).
+\item $error -- vector with a (validation) measure (often it is a error value) according to \code{search$metric} for each run (valid options are explained in \code{\link{mmetric}}).
 \item $mpar -- vector list, where each element contains the fit model mpar parameters (for each run).
 \item $model -- the \code{model}.
 \item $task -- the \code{task}.
@@ -138,7 +139,7 @@ See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.
 }
 
 \seealso{
-\code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}, \code{\link{holdout}} and \code{\link{Importance}}.
+\code{\link{fit}}, \code{\link{predict.fit}}, \code{\link{mparheuristic}}, \code{\link{mgraph}}, \code{\link{mmetric}}, \code{\link{savemining}}, \code{\link{holdout}} and \code{\link{Importance}}.
 }
 
 \examples{
@@ -251,6 +252,51 @@ for(model in models)
  cat("model:",model,"ACC:",round(mmetric(M,metric="ACC")$ACC,digits=1),"\n")
 }
 }
+
+### multiple models: automl or ensembles 
+\dontrun{
+
+data(iris)
+d=iris
+names(d)[ncol(d)]="y" # change output name
+inputs=ncol(d)-1
+metric="AUC"
+
+# simple automl (1 search per individual model),
+# internal holdout and external holdout:
+sm=mparheuristic(model="automl",n=NA,task="prob",inputs=inputs)
+mode="auto"
+
+imethod=c("holdout",4/5,123) # internal validation method
+emethod=c("holdout",2/3,567) # external validation method
+
+search=list(search=sm,smethod=mode,method=imethod,metric=metric,convex=0)
+M=mining(y~.,data=d,model="auto",search=search,method=emethod,fdebug=TRUE)
+# 1 single model was selected:
+cat("best",emethod[1],"selected model:",M$object@model,"\n")
+cat(metric,"=",round(as.numeric(mmetric(M,metric=metric)),2),"\n")
+
+# simple automl (1 search per individual model),
+# internal kfold and external kfold: 
+imethod=c("kfold",3,123) # internal validation method
+emethod=c("kfold",5,567) # external validation method
+search=list(search=sm,smethod=mode,method=imethod,metric=metric,convex=0)
+M=mining(y~.,data=d,model="auto",search=search,method=emethod,fdebug=TRUE)
+# kfold models were selected:
+kfolds=as.numeric(emethod[2])
+models=vector(length=kfolds)
+for(i in 1:kfolds) models[i]=M$object$model[[i]]
+cat("best",emethod[1],"selected models:",models,"\n")
+cat(metric,"=",round(as.numeric(mmetric(M,metric=metric)),2),"\n")
+
+# example with weighted ensemble:
+M=mining(y~.,data=d,model="WE",search=search,method=emethod,fdebug=TRUE)
+for(i in 1:kfolds) models[i]=M$object$model[[i]]
+cat("best",emethod[1],"selected models:",models,"\n")
+cat(metric,"=",round(as.numeric(mmetric(M,metric=metric)),2),"\n")
+
+}
+
 
 ### for more fitting examples check the help of function fit: help(fit,package="rminer")
 }

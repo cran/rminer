@@ -1,4 +1,4 @@
-importFrom("stats", "model.matrix")
+importFrom("stats", "model.matrix", "na.omit")
 importFrom("methods","new","setGeneric","setMethod")
 importFrom("graphics","abline","axis","barplot","boxplot","filled.contour","grid","hist","legend","lines","par","plot","points","segments","text","title")
 importFrom("stats","acf","as.formula","chisq.test","kmeans","lm","median","model.frame","quantile","runif","sd","t.test","var")

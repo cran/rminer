@@ -36,7 +36,8 @@ By default, for classification tasks ("class" or "prob") a stratified sampling i
 Returns a list with:
       \itemize{
                \item $cv.fit -- all predictions (factor if \code{task="class"}, matrix if \code{task="prob"} or numeric if \code{task="reg"});
-               \item $mpar -- matrix with the mpar for each fold;
+               \item $model -- vector list with the model for each fold. 
+               \item $mpar -- vector list with the mpar for each fold;
                \item $attributes -- the selected attributes for each fold if a feature selection algorithm was adopted;
                \item $ngroup -- the number of folds;
                \item $leave.out -- the computed size for each fold (=\code{nrow(data)/ngroup});

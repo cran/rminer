@@ -232,18 +232,74 @@ hotdeck<-function(D,Attribute=NULL,Missing=NA,K=1)
 
 
 #---------------------------------------------------------
-# reduces the number of labels for a given factor
+# reduces the number of labels for a given data.frame or factor
 # all labels not included in new reduced levels are transformed into "_OTHER"
 #---------------------------------------------------------
+# x - factor or data.frame
+# levels - vector or vector list or special "idf", "pcp" or c("pcp",10)
 delevels<-function(x,levels,label=NULL)
 {
- L<-levels(x); LL<-length(levels);
- for(k in 1:LL)
-  { I<-which(L==levels[k])
-    if(is.null(label)) L[I]<-"_OTHER"
-    else L[I]<-label
+ if(is.factor(x))
+  {
+   if(is.character(levels))
+    {
+     if(length(levels)==1 && levels=="idf") # idf
+     { n=length(x)
+       fx=table(x)
+       nx=attr(fx,"dimnames")$x # names
+       vx=as.numeric(fx)        # values
+       x2=vector(length=n)
+       for(i in 1:length(nx)) 
+          { I=which(x==nx[i])
+            x2[I]=log(n/vx[i]) # idf
+          }
+       x=x2
+     }
+     else if(length(levels)<3 && levels=="pcp") # pcp
+     { # read perc
+       if(length(levels)==1) perc=0.1 else perc=as.numeric(levels[2])
+       fx=table(x)
+       nx=attr(fx,"dimnames")$x # names
+       vx=as.numeric(fx)        # values
+       sx=sort.int(vx,decreasing=FALSE,index.return=TRUE) 
+       levels2=NULL
+       stop=FALSE
+       i=1; sumx=sum(vx); lim=round((perc)*sumx); total=0
+       while(!stop)
+        {
+          if(total> lim) stop=TRUE
+          else
+           {
+             levels2=c(levels2, nx[ sx$ix[i] ])
+             total= total + vx[ sx$ix[i] ]
+             i=i+1
+           }
+        }
+       x=delevels(x,levels=levels2,label=label) 
+     }
+     else # delevels normal:
+     {
+      L=levels(x); LL=length(levels);
+      for(k in 1:LL)
+        { I=which(L==levels[k])
+          if(is.null(label)) L[I]="_OTHER" else L[I]=label
+        }
+      levels(x)=L
+     }
+    }
   }
- levels(x)<-L
+ else if(is.data.frame(x))
+  {
+    NC=NCOL(x)
+    for(i in 1:NC) 
+     {
+       if(is.factor(x[1,i])) 
+        {
+         if(is.list(levels)) lev=levels[[i]] else lev=levels
+         x[,i]=delevels(x[,i],levels=lev,label=label)
+        }
+     }
+  }
  return(x)
 }
 

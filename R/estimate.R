@@ -27,6 +27,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratifie
     if(ngroup<n){ leave.out <- trunc(n/ngroup); groups <- crossfolds(y,ngroup,leave.out,mode,seed) } # stratified k-fold or random k-fold
 
     par=vector("list",length=ngroup)
+    mmodel=vector("list",length=ngroup)
     if(substr(feature[1],1,4)=="sens" || substr(feature[1],1,4)=="sabs" || substr(feature[1],1,4)=="simp") 
     {
          SEN <- matrix(nrow=ngroup, ncol=ncol(data) )
@@ -50,6 +51,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratifie
     for(j in 1:ngroup)
     {
         u=theta.fit(x,data[-groups[[j]], ],task=task,model=model,feature=feature,...)
+        mmodel[[j]]=u@model
         if(!is.null(SEN)) 
          {
             #cat("----- j:",j,"\n",sep=" ")
@@ -57,7 +59,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratifie
             #print(paste(" --- j:",j,"---"))
             #print(aux)
             IMPORTANCE=Importance(u,data[-groups[[j]], ],method=imethod,responses=FSRESP)
-#cat(" >> L:",length(IMPORTANCE$sresponses),"NCOL:",NCOL,"\n")
+            #cat(" >> L:",length(IMPORTANCE$sresponses),"NCOL:",NCOL,"\n")
             SEN[j,]=IMPORTANCE$imp 
             if(FSRESP)
             { 
@@ -78,8 +80,6 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratifie
          }
         if(!is.null(ATTRIB)) ATTRIB[[j]]=u@attributes
         par[[j]]=u@mpar
-#print("---")
-#cat("cv fit class:",class(cv.fit),"\n")
         if(model=="cubist" && !is.null(args$neighbors)) 
         {
         neighbors=args$neighbors
@@ -95,6 +95,7 @@ crossvaldata<- function(x,data,theta.fit,theta.predict,ngroup=10,mode="stratifie
     }
     if(leave.out==1) groups <- NULL
     return(list(cv.fit=cv.fit, 
+                model=mmodel, # new
                 mpar=par,
                 sen=SEN,sresponses=SRESP,
                 attributes=ATTRIB,

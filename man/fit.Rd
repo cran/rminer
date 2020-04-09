@@ -7,7 +7,7 @@ Fit a supervised data mining model (classification or regression) model
 \description{
 Fit a supervised data mining model (classification or regression) model. Wrapper function that allows to fit distinct data mining (16 classification
 and 18 regression) methods under the same coherent function structure. 
-Also, it tunes the hyperparameters of the models (e.g. \code{kknn}, \code{mlpe} and \code{ksvm}) and performs some feature selection methods.
+Also, it tunes the hyperparameters of the models (e.g., \code{kknn}, \code{mlpe} and \code{ksvm}) and performs some feature selection methods.
 }
 \usage{
 fit(x, data = NULL, model = "default", task = "default", 
@@ -22,7 +22,7 @@ fit(x, data = NULL, model = "default", task = "default",
   \item{data}{an optional data frame (columns denote attributes, rows show examples) containing the training data, when using a formula.}
   \item{model}{Typically this should be a character object with the model type name (data mining method, as explained in valid character options).\cr
               \cr
-               Valid character options are the typical R base learning functions, namely one of: 
+              First usage: individual fit. Valid character options are the typical R base learning functions (individual models), namely one of: 
               \itemize{
               \item \code{naive} most common class (classification) or mean output value (regression)
 
@@ -32,7 +32,8 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{kknn} or \code{knn} -- k-nearest neighbor (classification and regression, uses \code{\link{kknn}} from \code{kknn} package)
               \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link{ksvm}} from \code{kernlab} package)
               \item \code{lssvm}  -- least squares support vector machine (pure classification only, uses \code{\link{lssvm}} from \code{kernlab} package)
-              \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
+              \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link{nnet}} from \code{nnet} package (in this version, for both \code{mlp} and \code{mlpe}, the maximum number of weights was increased and fixed to \code{MaxNWts=10000}))
+ 
               \item \code{mlpe} -- multilayer perceptron ensemble (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
               \item \code{randomForest} or \code{randomforest} -- random forest algorithm (classification and regression, uses \code{\link{randomForest}} from \code{randomForest} package)
               \item \code{xgboost} -- eXtreme Gradient Boosting (Tree) (classification and regression, uses \code{\link{xgboost}} from \code{xgboost} package; note: \code{nrounds} parameter is set by default to 2)
@@ -53,11 +54,24 @@ fit(x, data = NULL, model = "default", task = "default",
               \item \code{cppls} -- canonical powered partial least squares (regression, uses \code{\link{cppls}} from \code{pls} package)
               \item \code{rvm} -- relevance vector machine (regression, uses \code{\link{rvm}} from \code{kernlab} package)
                       }
-              \code{model} can also be a \code{\link{list}} with the fields (see example below): 
+              Second usage: multiple models. \code{model} can be used to perform Automated Machine Learning (AutoML) or ensembles of several individual models:
+              \itemize{
+              \item \code{auto} -- first, the best model is automatically set by searching all models defined in \code{search} and selecting the one with the best ``validation'' metric on a validation set (depending on the method defined in \code{search}); then, the selected best model is fit to all training data. When \code{auto} is used, a ranked leaderboard of the models (and their selected hyperparameters) is returned as a new \code{$LB} field of the \code{@mpar} returned slot (e.g., try: \code{print(M@mpar$LB)}, where \code{M} is an object returned by \code{fit}).
+              \item \code{AE}, \code{WE} or \code{SE} -- all individual models are first fit to the data; then an ensemble is built by: \code{AE} -- Average Ensemble, majority (if \code{task=="class"}) or average of the predictions; \code{WE}) -- Weighted Ensemble, similar to \code{AE} but each prediction is weighted according to the validation metric 
+(for  \code{task=="class"} it is equal to \code{AE}); \code{SE} -- Stacking Ensemble, applies a second-level GLM to weight the individual predictions. For any ensemble, when an individual model produces an error then it is excluded from the ensemble. After excluding invalid models, if there is just a single model then such model is returned (and no ensemble is produced).
+                      }
+              Third usage: \code{model} can be a \code{\link{list}} with 2 possibilities of fields A) and B).\cr
+              A) if you have your one fit function, then you can embed it using:
               \itemize{
               \item \code{$fit} -- a fit function that accepts the arguments \code{x}, \code{data} and \code{...}, the goal is to accept here any R classification or regression model, mainly for its use within the \code{\link{mining}} or \code{\link{Importance}} functions, or to use a hyperparameter search (via \code{search}).
               \item \code{$predict} -- a predict function that accepts the arguments \code{object}, \code{newdata}, this function should behave as any rminer prediction, i.e., return: a factor when \code{task=="class"}; a matrix with \emph{Probabilities x Instances} when \code{task=="prob"}; and a vector when \code{task=="reg"}.
               \item \code{$name} -- optional field with the name of the method.
+                      }
+              B) automatically produced by some ensemble methods, for the sake of documentation the fields for the ensembles ("AE", "WE" or "SE") are listed here:
+               \itemize{
+              \item \code{$m} -- a vector character with the fit object model names. 
+              \item \code{$f} -- a vector list with several fit objects.
+              \item \code{$w} -- a vector with the "weighting" of the individual models.
                       }
               Note: current rminer version emphasizes the use of native fitting functions from their respective packages, since these functions contain several specific hyperparameters that can now be searched or set using the \code{search} or \code{...} arguments. For compatibility with previous rminer versions, older \code{model} options are kept.
               }
@@ -72,23 +86,25 @@ fit(x, data = NULL, model = "default", task = "default",
   \item{search}{used to tune hyperparameter(s) of the model, such as: \code{kknn} -- number of neighbors (k); 
 							\code{mlp} or \code{mlpe} -- number of hidden nodes (\emph{size}) or \emph{decay};
 							\code{ksvm} -- gaussian kernel parameter (\emph{sigma});
-							\code{randomForest} -- \code{mtry} parameter). Valid options for a simpler \code{search} use:
+							\code{randomForest} -- \code{mtry} parameter).\cr 
+               This is a very flexible argument that can be used under several options: simpler use, complex tuning of an individual model or multiple models. The simpler use is kept for compatibility issues but it is advised to define this argument via the easier \code{\link{mparheuristic}} function.\cr
+               Valid options for a simpler \code{search} use:
               \itemize{
-                       \item \code{heuristic} -- simple heuristic, one search parameter (e.g. \emph{size}=inputs/2 for \code{mlp} or 
+                       \item \code{heuristic} -- simple heuristic, one search parameter (e.g., \emph{size}=inputs/2 for \code{mlp} or 
 \emph{size}=10 if classification and inputs/2>10, \emph{sigma} is set using \code{kpar="automatic"} and \code{kernel="rbfdot"} 
 of \code{\link{ksvm}}). Important Note: instead of the "heuristic" options, it is advisable to use the explicit \code{\link{mparheuristic}} function
 that is designed for a wider option of models (all "heuristic" options were kept due to compatibility issues and work 
 only for: \code{kknn}; \code{mlp} or \code{mlpe}; \code{ksvm}, with \code{kernel="rbfdot"}; and \code{randomForest}). 
-                       \item \code{heuristic5} -- heuristic with a 5 range grid-search (e.g. \code{seq(1,9,2)} for \code{kknn}, \code{seq(0,8,2)} for \code{mlp} or \code{mlpe}, 
+                       \item \code{heuristic5} -- heuristic with a 5 range grid-search (e.g., \code{seq(1,9,2)} for \code{kknn}, \code{seq(0,8,2)} for \code{mlp} or \code{mlpe}, 
      										 	     \code{2^seq(-15,3,4)} for \code{ksvm}, \code{1:5} for \code{randomRorest})
-                       \item \code{heuristic10} -- heuristic with a 10 range grid-search (e.g. \code{seq(1,10,1)} for \code{kknn}, \code{seq(0,9,1)} for \code{mlp} or \code{mlpe}, 
+                       \item \code{heuristic10} -- heuristic with a 10 range grid-search (e.g., \code{seq(1,10,1)} for \code{kknn}, \code{seq(0,9,1)} for \code{mlp} or \code{mlpe}, 
      										 	     \code{2^seq(-15,3,2)} for \code{ksvm}, \code{1:10} for \code{randomRorest})
                        \item \code{UD}, \code{UD1} or \code{UD2} -- uniform design 2-Level with 13 (\code{UD} or \code{UD2}) or 21 (\code{UD1}) searches (only works for \code{ksvm} and \code{kernel="rbfdot"}).
                        \item a-\code{\link{vector}} -- numeric vector with all hyperparameter values that will be searched within an internal grid-search (the number of searches is \code{length(search)} when \code{convex=0})
                       }
-                      A more complex but advised use of \code{search} is to use a \code{\link{list}} with:
+                      A more complex but advised use of \code{search} is to use a \code{\link{list}}. Non expert users should create this list via the \code{\link{mparheuristic}} function, which is very easy to use. Nevertheless, the fields of the list for a single fit (individual model) are shown here:
               \itemize{
-                       \item \code{$smethod} -- type of search method. Valid options are (more options will be developed in next versions):
+                       \item \code{$smethod} -- type of search method. Valid options are:
                                           \itemize{
                                                    \item \code{none} -- no search is executed, one single fit is performed.
                                                    \item \code{matrix} -- matrix search (tests only n searches, all search parameters are of size n).
@@ -99,17 +115,27 @@ only for: \code{kknn}; \code{mlp} or \code{mlpe}; \code{ksvm}, with \code{kernel
 after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for regression (last two values are \emph{epsilon} min and max, after which a \code{2^} transform is applied).
                                                   }
                         \item \code{$search} -- a-\code{\link{list}} with all hyperparameter values to be searched or character with previous described options 
-(e.g. "heuristic", "heuristic5", "UD"). If a character, then \code{$smethod} equal to \code{"none"} or \code{"grid"} or \code{"UD"} is automatically assumed.
+(e.g., "heuristic", "heuristic5", "UD"). If a character, then \code{$smethod} equal to \code{"none"} or \code{"grid"} or \code{"UD"} is automatically assumed.
                         \item \code{$convex} -- number that defines how many searches are performed after a local minimum/maximum is found (if >0, the search can be stopped without testing all grid-search values) 
-                        \item \code{$method} -- type of internal estimation method used during the search (see \code{method} argument of \code{\link{mining}} for details)
-                        \item \code{$metric} -- used to compute a metric value during internal estimation. Can be a single character such as \code{"SAD"} or a list with all the arguments used by the \code{mmetric} function except \code{y} and \code{x}, such as\cr
+                        \item \code{$method} -- type of internal (validation) estimation method used during the search (see \code{method} argument of \code{\link{mining}} for details)
+                        \item \code{$metric} -- used to compute a metric value during internal estimation. Can be a single character such as \code{"SAD"} or a list with all the arguments used by the \code{mmetric} function except \code{y} and \code{x}, such as:\cr
 \code{search$metric=list(metric="AUC",TC=3,D=0.7)}. See \code{\link{mmetric}} for more details.
                       }
-                      Note: if \code{mpar} argument is used, then the \code{mpar} values are automatically fed into search. However, a direct use of the 
+                      A more sophisticated definition of \code{search} involves the tuning of several models (used by the \code{model=} \code{auto}, \code{AE}, \code{WE} or \code{SE}). Again, this sophisticated definition should be automatically set using the \code{\link{mparheuristic}} function. The list of fields for the multiple tuning mode are:
+		      \itemize{
+                               \item \code{$models} - a vector character with LM individual \code{model} values. This field can also include ensembles (\code{"AE"}, \code{"WE"}, \code{"SE"}) provided they appear at the end of this vector. They will work if more than one valid individual model is included. 
+                               \item \code{$ls} - a vector list with LM search values (for each individual model, the values are the same as in individual search \code{$search} field). 
+                               \item \code{$smethod} - must have the \code{auto} value.
+                               \item \code{$smethod} - must have the \code{auto} value.
+                               \item \code{$method} - internal (validation) estimation method (equal to the individual search \code{$method} field).
+                               \item \code{$metric} - internal (validation) estimation metric (equal to the individual search \code{$metric} field).
+                               \item \code{$convex} - equal to the individual search \code{$convex} field.
+                              }
+                      Note: the \code{mpar} argument only appears due to compatibility issues. If used, then the \code{mpar} values are automatically fed into search. However, a direct use of the 
 \code{search} argument is advised instead of \code{mpar}, since \code{search} is more flexible and powerful.
               }
 
-  \item{mpar}{Important note: this argument only is kept in this version due to compatibility with previous rminer versions. Instead of \code{mpar}, you should use the more flexible and powerful \code{search} argument.\cr
+  \item{mpar}{(important note: this argument only is kept in this version due to compatibility with previous rminer versions. Instead of \code{mpar}, you should use the more flexible and powerful \code{search} argument.)\cr
               \cr
               vector with extra default (fixed) model parameters (used for modeling, search and feature selection) with:	
                                     \itemize{ 
@@ -120,8 +146,8 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
               \emph{C} and \emph{epsilon} are default values for \code{svm} (if any of these is \code{=NA} then heuristics are used to set the value).\cr
               \emph{nr} is the number of \code{mlp} runs or \code{mlpe} individual models, while \emph{maxit} is the maximum number of epochs (if any of these is \code{=NA} then heuristics are used to set the value).\cr
               For help on \emph{vmethod} and \emph{vpar} see \code{\link{mining}}.\cr
-              \code{metric} is the internal error function (e.g. used by search to select the best model), valid options are explained in \code{\link{mmetric}}. 
-              When \code{mpar=NULL} then default values are used. If there are \code{NA} values (e.g. \code{mpar=c(NA,NA)}) then default values are used.
+              \code{metric} is the internal error function (e.g., used by search to select the best model), valid options are explained in \code{\link{mmetric}}. 
+              When \code{mpar=NULL} then default values are used. If there are \code{NA} values (e.g., \code{mpar=c(NA,NA)}) then default values are used.
              }
 
   \item{feature}{feature selection and sensitivity analysis control. Valid \code{fit} function options are:
@@ -140,7 +166,7 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
                            \item \code{sabsg} -- equal to \code{sabs} (uses gradient for sensitivity importance measure);
                           }
                  \emph{deletions} is the maximum number of feature deletions (if -1 not used).\cr
-                 \emph{Runs} is the number of runs for each feature set evaluation (e.g. 1).\cr
+                 \emph{Runs} is the number of runs for each feature set evaluation (e.g., 1).\cr
                  For help on \emph{vmethod} and \emph{vpar} see \code{\link{mining}}.\cr
                  \emph{defaultsearch} is one hyperparameter used during the feature selection search, after selecting the best feature set then \code{search} is used (faster). 
                  If not defined, then \code{search} is used during feature selection (may be slow).\cr
@@ -158,7 +184,7 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
                If needed, the \code{predict} function of rminer performs the inverse scaling.
               }
 
-  \item{transform}{if the output data needs to be transformed (e.g. \code{log} transform). Valid options are:
+  \item{transform}{if the output data needs to be transformed (e.g., \code{log} transform). Valid options are:
                   \itemize{ 
                            \item \code{none} -- no transform; 
                            \item \code{log} -- y=(log(y+1)) (the inverse function is applied in the \code{predict} function);
@@ -171,7 +197,7 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
 
   \item{fdebug}{if TRUE show some search details.}
 
-  \item{\dots}{ additional and specific parameters send to each fit function model (e.g. \code{dt}, \code{randomforest}, \code{kernlab}). A few examples:\cr
+  \item{\dots}{ additional and specific parameters send to each fit function model (e.g., \code{dt}, \code{randomforest}, \code{kernlab}). A few examples:\cr
                 -- the \code{\link{rpart}} function is used for decision trees, thus you can have:\cr
 \code{control=rpart.control(cp=.05)} (see \code{\link{crossvaldata}} example).\cr
                 -- the \code{\link{ksvm}} function is used for support vector machines, thus you can change the kernel type: \code{kernel="polydot"} (see examples below).\cr
@@ -201,7 +227,7 @@ search for \emph{size} or \emph{decay}.
 \item Support Vector Machine: \code{svm} adopts by default the gaussian (rbfdot) kernel. For classification tasks, you can use \code{search} to tune \emph{sigma} (gaussian kernel parameter) and \emph{C} (complexity parameter). For regression, the epsilon insensitive function is adopted and there is an additional hyperparameter \emph{epsilon}.
 
 \item Other methods: Random Forest -- if needed, you can tune several parameters, including the default \code{mtry} parameter adopted by \code{search} heuristics; k-nearest neighbor -- \code{search} by default tunes \emph{k}. The remaining models can also be tunned but a full definition of \code{search} is
-required (e.g. with \code{$smethod}, \code{$search} and other fields).
+required (e.g., with \code{$smethod}, \code{$search} and other fields); please check \code{\link{mparheuristic}} function for further tuning examples (e.g., \code{rpart}).
 }
 }
 
@@ -217,9 +243,10 @@ Returns a model object. You can check all model elements with \code{str(M)}, whe
                            \item \code{@transform} -- the \code{transform};
                            \item \code{@created} -- the date when the model was created;
                            \item \code{@time} -- computation effort to fit the model;
-                           \item \code{@object} -- the R object model (e.g. \code{rpart}, \code{nnet}, ...);
+                           \item \code{@object} -- the R object model (e.g., \code{rpart}, \code{nnet}, ...);
                            \item \code{@outindex} -- the output index (of @attributes);
                            \item \code{@levels} -- if \code{task=="prob"||task=="class"} stores the output levels; 
+                           \item \code{@error} -- similarly to \code{mining} this is the "validation" error for some \code{search} options; 
                           }
 }
 \references{
@@ -243,6 +270,14 @@ P. Cortez.\cr
 Modern Optimization with R.\cr
 Use R! series, Springer, September 2014, ISBN 978-3-319-08262-2.\cr
 \url{http://www.springer.com/mathematics/book/978-3-319-08262-2}\cr
+
+\item The automl is inspired in this work:\cr
+L. Ferreira, A. Pilastri, C. Martins, P. Santos, P. Cortez.\cr
+An Automated and Distributed Machine Learning Framework for Telecommunications Risk Management.
+In J. van den Herik et al. (Eds.), 
+Proceedings of 12th International Conference on Agents and Artificial Intelligence -- ICAART 2020, Volume 2, pp. 99-107,
+Valletta, Malta, February, 2020, SCITEPRESS, ISBN 978-989-758-395-7.\cr
+@INSTICC: \url{https://www.insticc.org/Primoris/Resources/PaperPdf.ashx?idPaper=89528}\cr
 
 \item For the sabs feature selection:\cr
 P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis.\cr
@@ -508,7 +543,7 @@ print(search)
 M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # 2 level grid with total of 5 searches 
-#  note of caution: some "2L" ranges may lead to non integer (e.g. 1.3) values at
+#  note of caution: some "2L" ranges may lead to non integer (e.g., 1.3) values at
 #  the 2nd level search. And some R functions crash if non integer values are used for
 #  integer parameters.
 s$smethod="2L";s$convex=0;s$search=list(size=c(4,8,12))
@@ -554,9 +589,9 @@ for(m in models)
  }
 }
 
-# testing of all 19 rminer regression methods:
+# testing of all 18 rminer regression methods:
 \dontrun{
-model=c("naive","ctree","cv.glmnet","rpart","kknn","ksvm","lssvm","mlp","mlpe",
+model=c("naive","ctree","cv.glmnet","rpart","kknn","ksvm","mlp","mlpe",
  "randomForest","xgboost","cubist","lm","mr","mars","pcr","plsr","cppls","rvm")
 # note: in this example, default values are considered for the hyperparameters.
 # better results can be achieved by tuning hyperparameters via improved usage
@@ -622,6 +657,61 @@ M=fit(Species~.,iris,model=model,size=3,task="class")
 P=predict(M,iris)
 print(P)
 } 
+
+### multiple models: automl and ensembles 
+\dontrun{
+data(iris)
+d=iris
+names(d)[ncol(d)]="y" # change output name
+inputs=ncol(d)-1
+metric="AUC"
+
+# consult the help of mparheuristic for more automl and ensemble examples:
+#
+# automatic machine learining (automl) with 5 distinct models and "SE" ensemble.
+# the single models are tuned with 10 internal hyperparameter searches, 
+# except ksvm that uses 13 searches via "UD".
+# fit performs an internal validation 
+sm=mparheuristic(model="automl3",n=NA,task="prob", inputs= inputs )
+method=c("kfold",3,123)
+search=list(search=sm,smethod="auto",method=method,metric=metric,convex=0)
+M=fit(y~.,data=d,model="auto",search=search,fdebug=TRUE)
+P=predict(M,d)
+# show leaderboard:
+cat("> leaderboard models:",M@mpar$LB$model,"\n")
+cat(">  validation values:",round(M@mpar$LB$eval,4),"\n")
+cat("best model is:",M@model,"\n")
+cat(metric,"=",round(mmetric(d$y,P,metric=metric),2),"\n")
+
+
+# average ensemble of 5 distinct models
+# the single models are tuned with 1 (heuristic) hyperparameter search 
+sm2=mparheuristic(model="automl",n=NA,task="prob", inputs= inputs )
+method=c("kfold",3,123)
+search2=list(search=sm2,smethod="auto",method=method,metric=metric,convex=0)
+M2=fit(y~.,data=d,model="AE",search=search2,fdebug=TRUE)
+P2=predict(M,d)
+cat("best model is:",M2@model,"\n")
+cat(metric,"=",round(mmetric(d$y,P2,metric=metric),2),"\n")
+
+# example with an invalid model exclusion: 
+# in this case, randomForest produces an error and warning
+# thus it is excluded from the leaderboard
+sm=mparheuristic(model="automl3",n=NA,task="prob", inputs= inputs )
+method=c("holdout",2/3,123)
+search=list(search=sm,smethod="auto",method=method,metric=metric,convex=0)
+d2=d
+#
+d2[,2]=as.factor(1:150) # force randomForest error
+M=fit(y~.,data=d2,model="auto",search=search,fdebug=TRUE)
+P=predict(M,d)
+# show leaderboard:
+cat("> leaderboard models:",M@mpar$LB$model,"\n")
+cat(">  validation values:",round(M@mpar$LB$eval,4),"\n")
+cat("best model is:",M@model,"\n")
+cat(metric,"=",round(mmetric(d$y,P,metric=metric),2),"\n")
+
+}
 
 }
 
