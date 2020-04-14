@@ -474,7 +474,7 @@ print(M@mpar)
 # search for mtry and ntree
 s=list(smethod="grid",search=list(mtry=c(1,2,3),ntree=c(100,200,500)),
             convex=0,metric="AUC",method=c("kfold",3,12345))
-print(search)
+print(s)
 M=fit(Species~.,iris,model="randomForest",search=s,fdebug=TRUE)
 print(M@mpar)
 
@@ -520,8 +520,6 @@ M=fit(Species~.,iris,model="mlpe")
 print(M@mpar)
 # same thing, with explicit use of mparheuristic:
 M=fit(Species~.,iris,model="mlpe",search=list(search=mparheuristic("mlpe")))
-print(M@mpar)
-
 print(M@mpar) # hidden nodes and number of ensemble mlps
 # setting some nnet parameters:
 M=fit(Species~.,iris,model="mlpe",size=3,decay=0.1,maxit=100,rang=0.9) 
@@ -534,12 +532,12 @@ print(M@mpar)
 # previous searches used a random holdout (seed=NULL), now a fixed seed (123) is used:
 s=list(smethod="grid",search=mparheuristic("mlpe",n=5),convex=0,metric="AUC",
             method=c("holdout",2/3,123))
-print(search)
+print(s)
 M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # faster and greedy grid search:
 s$convex=1;s$search=list(size=0:9)
-print(search)
+print(s)
 M=fit(Species~.,iris,model="mlpe",search=s,fdebug=TRUE)
 print(M@mpar)
 # 2 level grid with total of 5 searches 
@@ -704,7 +702,7 @@ d2=d
 #
 d2[,2]=as.factor(1:150) # force randomForest error
 M=fit(y~.,data=d2,model="auto",search=search,fdebug=TRUE)
-P=predict(M,d)
+P=predict(M,d2)
 # show leaderboard:
 cat("> leaderboard models:",M@mpar$LB$model,"\n")
 cat(">  validation values:",round(M@mpar$LB$eval,4),"\n")

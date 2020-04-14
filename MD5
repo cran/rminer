@@ -1,10 +1,10 @@
-d49d2f4134b70a7198517e1607dc26b3 *DESCRIPTION
+5484e88b1a143a5a7742e80125a936b1 *DESCRIPTION
 735c488115752d23539be667a190bff0 *NAMESPACE
 58b0571289e57e6e69c523e90213cf62 *R/estimate.R
-6812f3c93873c0c5fccd449e181c2cdd *R/metrics.R
-da2f15dee94043b32dde987f54df2938 *R/model.R
-50080f47dbb9a5d0d39c9d76d595a368 *R/plots.R
-4b85e5d5bfdd6d704b7c80ce29aa498f *R/preprocess.R
+f57bbdcd8ad3e4ba1f0d22ae8df2c6a0 *R/metrics.R
+942c13e41f68394ab1514337c1e4cd4d *R/model.R
+29cf3933e5b137c94db35bcdf7d5d830 *R/plots.R
+ff7aa1db297018a7d763b4af110e3f31 *R/preprocess.R
 3920975a4e7d1766bb447b4bd658a3d6 *data/sa_fri1.rda
 b1897cdb5456a60d05688f523a999540 *data/sa_int2.rda
 bd8263d02d9157bbf4be78a16701615b *data/sa_int2_3c.rda
@@ -19,9 +19,9 @@ e00ccd70be3ff756f9ed8062a7694b3e *data/sa_ssin_n2p.rda
 98d6c23de2073dc327b51eb2f2a6293d *man/Importance.Rd
 4995944742fe5041bbd4dc6cdfa4235f *man/crossvaldata.Rd
 5323e77d758f5f3dd3f32ebcc425961b *man/delevels.Rd
-8ac0965152308311466c95f826debc32 *man/fit.Rd
+954d0badad4d8848fe658d2e858468db *man/fit.Rd
 27d60356c79e14d739723c7ea9fd611b *man/holdout.Rd
-2b659ae902dbffa7a4940949bb057635 *man/imputation.Rd
+36d86dcb9572613bdc4973fc7aabb651 *man/imputation.Rd
 72cafb501db017630e1cf8aa5790f95a *man/lforecast.Rd
 1ef117adbf02ff91b3cfe5653bc7583a *man/mgraph.Rd
 3bde576b02d30104bafef261c36163c1 *man/mining.Rd

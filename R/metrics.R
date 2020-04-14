@@ -13,73 +13,85 @@ isbest=function(Cur,Best,metric)
  else{ 
       if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
       if(is.function(metric)) return (Cur<Best)
-      else { return (switch(metric,
-                CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,BAL_ACC=,KAPPA=,COR=,PRECISION=,TPR=,KENDALL=,SPEARMAN=,TOLERANCE=,TOLERANCEPERC=,
-                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
-                #microPRECISION=,microTPR=,microF1=,
-		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
-                TNR=,macroTNR=,microTNR=,weightedTNR=,
-                R2=,R22=,EV=,NAREC=,NAUC=,TPRATFPR=,AUCCLASS=,AUC=Cur>Best,
-                Cur<Best))
+      else { 
+            return (
+                    switch(metric, CRAMERV=,F1=,MCC=,ALIFTATPERC=,NALIFT=,ALIFT=,ACC=,ACCLASS=,BAL_ACC=,KAPPA=,
+                                   COR=,PRECISION=,TPR=,KENDALL=,SPEARMAN=,TOLERANCE=,TOLERANCEPERC=,
+                                   macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+		                   weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                                   TNR=,macroTNR=,microTNR=,weightedTNR=,
+                                   R2=,R22=,EV=,NAREC=,NAUC=,TPRATFPR=,AUCCLASS=,AUC= (Cur>Best),
+                                   (Cur<Best)
+                          )
+                   )
            }
      } 
 }
+
+#microPRECISION=,microTPR=,microF1=, # equal to ACC
+
 worst=function(metric)
 { if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
   if(is.function(metric)) return (Inf) # assumption that metric should follow (i.e. "<" is better)
   else{
-  return (switch(metric, 
-                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
-                #microPRECISION=,microTPR=,microF1=, # equal to ACC
-		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
-                TNR=,macroTNR=,microTNR=,weightedTNR=,
-                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,AUC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=-0.1, # [0-1 or 100]
-                MCC=,COR=,KENDALL=,SPEARMAN=-1.1, # [-1,1]
-                q2=1.1,Q2=Inf,
-                R2=-0.1,
-                R22=-Inf,EV=-Inf,
-                CE=,BER=100.1, # [0,100], %
-                Inf)) # other regression metrics
+  return (
+           switch(metric, macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+	                  weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                          TNR=,macroTNR=,microTNR=,weightedTNR=,
+                          CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,
+                          NAUC=,AUCCLASS=,BAL_ACC=,AUC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=-0.1, # [0-1 or 100]
+                          MCC=,COR=,KENDALL=,SPEARMAN=-1.1, # [-1,1]
+                          q2=1.1,Q2=Inf,
+                          R2=-0.1,
+                          R22=-Inf,EV=-Inf,
+                          CE=,BER=100.1, # [0,100], %
+                          Inf)
+         ) # other regression metrics
       }
 }
+
 min_metric=function(metric)
 { if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
   if(is.function(metric)) return (0) # assumption that metric should follow (i.e. "<" is better)
   else{
-  return (switch(metric, 
-                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
-                #microPRECISION=,microTPR=,microF1=, # equal to ACC
-		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
-                TNR=,macroTNR=,microTNR=,weightedTNR=,
-                CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=0.0, # [0-1 or 100]
-                AUC=0.5,
-                MCC=,COR=,KENDALL=,SPEARMAN=-1.0, # [-1,1]
-                q2=0.0,Q2=0.0,
-                R2=0.0,
-                R22=-Inf,EV=-Inf,
-                CE=,BRIER=,BER=0.0, # [0,100], %
-                MAEO=,MSEO=0,
-                0)) # other regression metrics
+  return (
+          switch(metric, macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+	  	         weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                         TNR=,macroTNR=,microTNR=,weightedTNR=,
+                         CRAMERV=,F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,
+                         NAUC=,AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=0.0, # [0-1 or 100]
+                         AUC=0.5,
+                         MCC=,COR=,KENDALL=,SPEARMAN=-1.0, # [-1,1]
+                         q2=0.0,Q2=0.0,
+                         R2=0.0,
+                         R22=-Inf,EV=-Inf,
+                         CE=,BRIER=,BER=0.0, # [0,100], %
+                         MAEO=,MSEO=0,
+                         0) # other regression metrics
+
+         )       
       }
 }
+
 max_metric=function(metric)
 { if(is.list(metric) && !is.null(metric$metric) ) metric=metric$metric
   if(is.function(metric)) return (Inf) # assumption that metric should follow (i.e. "<" is better)
   else{
-  return (switch(metric, 
-                macroPRECISION=,macroTPR=,macroF1=,macroACC=,
-                #microPRECISION=,microTPR=,microF1=, # equal to ACC
-		weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
-                TNR=,macroTNR=,microTNR=,weightedTNR=,
-                CRAMERV=,BRIER=,BRIERCLASS=1.0,
-                F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,NAUC=,AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=100.0, # [0-1 or 100]
-                TOLERANCE=,NAREC=,NAUC=,AUC=,MCC=,COR=,KENDALL=,SPEARMAN=1.0, # [-1,1]
-                q2=0.0,Q2=0.0,
-                R2=0.0,
-                R22=-Inf,EV=-Inf,
-                CE=,BER=100.0, # [0,100], %
-                MAEO=,MSEO=Inf,
-                Inf)) # other regression metrics
+  return (
+           switch(metric,macroPRECISION=,macroTPR=,macroF1=,macroACC=,
+	   	         weightedPRECISION=,weightedTPR=,weightedF1=,weightedACC=,
+                         TNR=,macroTNR=,microTNR=,weightedTNR=,
+                         CRAMERV=,BRIER=,BRIERCLASS=1.0,
+                         F1=,PRECISION=,TPR=,TNR=,ALIFTATPERC=,NALIFT=,ALIFT=,KAPPA=,ACC=,ACCLASS=,
+                         AUCCLASS=,BAL_ACC=,TPRATFPR=,TOLERANCE=,TOLERANCEPERC=,NAREC=100.0, # [0-1 or 100]
+                         TOLERANCE=,NAREC=,NAUC=,AUC=,MCC=,COR=,KENDALL=,SPEARMAN=1.0, # [-1,1]
+                         q2=0.0,Q2=0.0,
+                         R2=0.0,
+                         R22=-Inf,EV=-Inf,
+                         CE=,BER=100.0, # [0,100], %
+                         MAEO=,MSEO=Inf,
+                         Inf) # other regression metrics
+	 )       
       }
 }
 

@@ -147,9 +147,7 @@ invtransform=function(x,transform,A=0,B=0)
 # if Attribute is NULL performs imputation over all data.frame!!!
 #---------------------------------------------------------
 imputation=function(imethod="value",D,Attribute=NULL,Missing=NA,Value=1)
-{
- return(switch(imethod,value=impvalue(D,Attribute,Missing=Missing,Value=Value),hotdeck=hotdeck(D,Attribute,Missing,K=Value),D))
-}
+{ return(switch(imethod,value=impvalue(D,Attribute,Missing=Missing,Value=Value),hotdeck=hotdeck(D,Attribute,Missing,K=Value),D)) }
 
 impvalue=function(D,Attribute=NULL,Missing=NA,Value)
 {
@@ -335,7 +333,7 @@ mostcommon<-function(x){return(which.max(table(x)[]))}
 
 # ----- get the average/median class of an ordered factor -------
 middleclass<-function(x,method="mean")
-{return(round(switch(method,mean=mean(as.numeric(x)),median(as.numeric(x)))))}
+{ return(round(switch(method,mean=mean(as.numeric(x)),median(as.numeric(x))))) } 
 
 # value: single value or vector of values
 filter_equal<-function(D,Attribute,Value,reverse=FALSE)

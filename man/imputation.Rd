@@ -63,6 +63,7 @@ print(imputation("hotdeck",d,Value=1))
 
 \dontrun{
 # hotdeck 1-nearest neighbor substitution on a real dataset:
+require(kknn)
 d=read.table(
    file="http://archive.ics.uci.edu/ml/machine-learning-databases/autos/imports-85.data",
    sep=",",na.strings="?")

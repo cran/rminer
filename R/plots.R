@@ -525,7 +525,6 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
  else if(LS==2) showlevels=c(showlevels,FALSE)
 
  if(!is.list(screen)) screen=switch(screen,x=list(z=0,x=-90,y=0),X=list(x=-75),y=list(z=0,x=-90,y=-90),Y=list(z=10,x=-90,y=-90),z=list(z=0,x=0,y=0),xy=list(z=10,x=-90,y=-45))
-#cat("--- ord:",sort,"ord2:",sort2,"dec:",decreasing,"showlevels:",showlevels,"col:",col,"\n")
 
  if(!is.null(I$method))
  { if( I$method=="GSA") { 

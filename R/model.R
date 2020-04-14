@@ -208,7 +208,7 @@ if(search$smethod=="auto")
    M=vector("list",LLM)
    initm2=TRUE
    smulti=list(metric=search$metric,convex=search$search$convex,method=search$method)
-   if(model=="auto") LEADERBOARD=TRUE
+   if(model=="auto") LEADERBOARD=TRUE else LEADERBOARD=FALSE ###
 
    for(i in 1:LM)
      {
@@ -273,15 +273,12 @@ if(search$smethod=="auto")
 
     if(fdebug && !is.null(bmodel) ) { cat(" >> best:",i,"model:",bmodel,"best:",best,"\n") }
 
-    if(LEADERBOARD) { if(isbest(0,1,search$metric)) decreasing=FALSE else decreasing=TRUE
+    if(model=="auto"){ if(isbest(0,1,search$metric)) decreasing=FALSE else decreasing=TRUE
 
-                      IE=sort.int(eval,decreasing=decreasing,index.return=TRUE) 
-                      mpar=copy_list(fargs,IE$ix)
-                      LB=list(model=mmodel[IE$ix],eval=eval[IE$ix],mpar=mpar) # leaderboard
-                      #print("LB:")
-                      #print(LB)
-                      #print("---------")
-                    }
+                       IE=sort.int(eval,decreasing=decreasing,index.return=TRUE) 
+                       mpar=copy_list(fargs,IE$ix)
+                       LB=list(model=mmodel[IE$ix],eval=eval[IE$ix],mpar=mpar) # leaderboard
+                     }
 
     if( (!is_ensemble(model) && !is_ensemble(bmodel)) || LLM==1 ) # single model
                     { model=bmodel
@@ -300,7 +297,7 @@ if(search$smethod=="auto")
       for(i in ILM) # fit final models
       {
        FIT=fit(x,data,model=mmodel[i],task=task,scale=scale,search=fargs[[i]],transform=transform,...)
-       if( class(FIT@object) == "character" ) # individual model did not work
+       if( class(FIT@object)[1] == "character" ) # individual model did not work
          { 
           ILM=setdiff(ILM,i)
          }
@@ -345,6 +342,7 @@ else if(search$smethod=="2L" || substr(search$smethod,1,2)=="UD") # nested 2-lev
      search2=search
      search2=ssigma(search2,2^mud[,1]);search2$search$C=2^mud[,2]; if(task=="reg") search2$search$epsilon=2^mud[,3] # transform to 2^space
     }
+  else search2=search # non "UD"
   FIT=mgrid(search2,x,data,model,task,scale,transform,fdebug,args) # 1st level
   saux1=search
   saux1$search=readmpar(FIT$mpar[[1]],model=model,search=search$search,method=search$method) 
@@ -379,6 +377,7 @@ else if(search$smethod=="2L" || substr(search$smethod,1,2)=="UD") # nested 2-lev
   saux2$search=readmpar(FIT$mpar[[1]],model=model,search=search$search,method=search$method) 
 
   if(isbest(FIT$error,eval,search$metric)) {search=saux2;eval=FIT$error} else { search=saux1}
+  if(fdebug) cat("end eval best:",eval,"\n")
   search$smethod="none"
 }
 
@@ -443,7 +442,9 @@ if(search$smethod=="none") # no search <----------------------------------------
 #mpause()
   #print(">> none fit >> args in fit main function:"); print(class(search)); print(args)
   if(is.list(model)) # new way, list(fit=FITFUNCTION,predict=PREDICTFUNCTION,name=NAME)
-    M=try( do.call(model$fit,c(list(x,data),args)), silent=TRUE ) # execute model$fit with x, data and extra args (if any!)
+    { M=try( do.call(model$fit,c(list(x,data),args)), silent=TRUE ) # execute model$fit with x, data and extra args (if any!)
+      fargs=args
+    }
   else # model is character
    {
 #print("<<< search3:")
@@ -826,7 +827,6 @@ readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+outpu
           smethod=search
           if(task=="reg") { search2$sigma=c(-8,0);search2$C=c(-1,6);search2$epsilon=c(-8,-1) }
           else { search2$sigma=c(-15,3);search2$C=c(-5,15) } # gama, C, epsilon
-          ###search2[["exponentialscale"]]=TRUE
          }
          else {cat("Current rminer version does not have an UD rule for this kernel:");print(args$kernel);}
         }
@@ -846,7 +846,7 @@ if(!is.list(search))
    else if(model=="randomForest" && !is.character(search)) search2[["mtry"]]=search
    else if(model=="kknn" && !is.character(search)) search2[["k"]]=search
    if(smethod!="grid" && smethod!="none" && substr(smethod,1,2)!="UD") { if(length(search)<2) smethod="none" else smethod="grid" }
-   if(length(search2)==0) search=list(smethod=smethod) else search=list(smethod=smethod,search=search2,convex=0) ###
+   if(length(search2)==0) search=list(smethod=smethod) else search=list(smethod=smethod,search=search2,convex=0) 
  }
  else if(is.character(search) && search=="heuristic" && is.list(model))  # attention here for AE, SE, WE, ...
  { # model is a list!
@@ -914,13 +914,21 @@ if(!is.list(search))
 
 midrangesearch=function(midpoint,search,mode="seq") 
 {
+ #MMM<<-midpoint;SSS<<-search;MMODE<<-mode
  n=length(search$search) # dimension
+ sfields=names(search$search)
+ mfields=names(midpoint$search)
  for(i in 1:n)
   if(is.numeric(search$search[[i]]) && length(search$search[[i]])>1 ) 
    { Range=diff( range(search$search[[i]]) )/4
      L=length(search$search[[i]])
-     Min= as.numeric(midpoint$search[[i]])-Range # new
-     Max= as.numeric(midpoint$search[[i]])+Range # new
+ 
+     k=which(mfields==sfields[i])    
+     if( length(k)==0 && sfields[i]=="sigma" )
+       k=which(mfields=="kpar") 
+
+     Min= as.numeric(midpoint$search[[k]])-Range # new
+     Max= as.numeric(midpoint$search[[k]])+Range # new
      if(mode=="range") L=2
      search$search[[i]]=seq(Min,Max,length.out=L)
    }
@@ -970,7 +978,7 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel=
    # 131 rf_t: ntree = 500, mtry 2:3:39
    # 154: knn: 1:2:37
    # 167: multinom 10 values, decay 0 to 0.1
- 	### to do later:
+ 	## to do later:
  	# 60 rpart2: maxdepth: 1 to 10 ? (10 searches)
  	# 159: mvr, components from 1 to 10 => ncomp (# issues with nominal variables)
  	# 65 ctree2: maxdepth: 1 to 10?
@@ -1168,7 +1176,7 @@ bssearch=function(x,data,algorithm="sabs",Runs,method,model,task,search,scale,tr
  if(algorithm=="sabs") imethod=switch(smeasure,g="sensg",v="sensv",r="sensr",a="sensa")
 #cat("BSS smeasure:",smeasure,"imethod:",imethod,"alg:",algorithm,"\n") 
 #print(BK)
-#debug=TRUE ###
+#debug=TRUE 
  stop=FALSE;t=0;
  while(!stop)
  {
@@ -1275,7 +1283,6 @@ mgrid=function(search,x,data,model,task,scale,transform,fdebug,...)
  # check type of search$search parameter: vector or object
  N=length(search$search)
  if(N>0 && !is.vector(search$search[[1]][[1]])) object=TRUE else object=FALSE
- ###cat("object:",object,"\n")
  si=list(smethod="none",convex=search$convex,metric=metric,method=NULL)
 if(N>0)
 {
@@ -1360,14 +1367,14 @@ output_index=function(x,namesdata)
  return(which(namesdata==(as.character(x)[2])))
 }
 
-transform_needed=function(transform) { return (switch(transform,log=,logpositive=,positive=,scale=TRUE,FALSE)) }
-feature_needed=function(feature) { return (switch(feature,sbs=,sabsa=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE)) }
+transform_needed=function(transform){return(switch(transform,log=,logpositive=,positive=,scale=TRUE,FALSE))}
+feature_needed=function(feature){return(switch(feature,sbs=,sabsa=,sabsg=,sabsv=,sabsr=,sabs=TRUE,FALSE))}
 
 defaultask=function(task="default",model="default",output=1)
 { if(task=="default") 
     { 
       if(is.character(model)&&length(model)==1) 
-	task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,mvr=,qda="prob",lssvm="class",cubist=,lm=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
+        task=switch(model,bagging=,boosting=,lda=,multinom=,naiveBayes=,mvr=,qda="prob",lssvm="class",cubist=,lm=,mr=,mars=,pcr=,plsr=,cppls=,rvm="reg","default")
       if(task=="default") { if (is.factor(output)) task="prob" else task="reg" }
     }
   else if(substr(task,1,1)=="c") task="class" else if(substr(task,1,1)=="p") task="prob"
@@ -1410,7 +1417,7 @@ setGeneric("predict")
 setMethod("predict",signature(object="model"),
 function(object,newdata,...){
 
-if(is_ensemble(object@model))
+if(!is.list(object@model) && is_ensemble(object@model))
 { 
  # object,scale,model, 
  # same <= task, levels
@@ -1825,7 +1832,7 @@ mining=function(x,data=NULL,Runs=1,method=NULL,model="default",task="default",se
        imethod=switch(feature[1],sabsv=,simpv="sensv", 
                                  sabsg=,simpg="sensg",
                                  sabsr=,simpr="sensr",
-                                 sabs=,simp=,sabsa=,simpa="sensa",feature[1]) # new line!!!
+                                 sabs=,simp=,sabsa=,simpa="sensa",feature[1])
     }
  else {SEN=NULL; SRESP=NULL;FSRESP=FALSE;imethod="none"}
 
@@ -2091,23 +2098,24 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
   { nclass=class(M);nclass=nclass[length(nclass)] 
     if(task=="prob")
      {PRED=switch(nclass,
-                       lda=,qda=function(M,D){predict(M,D)$posterior},
-                       randomForest=function(M,D){predict(M,D,type="prob")},
-                       # and so on, to be completed...
-                       NULL)
+                  lda=,qda=function(M,D){predict(M,D)$posterior},
+                  randomForest=function(M,D){predict(M,D,type="prob")},
+                  # and so on, to be completed...
+                  NULL)
      }
     else if(task=="class")
-     {PRED=switch(nclass,
-                       lda=,qda=function(M,D){predict(M,D)$class},
-                       randomForest=function(M,D){predict(M,D,type="response")},
-                       # and so on, to be completed...
-                       NULL)
+     { PRED=switch(nclass,
+                   lda=,qda=function(M,D){predict(M,D)$class},
+                   randomForest=function(M,D){predict(M,D,type="response")},
+                   # and so on, to be completed...
+                   NULL)
      }
     else{ PRED=switch(nclass,
-                       lm==function(M,D){predict(M,D)},
-                       randomForest=function(M,D){predict(M,D)},
-                       # and so on, to be completed...
-                       NULL)}
+                      lm=function(M,D){predict(M,D)},
+                      randomForest=function(M,D){predict(M,D)},
+                      # and so on, to be completed...
+                      NULL)
+        }
   }
   Attributes=1:ncol(data)
  }
@@ -2524,7 +2532,6 @@ aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outda
    value2=vector(length=Aggregation)
 value3=vector(length=Aggregation)
     if(NLY==0) { for(k in 1:Aggregation) { ini=(k-1)*LY+1;end=ini+LY-1;
-# switch value
 #cat("ini:",ini,"end:",end,"measure:",measure,"xy:",ameth,"\n")
                                   val=s_measure(mm[,ini:end],measure,Levels=ML,xy=ameth) 
 value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global") 
@@ -2636,7 +2643,6 @@ value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global")
  I$sresponses[[1]]$n=I$sresponses[[1]]$n[AT]
  I$sresponses[[1]]$l=I$sresponses[[1]]$l[AT]
 # avalue=AAD_responses(value)
-#avalue=switch(measure,AAD=AAD_responses(value),variance=variance_responses(value),gradient=gradient_responses(value),range=range_responses(value))
 #cat("min:", Min,"\n")
 #cat("max:", Max,"\n")
 #cat("area:",curvearea(cbind(Min,Max)),"minarea:",((min(Max)-min(Min))*LX),"\n")
