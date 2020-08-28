@@ -111,7 +111,7 @@ In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
 }
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \note{
 See also \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
@@ -230,6 +230,8 @@ main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (prob.)")
 
 ### 3rd example, binary classification for setosa iris and lda model:
 \dontrun{
+data(iris)
+library(MASS)
 iris2=iris;iris2$Species=factor(iris$Species=="setosa")
 predlda2=function(M,data) # the PRED function
 { return (predict(M,data)$class) }
@@ -237,6 +239,20 @@ LDA2=lda(Species ~ .,iris2)
 I=Importance(LDA2,iris2,method="1D-SA",PRED=predlda2,outindex=4)
 vecplot(I,graph="VEC",xval=1,
 main="1-D VEC for Sepal.Lenght (x-axis) influence in setosa (class)",Grid=10)
+}
+
+### Example with discrete inputs 
+\dontrun{
+data(iris)
+ir1=iris
+ir1[,1]=cut(ir1[,1],breaks=4)
+ir1[,2]=cut(ir1[,2],breaks=4)
+M=fit(Species~.,ir1,model="mlpe")
+I=Importance(M,ir1,method="DSA")
+# discrete example:
+vecplot(I,graph="VEC",xval=1,TC=1,main="class: setosa (discrete x1)",data=ir1)
+# continuous example:
+vecplot(I,graph="VEC",xval=3,TC=1,main="class: setosa (cont. x1)",data=ir1)
 }
 
 }

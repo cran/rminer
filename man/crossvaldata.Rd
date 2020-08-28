@@ -18,7 +18,7 @@ crossvaldata(x, data, theta.fit, theta.predict, ngroup = 10,
   \item{theta.predict}{prediction function}
   \item{ngroup}{number of folds}
   \item{mode}{Possibilities are: "stratified", "random" or "order" (see \code{\link{holdout}} for details).}
-  \item{seed}{if \code{NULL} then a random seed is used; else a fixed seed is adopted (will return always the same result for the same seed).}
+  \item{seed}{if \code{NULL} then no seed is used and the current R randomness is assumed; else a fixed seed is adopted to generate local random sample sequences, returning always the same result for the same seed (local means that it does not affect the state of other random number generations called after this function, see \code{\link{holdout}} example).}
   \item{model}{See \code{\link{fit}} for details.}
   \item{task}{See \code{\link{fit}} for details.}
   \item{feature}{See \code{\link{fit}} for details.}
@@ -55,6 +55,8 @@ Check the \code{\link{crossval}} function of the bootstrap library.
 \seealso{
 \code{\link{holdout}}, \code{\link{fit}}, \code{\link{mining}} and \code{\link{predict.fit}}.}
 \examples{
+### dontrun is used when the execution of the example requires some computational effort.
+\dontrun{
  data(iris)
  # 3-fold cross validation using fit and predict
  # the control argument is sent to rpart function 
@@ -66,5 +68,6 @@ Check the \code{\link{crossval}} function of the bootstrap library.
  C=mmetric(iris$Species,M$cv.fit,metric="CONF")
  print("confusion matrix:")
  print(C)
+}
 }
 \keyword{ models }

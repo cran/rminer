@@ -25,7 +25,7 @@ Computes indexes for holdout data split into training and test sets.
                       }
 }
   \item{iter}{iteration of the incremental retraining mode (only used when \code{mode="rolling"} or \code{"incremental"}, typically \code{iter} is set within a cycle, see the example below).}
-  \item{seed}{if \code{NULL} then a random seed is used; else a fixed seed is adopted (will return always the same result for the same seed).}
+  \item{seed}{if \code{NULL} then no seed is used and the current R randomness is assumed; else a fixed seed is adopted to generate local random sample sequences, returning always the same result for the same seed (local means that it does not affect the state of other random number generations called after this function, see example).}
   \item{window}{training window size (if \code{mode="rolling"}) or initial training window size (if \code{mode="incremental"}).}
   \item{increment}{number of samples added to the training window at each iteration (if \code{mode="incremental"} or \code{mode="rolling"}).}
 }
@@ -45,7 +45,7 @@ A list with the components:
 See \code{\link{fit}}.
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 
 \seealso{
@@ -68,6 +68,7 @@ H=holdout(1:10,ratio=2/3,mode="random",seed=12345)
 print(H)
 
 ### classification example
+\dontrun{
 data(iris)
 # random stratified holdout
 H=holdout(iris$Species,ratio=2/3,mode="stratified") 
@@ -76,6 +77,7 @@ print(table(iris[H$ts,]$Species))
 M=fit(Species~.,iris[H$tr,],model="rpart") # training data only
 P=predict(M,iris[H$ts,]) # test data
 print(mmetric(iris$Species[H$ts],P,"CONF"))
+}
 
 ### regression example with incremental and rolling window holdout:
 \dontrun{
@@ -103,5 +105,21 @@ for(b in 1:4) # iterations
        "mae:",mmetric(d$y[H$ts],P,"MAE"),"\n")
   }
 }
+
+### local seed simple example
+\dontrun{
+# seed is defined, same sequence for N1 and N2:
+# s2 generation sequence is not affected by the holdout call
+set.seed(1); s1=sample(1:10,3)
+set.seed(1);
+N1=holdout(1:10,seed=123) # local seed
+N2=holdout(1:10,seed=123) # local seed
+print(N1$tr)
+print(N2$tr)
+s2=sample(1:10,3)
+cat("s1:",s1,"\n") 
+cat("s2:",s2,"\n") # s2 is equal to s1
+}
+
 }
 \keyword{ manip }

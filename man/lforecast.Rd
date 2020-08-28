@@ -39,7 +39,7 @@ IEEE Computer Society, ISBN: 978-1-4244-6917-8 (DVD edition).\cr
 }
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \seealso{
 \code{\link{fit}}, \code{\link{CasesSeries}}, \code{\link{predict.fit}}, \code{\link{mgraph}}.

@@ -81,7 +81,7 @@ For examples and references check: \code{\link{Importance}}
 A VEC curve/surface/contour plot.
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \seealso{
 \code{\link{Importance}}

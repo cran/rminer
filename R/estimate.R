@@ -113,8 +113,12 @@ crossfolds<-function(y,ngroup,leave.out,mode="stratified",seed=NULL)
 {
   n <- length(y)
   groups <- vector("list",ngroup)
-  if(!is.null(seed)) set.seed(seed) # use seed to fix groups
-
+  if(!is.null(seed)) 
+   {
+    old_state=get_rand_state()
+    set.seed(seed)
+    on.exit(set_rand_state(old_state))
+   }
   if(is.factor(y) && mode=="stratified") STRATIFIED=TRUE# stratified crossfolds
   else STRATIFIED=FALSE
 
@@ -132,7 +136,7 @@ crossfolds<-function(y,ngroup,leave.out,mode="stratified",seed=NULL)
    }
    groups[[ngroup]] <- o[(1+(ngroup-1)*leave.out):n]
   }
-  if(!is.null(seed)) set.seed(NULL) # reset seed
+
   return(groups)
 }
 
@@ -195,7 +199,13 @@ holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="stratified",iter=1,seed=
   }
   else # default random holdout
   {
-   if(!is.null(seed)) set.seed(seed) # use seed to fix holdout
+   if(!is.null(seed)) 
+   {
+    old_state=get_rand_state()
+    set.seed(seed)
+    on.exit(set_rand_state(old_state))
+   }
+
    ALL=1:NSIZE
     if(is.factor(y) && mode=="stratified") 
      { 
@@ -214,7 +224,6 @@ holdout<-function(y,ratio=2/3,internalsplit=FALSE,mode="stratified",iter=1,seed=
      }
    TS<-setdiff(ALL,ALLTR)
    if(internalsplit==TRUE)VAL<-setdiff(ALLTR,ALLITR)       
-   if(!is.null(seed)) set.seed(NULL) # reset seed to random
   }
  }
   return(list(tr=ALLTR,itr=ALLITR,val=VAL,ts=TS))
@@ -262,3 +271,17 @@ factorsample=function(y,size,ngroup=1)
  return(S)
 }
 #--------------------------------------
+# two functions used to perform a local randomness in r (restoring the previous "seed")
+# retrieved from http://www.questionflow.org/2019/08/13/local-randomness-in-r/
+get_rand_state <- function() {
+  # Using `get0()` here to have `NULL` output in case object doesn't exist.
+  # Also using `inherits = FALSE` to get value exactly from global environment
+  # and not from one of its parent.
+  get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+}
+set_rand_state <- function(state) {
+  # Assigning `NULL` state might lead to unwanted consequences
+  if (!is.null(state)) {
+    assign(".Random.seed", state, envir = .GlobalEnv, inherits = FALSE)
+  }
+}

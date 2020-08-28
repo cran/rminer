@@ -269,7 +269,7 @@ Portugal, July 2015.\cr
 P. Cortez.\cr
 Modern Optimization with R.\cr
 Use R! series, Springer, September 2014, ISBN 978-3-319-08262-2.\cr
-\url{http://www.springer.com/mathematics/book/978-3-319-08262-2}\cr
+\url{https://www.springer.com/gp/book/9783319082622}\cr
 
 \item The automl is inspired in this work:\cr
 L. Ferreira, A. Pilastri, C. Martins, P. Santos, P. Cortez.\cr
@@ -293,7 +293,7 @@ In Computational Statistics & Data Analysis, 52(1):335-346, 2007.\cr
 }
 
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \note{
 See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}

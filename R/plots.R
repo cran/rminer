@@ -577,11 +577,13 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
                                   } 
     if(!is.null(data))
     {
-      XLIM=range(BREAKS)
-      BREAKS="Sturges";
       #cat("BREAKS:",BREAKS,"XLIM:",XLIM,"xval:",xval,"\n")
       if(is.factor(data[,xval])) mhistogram(data[,xval],xaxt="n",yaxt="n",xlab="",ylab="",main="",col=datacol,labels=TRUE)
-      else hist(data[,xval],xlim=XLIM,main="",xaxt="n",yaxt="n",xlab="",ylab="",col=datacol,breaks=BREAKS)
+      else { # new code here:
+             XLIM = range(BREAKS)
+             BREAKS="Sturges";
+             hist(data[,xval],xlim=XLIM,main="",xaxt="n",yaxt="n",xlab="",ylab="",col=datacol,breaks=BREAKS)
+           }
       #axis(1) #
       axis(4)
       par(new=TRUE)#,mar=c(0,0,0,0))

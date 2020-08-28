@@ -39,7 +39,7 @@ Portugal, July 2015.\cr
 }
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \seealso{
 \code{\link{fit}}, \code{\link{lforecast}}, \code{\link{predict.fit}}.

@@ -48,7 +48,7 @@ Funchal, Madeira, Portugal, September, 2018, IEEE, ISBN 978-1-5386-7097-2.\cr
 }
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \seealso{
 \code{\link{fit}} and \code{\link{imputation}}.

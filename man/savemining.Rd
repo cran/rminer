@@ -28,7 +28,7 @@ Very simple functions that do what their names say. Additional usages are:\cr
 See \code{\link{fit}}.
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 
 \seealso{

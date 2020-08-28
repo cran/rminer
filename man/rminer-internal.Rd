@@ -39,6 +39,7 @@
 \alias{enlarge}
 \alias{factorize}
 \alias{factor2numeric}
+\alias{factorsample}
 \alias{feature_needed}
 \alias{fenlarge}
 \alias{filter_equal}

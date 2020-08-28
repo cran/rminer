@@ -97,7 +97,7 @@ Portugal, July 2015.\cr
 }
 }
 
-\author{ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez} }
+\author{ Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/} }
 \note{See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}}
 
 \seealso{

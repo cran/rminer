@@ -179,7 +179,7 @@ Portugal, July 2015.\cr
 A. Silva, P. Cortez, M.F. Santos, L. Gomes and J. Neves.\cr
 Rating Organ Failure via Adverse Events using Data Mining in the Intensive Care Unit.\cr
 In Artificial Intelligence in Medicine, Elsevier, 43 (3): 179-193, 2008.\cr
-\url{http://www.sciencedirect.com/science/article/pii/S0933365708000390}\cr
+\url{https://www.sciencedirect.com/science/article/pii/S0933365708000390}\cr
 
 \item About the classification and regression metrics:\cr
 I. Witten and E. Frank.\cr
@@ -198,7 +198,7 @@ In International Journal of Pattern Recognition and Artificial Intelligence, 25(
 }
 }
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez}
+Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
 }
 \note{
 See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}
