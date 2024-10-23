@@ -26,33 +26,33 @@ fit(x, data = NULL, model = "default", task = "default",
               \itemize{
               \item \code{naive} most common class (classification) or mean output value (regression)
 
-              \item \code{ctree} -- conditional inference tree (classification and regression, uses \code{\link{ctree}} from \code{party} package)
-              \item \code{cv.glmnet} -- generalized linear model (GLM) with lasso or elasticnet regularization (classification and regression, uses \code{\link{cv.glmnet}} from \code{glmnet} package; note: cross-validation is used to automatically set the lambda parameter that is needed to compute the predictions)
-              \item \code{rpart} or \code{dt} -- decision tree (classification and regression, uses \code{\link{rpart}} from \code{rpart} package)
-              \item \code{kknn} or \code{knn} -- k-nearest neighbor (classification and regression, uses \code{\link{kknn}} from \code{kknn} package)
-              \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link{ksvm}} from \code{kernlab} package)
-              \item \code{lssvm}  -- least squares support vector machine (pure classification only, uses \code{\link{lssvm}} from \code{kernlab} package)
-              \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link{nnet}} from \code{nnet} package (in this version, for both \code{mlp} and \code{mlpe}, the maximum number of weights was increased and fixed to \code{MaxNWts=10000}))
+              \item \code{ctree} -- conditional inference tree (classification and regression, uses \code{\link[party]{ctree}})
+              \item \code{cv.glmnet} -- generalized linear model (GLM) with lasso or elasticnet regularization (classification and regression, uses \code{\link[glmnet]{cv.glmnet}}; note: cross-validation is used to automatically set the lambda parameter that is needed to compute the predictions)
+              \item \code{rpart} or \code{dt} -- decision tree (classification and regression, uses \code{\link[rpart]{rpart}})
+              \item \code{kknn} or \code{knn} -- k-nearest neighbor (classification and regression, uses \code{\link[kknn]{kknn}})
+              \item \code{ksvm} or \code{svm} -- support vector machine (classification and regression, uses \code{\link[kernlab]{ksvm}})
+              \item \code{lssvm}  -- least squares support vector machine (pure classification only, uses \code{\link[kernlab]{lssvm}})
+              \item \code{mlp} -- multilayer perceptron with one hidden layer (classification and regression, uses \code{\link[nnet]{nnet}} (in this version, for both \code{mlp} and \code{mlpe}, the maximum number of weights was increased and fixed to \code{MaxNWts=10000}))
  
-              \item \code{mlpe} -- multilayer perceptron ensemble (classification and regression, uses \code{\link{nnet}} from \code{nnet} package)
-              \item \code{randomForest} or \code{randomforest} -- random forest algorithm (classification and regression, uses \code{\link{randomForest}} from \code{randomForest} package)
-              \item \code{xgboost} -- eXtreme Gradient Boosting (Tree) (classification and regression, uses \code{\link{xgboost}} from \code{xgboost} package; note: \code{nrounds} parameter is set by default to 2)
+              \item \code{mlpe} -- multilayer perceptron ensemble (classification and regression, uses \code{\link[nnet]{nnet}})
+              \item \code{randomForest} or \code{randomforest} -- random forest algorithm (classification and regression, uses \code{\link[randomForest]{randomForest}})
+              \item \code{xgboost} -- eXtreme Gradient Boosting (Tree) (classification and regression, uses \code{\link[xgboost]{xgboost}}; note: \code{nrounds} parameter is set by default to 2)
 
-              \item \code{bagging} -- bagging from Breiman, 1996 (classification, uses \code{\link{bagging}} from \code{adabag} package)
-              \item \code{boosting} -- adaboost.M1 method from Freund and Schapire, 1996 (classification, uses \code{\link{boosting}} from \code{adabag} package)
-              \item \code{lda} -- linear discriminant analysis (classification, uses \code{\link{lda}} from \code{MASS} package)
-              \item \code{multinom} or \code{lr} -- logistic regression (classification, uses \code{\link{multinom}} from \code{nnet} package)
-              \item \code{naiveBayes} or \code{naivebayes} -- naive bayes (classification, uses \code{\link{naiveBayes}} from \code{e1071} package)
-              \item \code{qda} -- quadratic discriminant analysis (classification, uses \code{\link{qda}} from \code{MASS} package)
+              \item \code{bagging} -- bagging from Breiman, 1996 (classification, uses \code{\link[adabag]{bagging}})
+              \item \code{boosting} -- adaboost.M1 method from Freund and Schapire, 1996 (classification, uses \code{\link[adabag]{boosting}})
+              \item \code{lda} -- linear discriminant analysis (classification, uses \code{\link[MASS]{lda}})
+              \item \code{multinom} or \code{lr} -- logistic regression (classification, uses \code{\link[nnet]{multinom}})
+              \item \code{naiveBayes} or \code{naivebayes} -- naive bayes (classification, uses \code{\link[e1071]{naiveBayes}})
+              \item \code{qda} -- quadratic discriminant analysis (classification, uses \code{\link[MASS]{qda}})
 
-              \item \code{cubist} -- M5 rule-based model (regression, uses \code{\link{cubist}} from \code{Cubist} package)
+              \item \code{cubist} -- M5 rule-based model (regression, uses \code{\link[Cubist]{cubist}})
               \item \code{lm} -- standard multiple/linear regression (uses \code{\link{lm}})
-              \item \code{mr} -- multiple regression (regression, equivalent to \code{\link{lm}} but uses \code{\link{nnet}} from \code{nnet} package with zero hidden nodes and linear output function)
-              \item \code{mars} -- multivariate adaptive regression splines (regression, uses \code{\link{mars}} from \code{mda} package)
-              \item \code{pcr} -- principal component regression (regression, uses \code{\link{pcr}} from \code{pls} package)
-              \item \code{plsr} -- partial least squares regression (regression, uses \code{\link{plsr}} from \code{pls} package)
-              \item \code{cppls} -- canonical powered partial least squares (regression, uses \code{\link{cppls}} from \code{pls} package)
-              \item \code{rvm} -- relevance vector machine (regression, uses \code{\link{rvm}} from \code{kernlab} package)
+              \item \code{mr} -- multiple regression (regression, equivalent to \code{\link{lm}} but uses \code{\link[nnet]{nnet}} with zero hidden nodes and linear output function)
+              \item \code{mars} -- multivariate adaptive regression splines (regression, uses \code{\link[mda]{mars}})
+              \item \code{pcr} -- principal component regression (regression, uses \code{\link[pls]{pcr}})
+              \item \code{plsr} -- partial least squares regression (regression, uses \code{\link[pls]{plsr}})
+              \item \code{cppls} -- canonical powered partial least squares (regression, uses \code{\link[pls]{cppls}})
+              \item \code{rvm} -- relevance vector machine (regression, uses \code{\link[kernlab]{rvm}})
                       }
               Second usage: multiple models. \code{model} can be used to perform Automated Machine Learning (AutoML) or ensembles of several individual models:
               \itemize{
@@ -92,7 +92,7 @@ fit(x, data = NULL, model = "default", task = "default",
               \itemize{
                        \item \code{heuristic} -- simple heuristic, one search parameter (e.g., \emph{size}=inputs/2 for \code{mlp} or 
 \emph{size}=10 if classification and inputs/2>10, \emph{sigma} is set using \code{kpar="automatic"} and \code{kernel="rbfdot"} 
-of \code{\link{ksvm}}). Important Note: instead of the "heuristic" options, it is advisable to use the explicit \code{\link{mparheuristic}} function
+of \code{\link[kernlab]{ksvm}}). Important Note: instead of the "heuristic" options, it is advisable to use the explicit \code{\link{mparheuristic}} function
 that is designed for a wider option of models (all "heuristic" options were kept due to compatibility issues and work 
 only for: \code{kknn}; \code{mlp} or \code{mlpe}; \code{ksvm}, with \code{kernel="rbfdot"}; and \code{randomForest}). 
                        \item \code{heuristic5} -- heuristic with a 5 range grid-search (e.g., \code{seq(1,9,2)} for \code{kknn}, \code{seq(0,8,2)} for \code{mlp} or \code{mlpe}, 
@@ -197,10 +197,10 @@ after which a \code{2^} transform is applied) or \code{c(-8,0,-1,6,-8,-1)} for r
 
   \item{fdebug}{if TRUE show some search details.}
 
-  \item{\dots}{ additional and specific parameters send to each fit function model (e.g., \code{dt}, \code{randomforest}, \code{kernlab}). A few examples:\cr
-                -- the \code{\link{rpart}} function is used for decision trees, thus you can have:\cr
+  \item{\dots}{ additional and specific parameters send to each fit function model (e.g., \code{dt}, \code{rpart}, \code{randomforest}, \code{kernlab}). A few examples:\cr
+                -- the \code{\link[rpart]{rpart}} function is used for decision trees, thus you can have:\cr
 \code{control=rpart.control(cp=.05)} (see \code{\link{crossvaldata}} example).\cr
-                -- the \code{\link{ksvm}} function is used for support vector machines, thus you can change the kernel type: \code{kernel="polydot"} (see examples below).\cr
+                -- the \code{\link[kernlab]{ksvm}} function is used for support vector machines, thus you can change the kernel type: \code{kernel="polydot"} (see examples below).\cr
 Important note: if you use package functions and get an error, then try to explicitly define the package. For instance, you might
 need to use \code{fit(}\emph{several-arguments}\code{,control=Cubist::cubistControl())} instead of\cr
 \code{fit(}\emph{several-arguments}\code{,control=cubistControl())}.
@@ -214,13 +214,13 @@ Notes: \cr
 - if there is an error in the fit, then a warning is issued (see example).\cr 
 - the new \code{search} argument is very flexible and allows a powerful design of supervised learning models.\cr
 - the \code{search} correct use is very dependent on the R learning base functions. For example, if you are tuning \code{model="rpart"} then read
-carefully the help of function \code{\link{rpart}}.\cr
+carefully the help of function \code{\link[rpart]{rpart}}.\cr
 - \code{mpar} argument is only kept due to compatibility issues and should be avoided; instead, use the more flexible \code{search}.\cr
 \cr
 Details about some models: 
 \itemize{
 \item Neural Network: \code{mlp} trains \emph{nr} multilayer perceptrons (with \emph{maxit} epochs, \emph{size} hidden nodes 
-and \emph{decay} value according to the \code{\link{nnet}} function) and selects the best network according to minimum penalized error (\code{$value}). \code{mlpe} uses an ensemble
+and \emph{decay} value according to the \code{\link[nnet]{nnet}} function) and selects the best network according to minimum penalized error (\code{$value}). \code{mlpe} uses an ensemble
 of \emph{nr} networks and the final prediction is given by the average of all outputs. To tune \code{mlp} or \code{mlpe} you can use the \code{search} parameter, which performs a grid
 search for \emph{size} or \emph{decay}.
 
@@ -268,8 +268,8 @@ Portugal, July 2015.\cr
 \item For the grid search and other optimization methods:\cr
 P. Cortez.\cr
 Modern Optimization with R.\cr
-Use R! series, Springer, September 2014, ISBN 978-3-319-08262-2.\cr
-\url{https://www.springer.com/gp/book/9783319082622}\cr
+Use R! series, Springer, 2nd edition, July 2021, ISBN 978-3-030-72818-2.\cr
+\url{https://link.springer.com/book/10.1007/978-3-030-72819-9}\cr
 
 \item The automl is inspired in this work:\cr
 L. Ferreira, A. Pilastri, C. Martins, P. Santos, P. Cortez.\cr
@@ -277,13 +277,13 @@ An Automated and Distributed Machine Learning Framework for Telecommunications R
 In J. van den Herik et al. (Eds.), 
 Proceedings of 12th International Conference on Agents and Artificial Intelligence -- ICAART 2020, Volume 2, pp. 99-107,
 Valletta, Malta, February, 2020, SCITEPRESS, ISBN 978-989-758-395-7.\cr
-@INSTICC: \url{https://www.insticc.org/Primoris/Resources/PaperPdf.ashx?idPaper=89528}\cr
+@INSTICC: \url{http://hdl.handle.net/1822/66818}\cr
 
 \item For the sabs feature selection:\cr
 P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis.\cr
 Modeling wine preferences by data mining from physicochemical properties.\cr
 In Decision Support Systems, Elsevier, 47(4):547-553, 2009.\cr
-\url{http://dx.doi.org/10.1016/j.dss.2009.05.016}\cr
+\doi{10.1016/j.dss.2009.05.016}\cr
 
 \item For the uniform design details:\cr
 C.M. Huang, Y.J. Lee, D.K.J. Lin and S.Y. Huang.\cr
@@ -293,7 +293,7 @@ In Computational Statistics & Data Analysis, 52(1):335-346, 2007.\cr
 }
 
 \author{
-Paulo Cortez \url{http://www3.dsi.uminho.pt/pcortez/}
+Paulo Cortez \url{https://pcortez.dsi.uminho.pt}
 }
 \note{
 See also \url{http://hdl.handle.net/1822/36210} and \url{http://www3.dsi.uminho.pt/pcortez/rminer.html}

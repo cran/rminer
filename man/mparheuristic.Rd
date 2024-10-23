@@ -23,16 +23,15 @@ mparheuristic(model, n = NA, lower = NA, upper = NA, by = NA, exponential = NA,
                         \item a character vector with several models - see the example section for a demonstration of this option.
                        }
               }
-  \item{n}{number of searches or heuristic (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}). By default, the searches are linear for all models 
-except for SVM several \code{rbfdot} kernel based models (\code{"ksvm"},\code{"rsvm"},\code{"lssvm"}, which can assume \code{2^}{search-range}; please check the result of this function to confirm if the search is linear or \code{2^}{search-range}). 
+  \item{n}{number of searches or heuristic (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}). By default, the searches are linear for all models except for SVM several \code{rbfdot} kernel based models (\code{"ksvm"},\code{"rsvm"},\code{"lssvm"}, which can assume \code{2^}search-range; please check the result of this function to confirm if the search is linear or \code{2^}search-range). 
 If this argument is a character type, then it is assumed to be an heuristic. Possible heuristic values are:
 \itemize{
            \item \code{heuristic} - only one model is fit, uses default rminer values, same as \code{mparheuristic(model)}.
            \item \code{heuristic5} - 5 hyperparameter searches from lower to upper, only works for the following models: 
 \code{ctree}, \code{rpart}, \code{kknn}, \code{ksvm}, \code{lssvm}, \code{mlp}, \code{mlpe}, \code{randomForest}, \code{multinom}, \code{rvm}, \code{xgboost}.
 Notes:
-\code{rpart} - different \code{cp} values (see \code{\link{rpart.control}}); 
-\code{ctree} - different \code{mincriterion} values (see \code{\link{ctree_control}}); 
+\code{rpart} - different \code{cp} values (see \code{\link[rpart]{rpart.control}}); 
+\code{ctree} - different \code{mincriterion} values (see \code{\link[party]{ctree_control}}); 
 \code{randomForest} -- upper argument is limited by the number of \code{inputs} (\code{mtry} is searched); 
 \code{ksvm}, \code{lssvm} or \code{rvm} - the optional \code{kernel} argument can be used.
            \item \code{heuristic10} - same as \code{heuristic5} but with 10 searches from \code{lower} to \code{upper}.
@@ -65,7 +64,7 @@ Notes:
   \item{exponential}{if an exponential scale should be used in the search sequence (the \code{NA} is a default value that assumes a linear scale unless \code{model} is a support vector machine).
 }
   \item{kernel}{optional kernel type, only used when \code{model="ksvm"}, \code{model="rsvm"} or \code{model="lssvm"}. Currently mapped kernels are \code{"rbfdot"} (Gaussian), 
-\code{"polydot"} (polynomial) and \code{"vanilladot"} (linear); see \code{\link{ksvm}} for kernel details.
+\code{"polydot"} (polynomial) and \code{"vanilladot"} (linear); see \code{\link[kernlab]{ksvm}} for kernel details.
 }
   \item{task}{optional task argument, only used for uniform design (\code{UD} or \code{UD1}) (with \code{"ksvm"} and \code{"rbfdot"}).
 }

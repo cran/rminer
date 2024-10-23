@@ -68,7 +68,7 @@ and \code{length(interactions)=1}, see \code{\link{Importance}}). if a vector, t
            \item \code{Y} -- assumes \code{list(z=10,x=-90,y=-90)};
            \item \code{z} -- assumes \code{list(z=0,x=0,y=0)};
            \item \code{xy} -- assumes \code{list(z=10,x=-90,y=-45)};
-           \item else you need to specify a list with z, x an y angles, see \code{\link{wireframe}}
+           \item else you need to specify a list with z, x an y angles, see \code{\link[lattice]{wireframe}}
           }
 }
   \item{zoom}{zoom of the wireframe (\code{graph="VEC3"})}
@@ -94,7 +94,7 @@ P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
 In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
 \cr
-\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
+\doi{10.1016/j.ins.2012.10.039}\cr
 
 }
 }

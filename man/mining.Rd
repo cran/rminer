@@ -15,7 +15,7 @@ mining(x, data = NULL, Runs = 1, method = NULL, model = "default",
        debug = FALSE, ...)
 }
 \arguments{
-  \item{x}{a symbolic description (formula) of the model to be fit. If \code{x} contains the data, then \code{data=NULL} (similar to x in \code{\link{ksvm}}, kernlab package).}
+  \item{x}{a symbolic description (formula) of the model to be fit. If \code{x} contains the data, then \code{data=NULL} (similar to x in \code{\link[kernlab]{ksvm}}, kernlab package).}
 
   \item{data}{an optional data frame (columns denote attributes, rows show examples) containing the training data, when using a formula.}
 
@@ -127,8 +127,8 @@ Portugal, July 2015.\cr
 \item For the grid search and other optimization methods:\cr
 P. Cortez.\cr
 Modern Optimization with R.\cr
-Use R! series, Springer, September 2014, ISBN 978-3-319-08262-2.\cr
-\url{https://www.springer.com/gp/book/9783319082622}\cr
+Use R! series, Springer, 2nd edition, July 2021, ISBN 978-3-030-72818-2.\cr
+\url{https://link.springer.com/book/10.1007/978-3-030-72819-9}\cr
 }
 }
 \author{

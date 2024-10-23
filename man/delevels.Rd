@@ -35,7 +35,7 @@ L.M. Matos, P. Cortez, R. Mendes, A. Moreau.\cr
 Using Deep Learning for Mobile Marketing User Conversion Prediction. 
 In Proceedings of the IEEE International Joint Conference on Neural Networks (IJCNN 2019), 
 paper N-19327, Budapest, Hungary, July, 2019 (8 pages), IEEE, ISBN 978-1-7281-2009-6.\cr
-\url{https://doi.org/10.1109/IJCNN.2019.8851888}\cr
+\doi{10.1109/IJCNN.2019.8851888}\cr
 \url{http://hdl.handle.net/1822/62771}\cr
 
 \item IDF transform:\cr

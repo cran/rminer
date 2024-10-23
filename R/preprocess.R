@@ -155,7 +155,7 @@ impvalue=function(D,Attribute=NULL,Missing=NA,Value)
  if(is.null(Attribute)) N=NCOL(D)
  else 
  { N=1
-   if(class(Attribute)=="character") 
+   if(is.character(Attribute)) 
     { ND<-names(D); A<-which(ND==Attribute)}
    else A<-Attribute
  }
@@ -201,7 +201,7 @@ hotdeck<-function(D,Attribute=NULL,Missing=NA,K=1)
   if(is.null(Attribute)) N=NCOL(D)
   else 
     { N=1
-      if(class(Attribute)=="character") 
+      if(is.character(Attribute)) 
         { ND<-names(D); A<-which(ND==Attribute)
         }
       else A<-Attribute
@@ -338,7 +338,7 @@ middleclass<-function(x,method="mean")
 # value: single value or vector of values
 filter_equal<-function(D,Attribute,Value,reverse=FALSE)
 {
-  if(class(Attribute)=="character") 
+  if(is.character(Attribute)) 
   { ND<-names(D); A<-which(ND==Attribute)}
   else A<-Attribute
   

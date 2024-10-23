@@ -109,7 +109,7 @@ within the \code{search} argument of \code{\link{fit}} and \code{\link{mining}} 
 
 }
   \item{D}{decision threshold (for \code{task="prob"}, probabilistic classification) within [0,1]. The class is TRUE if \emph{prob>D}.}
-  \item{TC}{target class index or vector of indexes (for multi-class classification class) within {1,...,\emph{Nc}}, where \emph{Nc} is the number of classes:<cr>
+  \item{TC}{target class index or vector of indexes (for multi-class classification class) from 1 to \emph{Nc}, where \emph{Nc} is the number of classes:<cr>
             \itemize{
             \item if \code{TC==-1} (the default value), then it is assumed:
             \itemize{
@@ -179,7 +179,7 @@ Portugal, July 2015.\cr
 A. Silva, P. Cortez, M.F. Santos, L. Gomes and J. Neves.\cr
 Rating Organ Failure via Adverse Events using Data Mining in the Intensive Care Unit.\cr
 In Artificial Intelligence in Medicine, Elsevier, 43 (3): 179-193, 2008.\cr
-\url{https://www.sciencedirect.com/science/article/pii/S0933365708000390}\cr
+\doi{10.1016/j.artmed.2008.03.010}\cr
 
 \item About the classification and regression metrics:\cr
 I. Witten and E. Frank.\cr

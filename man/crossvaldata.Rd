@@ -47,7 +47,7 @@ Returns a list with:
               }
 }
 \references{
-Check the \code{\link{crossval}} function of the bootstrap library.
+Check the \code{\link[bootstrap]{crossval}} function.
 }
 
 \author{This function was adapted by Paulo Cortez from the \code{crossval} function of the bootstrap library (S original by R. Tibshirani and R port by F. Leisch).}

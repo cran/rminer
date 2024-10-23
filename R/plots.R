@@ -553,12 +553,13 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
   { x=I$sresponses[[xval]]$x;
     y=I$sresponses[[xval]]$y;
     if(is.factor(y)){ylevels=levels(y);y=as.numeric(y);yaxt="n"}else{ylevels=NULL;yaxt="s";}
-    if(class(y)=="matrix"||class(y)=="data.frame"){ if(I$agg==3) y=y[2,] else y=y[,TC]}
+    #if(class(y)[1]=="matrix"||class(y)=="data.frame"){ if(I$agg==3) y=y[2,] else y=y[,TC]}
+    if(is.matrix(y)||is.data.frame(y)){ if(I$agg==3) y=y[2,] else y=y[,TC]}
     n=I$sresponses[[xval]]$n
     if(!is.null(digits)) M=paste(n,", var: ",round(I$val[xval],digits=digits[1]),sep="") else M=paste(n,", var: ",I$val[xval],sep="")
     if(!is.null(intbar)) YLIM=c(min(y-intbar),max(y+intbar)) else YLIM=range(y)
 
-    if( (class(x)!="character" && !is.factor(x)) && !is.null(data))
+    if( !is.character(x) && !is.factor(x) && !is.null(data) )
     { DIF=diff(x)/2;LX=length(x)
       BREAKS=rep(NA,LX+1)
       BREAKS[1]=x[1]-DIF[1]
@@ -566,8 +567,8 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
       BREAKS[LX+1]=x[LX]+DIF[LX-1]
       XLIM=range(BREAKS)
     }
-    else if(class(x)!="character" && !is.factor(x)){XLIM=range(x);DIF=(x[2]-x[1])/2;}
-    else if(class(x)=="character" || is.factor(x)){ 
+    else if(!is.character(x) && !is.factor(x)){XLIM=range(x);DIF=(x[2]-x[1])/2;}
+    else if(is.character(x) || is.factor(x)){ 
                                 if(sort) {SY=sort.int(y,decreasing=decreasing,index.return=TRUE);levels=x[SY$ix];y=y[SY$ix]
                                           if(!is.null(intbar)) intbar=intbar[SY$ix]
                                          } 
@@ -614,7 +615,8 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
    YMAX=-Inf;YMIN=Inf
    for(i in xval){ y=I$sresponses[[i]]$y;
                    if(is.factor(y)){ylevels=levels(y);y=as.numeric(y);yaxt="n"} else {ylevels=NULL;yaxt="s";}
-                   if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+                   #if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+                   if(is.matrix(y)||is.data.frame(y)) y=y[,TC]
                    YMIN=min(YMIN,y);YMAX=max(YMAX,y)
                  }
    #plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),ylab=ylab,panel.first=grid(Grid,Grid))
@@ -625,9 +627,10 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
    {
      x=I$sresponses[[i]]$x;y=I$sresponses[[i]]$y;
      if(is.factor(y)){ylevels=levels(y);y=as.numeric(y);yaxt="n"} else {ylevels=NULL;yaxt="s";}
-     if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+     #if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+     if(is.matrix(y)||is.data.frame(y)) y=y[,TC]
      n=I$sresponses[[i]]$n;LY=length(y)
-     if(class(x)=="character" || is.factor(x)) 
+     if(is.character(x) || is.factor(x)) 
                                { 
                                 if(sort) {SY=sort.int(y,decreasing=decreasing,index.return=TRUE);levels=x[SY$ix];y=y[SY$ix]
                                           if(!is.null(intbar)) intbar=intbar[SY$ix]
@@ -681,7 +684,9 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
    y=I$sresponses[[xval]]$y
 
   if(is.factor(y)){ylevels=levels(y);y=as.numeric(y)} else {ylevels=NULL}
-  if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+  #if(class(y)=="matrix"||class(y)=="data.frame") y=y[,TC]
+  if(is.matrix(y)||is.data.frame(y)) y=y[,TC]
+
   n=I$sresponses[[xval]]$n
   L=I$sresponses[[xval]]$l[1]
   LY=length(y)

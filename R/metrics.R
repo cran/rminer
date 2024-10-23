@@ -1066,7 +1066,7 @@ tolerance<-function(REC,tol=0.5)
 conflevel=function(x,level=0.95)
 {
  RES=try( (t.test(x,conf.level=level)$conf[2]-t.test(x,conf.level=level)$conf[1])/2 , silent=TRUE)
- if(class(RES)=="numeric") return(RES) else return (0)
+ if(is.numeric(RES)) return(RES) else return (0)
 }
 
 # mean and confidence interval using t.test. add wilcoxon?

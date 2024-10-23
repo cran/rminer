@@ -1,4 +1,4 @@
-# @2020 
+# @2024 
 
 # old to to:
 # - pcr => scale Email of Nurseda Yurusen, 5th May 2016
@@ -297,7 +297,7 @@ if(search$smethod=="auto")
       for(i in ILM) # fit final models
       {
        FIT=fit(x,data,model=mmodel[i],task=task,scale=scale,search=fargs[[i]],transform=transform,...)
-       if( class(FIT@object)[1] == "character" ) # individual model did not work
+       if( inherits(FIT@object,"character") ) # individual model did not work
          { 
           ILM=setdiff(ILM,i)
          }
@@ -536,13 +536,13 @@ if(search$smethod=="none") # no search <----------------------------------------
 
      # FIT!!!
      #sink()
-     if(class(M)[1]!="try-error") fargs=modelargs(fargs,model,M) # update fargs if needed
+     if( !inherits(M,"try-error") ) fargs=modelargs(fargs,model,M) # update fargs if needed
 
      if(!is.null(LB)) { if(!is.null(fargs)) fargs$LB=LB else fargs=list(LB=LB) }
 
     } # end else
    } # end model is character 
-   if(class(M)[1]=="try-error") { M=M[[1]];msg=paste("fit failed:",M[[1]],capture.output(call));warning(msg);}
+   if( inherits(M,"try-error") ) { M=M[[1]];msg=paste("fit failed:",M[[1]],capture.output(call));warning(msg);}
  } # end individual models --------------------------------------------------------------
 } # end "none" search <------------------------------------------------------------------------------------------------------------
 
@@ -1345,7 +1345,7 @@ while(!stop)
 #cat("nr:",nrow(data),"\n")
     FIT=suppressWarnings( try( mining(x,data,Runs=1,method=search$method,model=model,task=task,scale=scale,search=si,transform=transform,...), silent= TRUE) )
 #print(" >>> end mining")
-    if(class(FIT)[1]=="try-error") { eval=worst(metric);if(is.null(bmodel)) bmodel=list(error=eval) } else eval=FIT$error
+    if( inherits(FIT,"try-error") ) { eval=worst(metric);if(is.null(bmodel)) bmodel=list(error=eval) } else eval=FIT$error
     if(isbest(eval,bestval,metric)) {bestval=eval;notimprove=0;best=si;bmodel=FIT } 
     else notimprove=notimprove+1
     if(fdebug) { cat("i:",i,"eval:",eval,"best:",bestval,"\n") }
@@ -2087,10 +2087,11 @@ getmethod=function(mpar)
 Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regular",baseline="mean",responses=TRUE,
                     outindex=NULL,task="default",PRED=NULL,interactions=NULL,Aggregation=-1,LRandom=-1,MRandom="discrete",Lfactor=FALSE)
 {
-#model=M;data=d;RealL=6;method="sens";measure="variance";sampling="regular";responses=TRUE;outindex=NULL;task=NULL;
-#model<=M;DDD<=data;RealL<=RealL;method<=method;measure<=measure;sampling<=sampling;responses<=responses; 
+ #model=M;data=d;RealL=6;method="sens";measure="variance";sampling="regular";responses=TRUE;task=NULL;
+ #model<=M;DDD<=data;RealL<=RealL;method<=method;measure<=measure;sampling<=sampling;responses<=responses; 
  SDD=NULL
- if(class(M)=="model"){outindex=M@outindex; task=M@task; Attributes=M@attributes} # rminer model
+ Dnames=names(data)
+ if( inherits(M,"model") ){outindex=M@outindex; task=M@task; Attributes=M@attributes} # rminer model
  else # another R supervised learning model
  { 
   task=defaultask(task,model="default",data[1,outindex])
@@ -2122,7 +2123,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
 
  # use the method proposed by Leo Breiman 2001:
  if(method=="randomForest" || method=="randomforest") # user should be sure this is a randomforest!
- { if(class(M)=="model") Sv=randomForest::importance(M@object,type=1)
+ { if( inherits(M,"model") ) Sv=randomForest::importance(M@object,type=1)
    else Sv=randomForest::importance(M,type=1) # true randomforest
    # need to change this code!!! it seems that negative values mean less important inputs when compared with positive ones
    # the problem is how to scale and get a percentage ? 0% for the most negative input?
@@ -2131,7 +2132,6 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
    RESP=NULL
    measure=""
  }
- #else if(substring(method,1,4)=="sens" || method=="DSA" || method=="MSA") # set SPREAD
  else # all other methods
  {
   measure=switch(method,sensv="variance",sensg="gradient",sensr="range",sensa="AAD",measure)
@@ -2139,7 +2139,6 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
 
   if(method=="SA") method="sens"
   if(method=="sens" && is.null(interactions)) method="1D-SA" else if(method=="sens") method="GSA"
-  # method="GSA" ?
 
   if(responses) YSTORE=TRUE else YSTORE=FALSE
 
@@ -2147,7 +2146,6 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
 
   #if(method=="sensi") INTERACT=TRUE else INTERACT=FALSE
   INTERACT=FALSE
-
   if(method=="DSA"||method=="MSA"){if(LRandom<1) Lsize=NROW(data) else Lsize=LRandom}
   Dsize=NCOL(data); 
   # set ML and NLY if needed
@@ -2159,20 +2157,21 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
   { SPREAD=vector("list",Dsize); MR=0; # set SPREAD
     for(i in IRANGE) # 
     { L=length(levels(data[1,i])); if(L>0){if(!Lfactor) L=min(RealL,L)} else L=RealL
-#cat(">>> Factor:",Lfactor,"L:",L,"Real:",RealL,"\n")
+      #cat(">>> Factor:",Lfactor,"L:",L,"Real:",RealL,"\n")
       SPREAD[[i]]=rmsample(data[,i],L=L,index=FALSE,sampling=sampling)$x
       MR=max(MR,L)
     } 
     if(!is.null(interactions)) # set LINT and JDOMAIN
-    { LINT=length(interactions)
+    { 
+      LINT=length(interactions)
       i1=interactions[1]; L=length(SPREAD[[i1]]);
-      if(LINT==2) {Dsize=1;JDOMAIN=interactions[2];}
-      else if(LINT>2){Dsize=1; INTERACT=TRUE;}
+      if(LINT==2) {JDOMAIN=interactions[2];}
+      else if(LINT>2){INTERACT=TRUE;}
       else JDOMAIN=setdiff(IRANGE,i1)
     }else LINT=0
     if(method=="1D-SA"||method=="GSA") # set the baseline if needed
     { 
-      if(class(baseline)=="data.frame") v=baseline
+      if( inherits(baseline,"data.frame") )  v=baseline
       else #--- set the average/median input
       { v=data[1,]
         for(i in IRANGE) 
@@ -2196,26 +2195,26 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
       }
       data=v[rep(1,MR),]
     }
-  } # ----------------------------------------------------------------------------
- Llevels=rep(NA,length(Attributes))
- if(is.null(interactions)) # method=="sens", "SA", "1D-SA" || method=="sensgrad" || method=="DSA" || method=="CSA" || method="MSA"
- {
-  Sv=rep(0,Dsize)
-  if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
-  YY=NULL
-  LRDATA=nrow(data)
-  DD=NULL
-  if(method=="DSA"){if(Lsize<LRDATA){S=sample(1:LRDATA,Lsize);DD=data[S,]} else DD=data}
-  else if(method=="MSA"){DD=data[1:Lsize,];DD=MCrandom(DD,IRANGE,SPREAD,mode=MRandom)}
-  else if(method=="CSA"){ if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
-                          if(is.factor(y[1]))   y=one_of_c(y)
-                        }
-  if(YSTORE){SDD=DD}
-  if(method=="DSA"||method=="MSA"||method=="CSA") value=vector(length=Aggregation)
+  } # - END if CSA
+  Llevels=rep(NA,length(Attributes))
+  if(is.null(interactions)) # method=="sens", "SA", "1D-SA" || method=="sensgrad" || method=="DSA" || method=="CSA" || method="MSA"
+  {
+    Sv=rep(0,Dsize)
+    if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
+    YY=NULL
+    LRDATA=nrow(data)
+    DD=NULL
+    if(method=="DSA"){if(Lsize<LRDATA){S=sample(1:LRDATA,Lsize);DD=data[S,]} else DD=data}
+    else if(method=="MSA"){DD=data[1:Lsize,];DD=MCrandom(DD,IRANGE,SPREAD,mode=MRandom)}
+    else if(method=="CSA"){ if( inherits(M,"model") ) y=predict(M,data) else y=PRED(M,data)
+                            if(is.factor(y[1]))   y=one_of_c(y)
+                          }
+    if(YSTORE){SDD=DD}
+    if(method=="DSA"||method=="MSA"||method=="CSA") value=vector(length=Aggregation)
 
-  for(i in IRANGE)
-   { 
-    if(method=="DSA"||method=="MSA")
+    for(i in IRANGE)
+    { 
+     if(method=="DSA"||method=="MSA")
       { L=length(SPREAD[[i]])
         if(responses) { xinp=SPREAD[[i]];xname=names(DD)[i];}
         MEM=DD[,i]
@@ -2225,7 +2224,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
         {
            if(is.factor(DD[1,i])) DD[,i]=factor(rep(SPREAD[[i]][k],Lsize),levels=levels(DD[1,i]))
            else DD[,i]=rep(SPREAD[[i]][k],Lsize)
-           if(class(M)=="model") y=predict(M,DD) else y=PRED(M,DD)
+           if( inherits(M,"model") ) y=predict(M,DD) else y=PRED(M,DD)
            if(is.factor(y[1])) y=one_of_c(y)
            if(YSTORE){if(NLY>0) {for(j in 1:NLY) {YY[,z]=y[,j];z=z+1;} } else {YY[,z]=y;z=z+1;}}
            if(NLY==0) Y[,k]=yaggregate(y,Aggregation)
@@ -2245,7 +2244,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
              }
         Sv[i]=mean(value)
       }
-      else if(method=="CSA")
+     else if(method=="CSA")
       { L=length(levels(data[1,i])); if(L>0){if(!Lfactor)L=min(RealL,L)} else L=RealL
         IR=rmsample(data[,i],L=L,MAX=Inf,sampling=sampling) 
         if(responses) { xinp=IR$x; xname=names(data)[i];}
@@ -2272,37 +2271,38 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
              }
         Sv[i]=mean(value)
       }
-      else # "sens"
+     else # "sens"
       {   L=length(SPREAD[[i]])
           if(responses) {xinp=SPREAD[[i]];xname=names(data)[i];}
           MEM=data[(1:L),i] 
           data[(1:L),i]=SPREAD[[i]]
-          if(class(M)=="model") Y=predict(M,data[(1:L),]) else Y=PRED(M,data[(1:L),])
+          if( inherits(M,"model") ) Y=predict(M,data[(1:L),]) else Y=PRED(M,data[(1:L),])
           data[(1:L),i]=MEM # restore previous values
           Sv[i]=s_measure(Y,measure,x=SPREAD[[i]],Levels=ML)
       }
-      if(responses) RESP[[i]]=list(n=xname,l=L,x=xinp,y=Y,yy=YY)
-      Llevels[i]=L
+     if(responses) RESP[[i]]=list(n=xname,l=L,x=xinp,y=Y,yy=YY)
+     Llevels[i]=L
 
-   } # cycle for?
-  Sum=sum(Sv)
-  if(Sum==0) # no change in the model, equal importances to all attributes
-  {imp=rep(1/(Dsize-1),length=Dsize);imp[outindex]=0;}
-  else imp=Sv/Sum
+    } # cycle for IRANGE
+
+    Sum=sum(Sv)
+    if(Sum==0) # no change in the model, equal importances to all attributes
+      {imp=rep(1/(Dsize-1),length=Dsize);imp[outindex]=0;}
+    else imp=Sv/Sum
   } #end of if null interactions --------------------------------------------------------------
   else if(!INTERACT) # LINT<3) # if(!is.null(interactions))
   {
-   Sv=rep(0,Dsize)
-   if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
-   if(method=="DSA") MR=NROW(data) 
-   for(j in JDOMAIN)
+    Sv=rep(0,Dsize)
+    if(responses) RESP=vector("list",length=Dsize) else RESP=NULL
+    if(method=="DSA") MR=NROW(data) 
+    for(j in JDOMAIN)
     {
      if(method=="1D-SA"||method=="GSA")
      { MEM=data[,j] 
        L2=length(SPREAD[[j]]); MR=L*L2;
        for(k in 1:L2) {ini=1+(k-1)*L;end=ini+L-1;data[ini:end,i1]=SPREAD[[i1]];data[ini:end,j]=SPREAD[[j]][k];}
        if(responses) {xinp=data[1:MR,c(i1,j)];xname=c(names(data)[i1],names(data)[j]);}
-       if(class(M)=="model") Y=predict(M,data[(1:MR),]) else Y=PRED(M,data[(1:MR),])
+       if( inherits(M,"model") ) Y=predict(M,data[(1:MR),]) else Y=PRED(M,data[(1:MR),])
        data[,j]=MEM # restore previous values
      }
      else if(method=="DSA") 
@@ -2315,7 +2315,7 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
          if(responses){xinp[o,1]=SPREAD[[i1]][l];xinp[o,2]=SPREAD[[j]][k];o=o+1;}
          if(is.factor(data[1,i1])) data[,i1]=factor(SPREAD[[i1]][l],levels=levels(data[1,i1])) else data[,i1]=SPREAD[[i1]][l]
          if(is.factor(data[1,j])) data[,j]=factor(SPREAD[[j]][k],levels=levels(data[1,j])) else data[,j]=SPREAD[[j]][k]
-         if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
+         if( inherits(M,"model") ) y=predict(M,data) else y=PRED(M,data)
          Y=c(Y,mean(y)) 
          #data[,i1]=MEM[,1];data[,j]=MEM[,2] # restore previous values
        }
@@ -2326,7 +2326,6 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
      if(responses) RESP[[k]]=list(n=xname,l=L,x=xinp,y=Y) 
      Llevels[k]=L
     }
-#cat("SV:",Sv,"\n")
     Sum=sum(Sv)
     if(Sum==0) # no change in the model, equal importances to all attributes
     {imp=rep(1/(Dsize-1),length=Dsize);imp[outindex]=0;}
@@ -2334,29 +2333,58 @@ Importance=function(M,data,RealL=7,method="1D-SA",measure="AAD",sampling="regula
   }
   else # LINT>=3, INTERACT
   {
-   Sv=rep(0,1)
+   Sv=rep(0,Dsize)
    if(responses) {RESP=vector("list",length=1);L=vector(length=LINT);} else RESP=NULL
    # interactions / SPREAD / data
    E=1;
-#cat("LINT:",LINT,"MR:",MR,"\n")
+   #cat("LINT:",LINT,"MR:",MR,"\n")
    for(i in 1:LINT)
    { k=interactions[[i]];LS=length(SPREAD[[k]]);T=MR/(E*LS)
-#cat("i:",i,"LS:",LS,"T:",T,"\n")
+     #cat("i:",i,"LS:",LS,"T:",T,"\n")
      if(is.factor(data[,k][1])) data[,k]=rep(factor(SPREAD[[k]],levels=levels(data[,k])),each=E,times=T) else data[,k]=rep(SPREAD[[k]],each=E,times=T)
      E=E*LS;
      if(responses) L[i]=LS
-     Llevels[i]=L[i]
+     Llevels[k]=L[i]
    }
-   if(class(M)=="model") y=predict(M,data) else y=PRED(M,data)
-#rmboxplot(y,MEAN=TRUE,LINE=2,MIN=TRUE,MAX=TRUE,ALL=TRUE)
-#mypause()
-   Sv=s_measure(y,measure)
-   if(responses) RESP[[1]]=list(n=names(data)[interactions],l=L,x=data[,interactions],y=y) 
-   imp=1
-  }
- }
- return (list(value=Sv,imp=imp,sresponses=RESP,data=SDD,method=method,measure=measure,agg=Aggregation,nclasses=NLY,inputs=setdiff(Attributes,outindex),Llevels=Llevels,
-              interactions=interactions))
+   if( inherits(M,"model")) y=predict(M,data) else y=PRED(M,data)
+   #rmboxplot(y,MEAN=TRUE,LINE=2,MIN=TRUE,MAX=TRUE,ALL=TRUE)
+   #mypause()
+   #Sv=s_measure(y,measure)
+   if(responses) 
+   { 
+    RESP[[1]]=list(n=names(data)[interactions],l=L,x=data[,interactions],y=y) 
+#RRESP<<-RESP
+#RESP=RRESP
+    xsa=RESP[[1]]$x
+    ysa=RESP[[1]]$y 
+    val=vector(length=Aggregation)
+    XNAMES=names(xsa)
+    DNAMES=names(data)
+    KA=length(XNAMES)
+#cat("DNAMES:",DNAMES,"\n")
+    for(k in 1:KA)
+      { Lx=unique(xsa[,XNAMES[k]]) # x_k levels
+        nLx=length(Lx)
+        sm=matrix(ncol=nLx,nrow=Aggregation)
+        for(l in 1:nLx)
+          { Is=which(xsa[,XNAMES[k]]==Lx[l])
+            sm[1:Aggregation,l]=yaggregate(ysa[Is],N=Aggregation)
+          }
+        for(n in 1:Aggregation) val[n]=s_measure(sm[n,],measure=measure)
+        Sv[ which(DNAMES==XNAMES[k]) ]=mean(val)
+      }  
+    Sum=sum(Sv)
+    if(Sum==0) # no change in the model, equal importances to all attributes
+    {imp=rep(1/(Dsize-1),length=Dsize);imp[outindex]=0;}
+    else imp=Sv/Sum
+   } 
+  else imp=1
+  } # ende else LINT>=3, INTERACT
+ } # end all other methods
+
+ if(is.factor(data[1,outindex])){ML=table(data[,outindex])[];ML=ML/sum(ML)}
+ else {ML=NULL} # LProp is the proportion of classes for each output level 
+ return (list(value=Sv,imp=imp,sresponses=RESP,data=SDD,method=method,measure=measure,agg=Aggregation,nclasses=NLY,inputs=setdiff(Attributes,outindex),Llevels=Llevels,interactions=interactions,outindex=outindex,dnames=Dnames,LProp=ML))
 }
 
 # -- 
@@ -2433,17 +2461,37 @@ avg_imp=function(I,AT,measure="variance")
 }
 
 # experimental:
-# need to check if using the output variable at the first column produces errors in other rminer functions:
-agg_matrix_imp=function(I,INP=I$inputs,measure=I$measure,Aggregation=I$agg,method=I$method,outdata=NULL,L=I$Llevels,ameth="xy",Tolerance=0.1)
+# I is an Importance object
+# returns 2 matrices regarding input pair influences, see Table 8 of the INS 2013 reference paper.
+# first matrix, m1 is about (xa projected sensitivity measure values, m2 is about ,xb) projected sensitivity values.
+# does not work for CSA!!!
+agg_matrix_imp=function(I,INP=I$inputs,measure=I$measure,Aggregation=I$agg,method=I$method,L=I$Llevels,ameth="xy",Tolerance=0.1)
 {
+
+#if(FALSE)
+#{
+#I=III
+#data=SDD
+#INP=I$inputs
+#measure=I$measure
+#Aggregation=I$agg
+#method=I$method
+#L=I$Llevels
+#ameth="xy"
+#Tolerance=0.1
+#}
+ if(!is.null(I$interactions)) INP=I$interactions
+# dnames=names(data)
  N=length(INP)
  m1=matrix(0,ncol=N,nrow=N)
  m2=m1
  for(i in 1:N)
   for(j in 1:N)
    { if(INP[i]!=INP[j]) { 
-                #cat("i:",i,"j:",j,"Li:",L[i],"Lj:",L[j],"\n")  
-                II=aggregate_imp(I,AT=c(INP[i],INP[j]),measure=measure,Aggregation=Aggregation,method=method,outdata=outdata,L=L,ameth=ameth,Tolerance=Tolerance)
+#xinp=which(dnames==dnames[INP[i]])
+#yinp=which(dnames==dnames[INP[j]])
+#cat("a1>> i:",i,"j:",j,"Li:",L[INP[i]],"Lj:",L[INP[j]],"\n")  
+                II=aggregate_imp(I,AT=c(INP[i],INP[j]),INP,measure=measure,Aggregation=Aggregation,method=method,L=L,ameth=ameth,Tolerance=Tolerance)
                 m1[i,j]=mean(II$value); m2[i,j]=mean(II$value2)
               }
    }
@@ -2456,8 +2504,26 @@ agg_matrix_imp=function(I,INP=I$inputs,measure=I$measure,Aggregation=I$agg,metho
 # -----
 # remove outdata? use ML table in I$ML?
 # remove avg_imp?
-aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outdata=NULL,L,ameth="xy",Tolerance=0.1)
+aggregate_imp=function(I,AT,INP,measure="variance",Aggregation=1,method="sens",L,ameth="xy",Tolerance=0.1)
 {
+#if(FALSE)
+#{
+#I=III
+#data=SDD
+#i=1;j=2
+#measure=I$measure
+#Aggregation=I$agg
+#method=I$method
+#L=I$Llevels
+#ameth="xy"
+#Tolerance=0.1
+#INP=I$inputs
+#if(!is.null(I$interactions)) INP=I$interactions
+#AT=c(INP[i],INP[j])
+#}
+
+#AT=c(INP[i],INP[j])
+
  if(length(AT)==1){
  x=I$sresponses[[ AT[1] ]]$x
  y=I$sresponses[[ AT[1] ]]$y
@@ -2468,49 +2534,58 @@ aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outda
        x=I$sresponses[[ 1 ]]$x
        y=I$sresponses[[ 1 ]]$y
       }
-      else{
+      else{ # DSA, MSA, CSA:
             x=I$sresponses[[ AT[1] ]]$x
-            y=I$sresponses[[ AT[1] ]]$y # check if this is right???
+            y=I$sresponses[[ AT[1] ]]$y 
           }
      }
-
- if(is.factor(outdata[1])){ Lev=levels(outdata[1]);NLY=length(Lev);ML=table(outdata)[];ML=ML/sum(ML)}
+ if(!is.null(I$LProp)) # output is factor 
+ { Lev=names(I$LProp);NLY=length(Lev);ML=I$LProp}
  else {ML=NULL;NLY=0;}
 
  if(length(AT)==2)
  { 
    if(substr(method,1,4)=="sens"||method=="GSA"||method=="1D-SA"||method=="SA")
    {  
-      X1=unique(x[,AT[1]])
+      dnames=I$dnames
+      xlab=dnames[AT[1]]
+      ylab=dnames[AT[2]]
+
+      X1=unique(x[,xlab])
       LX=length(X1)
-      xlab=I$sresponses[[1]]$n[AT[1]]
-      ylab=I$sresponses[[1]]$n[AT[2]]
-      X2=unique(x[,AT[2]])
+      X2=unique(x[,ylab])
       LY=length(X2)
-      # nao sei o que fazer aqui, testar mais tarde...
+
+      # nao sei o que fazer aqui, testar mais tarde...???
       if(NLY==0) J=Aggregation else J=NLY
       mm=matrix(nrow=LX,ncol=LY*J)
       for(i in 1:LX)
        for(j in 1:LY)
          {
-           W=which(x[,AT[1]]==X1[i] & x[,AT[2]]==X2[j])
-           sss=seq(j,(LY*(J-1)+j),LY)
-           mm[i,sss]=yaggregate(y[W],Aggregation)
+#cat("a2 >> i:",i,"j:",j,"\n")
+           W=which(x[,xlab]==X1[i] & x[,ylab]==X2[j])
+           if(length(W)>0)
+             {
+              sss=seq(j,(LY*(J-1)+j),LY)
+              mm[i,sss]=yaggregate(y[W],Aggregation)
+             }
          }
    }
-   else # check LY e LX instead of AT 1 and 2? "MSA" / "DSA"
+   else if(method=="MSA"||method=="DSA") # check LY e LX instead of AT 1 and 2? "MSA" / "DSA"
    { 
+      dnames=I$dnames
       X1=unique(x)
       LX=length(X1)
-      xlab=I$sresponses[[AT[1]]]$n
-      ylab=I$sresponses[[AT[2]]]$n
+      xlab=dnames[AT[1]]
+      ylab=dnames[AT[2]]
 #cat("kmsample> xlab:",xlab,"ylab:",ylab,":\n")
-      K=rmsample(I$data[,AT[2]],L=L[AT[2]],index=TRUE,sampling="regular",Tolerance=0.1) # think about zero slots?
-      X2=K$x
-      LY=length(X2)
+      K=rmsample(I$data[,ylab],L=L[ AT[2] ],sampling="regular",Tolerance=0.1,index=TRUE) # DONE? 
+      #K=rmsample(I$data[,ylab],L=L[ AT[2] ],sampling="regular",index=FALSE) # DONE? 
+      X2=K$x 
+      LY=length(X2) # LY can be lower than L=L[ AT[2] ]
 #cat("X2:",X2,"\n")
      
-      yy=I$sresponses[[AT[1]]]$yy
+      yy=I$sresponses[[ AT[1] ]]$yy
       if(NLY==0) J=Aggregation else J=NLY
       mm=matrix(nrow=LX,ncol=LY*J)
      for(i in 1:LX)
@@ -2522,15 +2597,22 @@ aggregate_imp=function(I,AT,measure="variance",Aggregation=1,method="sens",outda
          mm[i,sss]=yaggregate(yy[K$index[[j]],i],Aggregation)
        } 
    }  
+   else if(method=="CSA") # does not work, think later!
+   { 
+    # ...
+   }  
+
+
 #cat("done kmsample\n")
 #mm<=mm
 #NLY<=NLY
 #ML<=ML
 #ameth<=ameth;measure<=measure
    # s_measure global OU em x + em y ?
+
    value=vector(length=Aggregation)
    value2=vector(length=Aggregation)
-value3=vector(length=Aggregation)
+   value3=vector(length=Aggregation)
     if(NLY==0) { for(k in 1:Aggregation) { ini=(k-1)*LY+1;end=ini+LY-1;
 #cat("ini:",ini,"end:",end,"measure:",measure,"xy:",ameth,"\n")
                                   val=s_measure(mm[,ini:end],measure,Levels=ML,xy=ameth) 
@@ -2543,7 +2625,9 @@ value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global")
    else{ for(k in 1:Aggregation)
                   { 
 #cat(">> k:",k,"\n")
-                    ini=(k-1)*NLY+1;end=ini+NLY*(L[AT[2]])-1;
+                   
+                    #ini=(k-1)*NLY+1;end=ini+NLY*(L[ AT[2] ])-1
+                    ini=(k-1)*NLY+1;end=ini+NLY*(LY)-1
                     val=s_measure(mm[,ini:end],measure,Levels=ML,xy=ameth) 
                     value[k]=val[1];value2[k]=val[2]
                   }
@@ -2569,10 +2653,10 @@ value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global")
    I$xlab=xlab
    I$ylab=ylab
 #cat("L:",L,"\n")
-   I$L=c(L[AT[1]],LY)
+   I$L=c(L[ AT[1] ],LY)
    return(I)
  }
- else # length(AT)==1 ## there are huge problems with this if code, which does not work, later i need to rethink and recode this!!!
+ else # length(AT)==1 ## there are huge problems with this if code, which does not work, later i need to rethink and recode this!!! Does this option make sense???
  { 
    if(is.numeric(x)) X1=unique(x) else X1=unique(x[,AT[1]])
    #X1=unique(x)
@@ -2651,8 +2735,6 @@ value3[k]=s_measure(mm[,ini:end],measure,Levels=ML,xy="global")
  I$value=mean(value)
  return(I)
 }
-
-
 
 
 #----------------------------------------------------------------------------------------------------
@@ -2858,9 +2940,17 @@ rmtable=function(x,Levels)
  return(res)
 }
 
+# perform a fast cluster-based split of the data
 # adapt to factor data?
 # iregular and equal may not work for ordered data?
 # need to correct this function for: X=c(1,2.1,3.3,4.0,7.0);rmsample(X,L=5,Tolerance=0.0)
+# 
+# x is the original data, a vector
+# L is the number of levels to be returned
+# MAX I do not know?, with Inf it means that it is not used, do not worry with this arg.
+# Tolerance percentage of tolerance range set within the difference between 2 interpolated points
+# sampling the type of sampling, regular, quantile
+# index= return indexes of the points that are found within the margin of the Tolerance!
 rmsample=function(x,L=2,MAX=Inf,Tolerance=1,sampling="regular",index=TRUE)
 {
  #MAX=Inf;Tolerance=0.1;sampling="regular";index=TRUE;L=4;x=c(1,2.1,3.3,4.0,7.0)
@@ -2913,7 +3003,6 @@ rmsample=function(x,L=2,MAX=Inf,Tolerance=1,sampling="regular",index=TRUE)
  else if(sampling=="iregular" || sampling=="regular" || sampling=="quantile"){
 
  #x=fo; L=3; sampling="regular"
-
  if(is.ordered(x))
  { LEV=levels(x[1]);LLEV=length(LEV)
    if(L>LLEV) {MID=LEV;L=LLEV}
@@ -2924,14 +3013,11 @@ rmsample=function(x,L=2,MAX=Inf,Tolerance=1,sampling="regular",index=TRUE)
  }
  else{
  R=range(x)
+ # set MIDDLE POINTS:
  if(sampling=="iregular"){ MID=mids(x,L,R=R)}
  else if(sampling=="quantile"){ MID=unique(quantile(x,seq(0,1,length.out=L)));attr(MID,"names")=NULL}
  else if(sampling=="regular"){ MID=seq(R[1],R[2],length.out=L)}
 
-#print("MID:")
-#print(MID)
-#xxx<=x
- #index=TRUE;sampling="regular";L=3;
  if(index){
  S=seq(R[1],R[2],length.out=(L+1))
 #print("S:")

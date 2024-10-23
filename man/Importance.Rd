@@ -107,7 +107,7 @@ A \code{list} with the components:
 P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
 In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
-\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
+\doi{10.1016/j.ins.2012.10.039}\cr
 }
 }
 \author{
@@ -165,19 +165,28 @@ vecplot(I4,graph="VECB",xval=2,cex=1.2,TC=2,
  main="VEC curve with box plots for x2 influence on y (class B)",xlab="x2")
 }
 
-### 4th example, regression, DSA:
+### 4th example, regression, DSA and GSA:
 \dontrun{
 data(sa_psin)
 # same model from Table 1 of the reference:
 M3=fit(y~.,sa_psin,model="ksvm",search=2^-2,C=2^6.87,epsilon=2^-8)
-# in this case: Aggregation is the same as NY
+# in this case: Aggregation should be -1 (default), 1 (class) or 3 (reg), see ref. paper.
 I5=Importance(M3,sa_psin,method="DSA",Aggregation=3)
+print("Input importances:")
+print(round(I5$imp,digits=2)) # INS 2013 similar results
+
+
 # 2D analysis (check reference for more details), RealL=L=7:
-# need to aggregate results into a matrix of SA measure
+# need to aggregate results into a matrix of SA measure by using the agg_matrix_imp function.
+# important notes: 
+# - agg_matrix_imp only works for the methods "DSA", "MSA" and "GSA".
+# - reliable agg_matrix_imp results for "DSA" or "MSA" only for a 
+#   a large LRandom value (e.g., LRandom=1000) or when LRandom=-1 (all training samples)
 cm=agg_matrix_imp(I5)
 print("show Table 8 DSA results (from the reference):")
 print(round(cm$m1,digits=2))
 print(round(cm$m2,digits=2))
+# internal rminer function:
 # show most relevant (darker) input pairs, in this case (x1,x2) > (x1,x3) > (x2,x3)
 # to build a nice plot, a fixed threshold=c(0.05,0.05) is used. note that
 # in the paper and for real data, we use threshold=0.1, 
@@ -193,11 +202,46 @@ vecplot(I5,xval=c(1,2),graph="VECC",xlab="x1",ylab="x2",
  main="VEC surface of (x1,x2') influence on y")
 # slower GSA:
 I6=Importance(M3,sa_psin,method="GSA",interactions=1:4)
+print("Input importances:")
+print(round(I6$imp,digits=2)) # INS 2013 similar results
 cm2=agg_matrix_imp(I6)
 # compare cm2 with cm1, almost identical:
 print(round(cm2$m1,digits=2))
 print(round(cm2$m2,digits=2))
 fcm2=cmatrixplot(cm2,threshold=0.1) 
+}
+
+### 5th example, classification, 1D_SA, DSA, MSA and GSA:
+\dontrun{
+data(sa_ssin_n2p)
+# same model from Table 1 of the reference:
+M4=fit(y~.,sa_ssin_n2p,model="ksvm",kpar=list(sigma=2^-8.25),C=2^10)
+
+I7=Importance(M4,sa_ssin_n2p,method="1D-SA")
+print("1D-SA Input importances:")
+print(round(I7$imp,digits=2)) # INS 2013 similar results (Table 6)
+
+I8=Importance(M4,sa_ssin_n2p,method="GSA",interactions=1:4)
+print("GSA Input importances:")
+print(round(I8$imp,digits=2)) # INS 2013 similar results (Table 6)
+
+I9=Importance(M4,sa_ssin_n2p,method="DSA",LRandom=1000)
+print("DSA Ns=1000 Input importances:")
+print(round(I9$imp,digits=2)) # INS 2013 similar results (Table 6)
+
+I10=Importance(M4,sa_ssin_n2p,method="DSA",LRandom=10)
+print("DSA Ns=10 Input importances:")
+print(round(I10$imp,digits=2)) # INS 2013 similar results (Table 6)
+
+I11=Importance(M4,sa_ssin_n2p,method="MSA",LRandom=10)
+print("MSA Ns=10 Input importances:")
+print(round(I11$imp,digits=2)) # INS 2013 similar results (Table 6)
+
+# 2D analysis:
+cm3=agg_matrix_imp(I8)
+fcm3=cmatrixplot(cm3,threshold=c(0.05,0.05)) 
+cm4=agg_matrix_imp(I9)
+fcm4=cmatrixplot(cm4,threshold=c(0.05,0.05)) 
 }
 
 ### If you want to use Importance over your own model (different than rminer ones):

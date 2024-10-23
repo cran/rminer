@@ -18,7 +18,7 @@ Simple synthetic dataset with 1000 points, where y=0.7*sin(pi*x1/2000)+0.3*sin(p
 P. Cortez and M.J. Embrechts.\cr
 Using Sensitivity Analysis and Visualization Techniques to Open Black Box Data Mining Models.\cr
 In Information Sciences, Elsevier, 225:1-17, March 2013.\cr
-\url{http://dx.doi.org/10.1016/j.ins.2012.10.039}\cr
+\doi{10.1016/j.ins.2012.10.039}\cr
 }
 }
 \examples{
