@@ -191,13 +191,15 @@ if(search$smethod=="auto")
    LM=length(search$search$models) # number of models
    best=worst(search$metric)
    Worst=best #
+   #cat(" >>> metric:",search$metric,"best:",best,"\n")
    mmodel=vector("character",LM)
    fargs=vector("list",LM) # one per model
    bestmodelindex=-1
    bmodel=NULL
    eval=vector(length=LM) # validation measures per individual model 
 
-   if(fdebug) { cat(search$smethod,"with:",LM,"models") 
+   if(fdebug) { if(is.character(model)) cat("model:",model," > ")
+                cat(search$smethod,"with:",LM,"models") 
                 if(is.character(search$metric)) cat(" (",search$metric," values)\n",sep="") else cat("\n")
                 MPTM= proc.time() # start clock
               }
@@ -226,6 +228,7 @@ if(search$smethod=="auto")
            imodel=list(m=mmodel[i],f=M2,w=eval[ILM]) 
 #I2<<-imodel
            smulti$search=NULL
+           #smulti$search="heuristic"
          }
        else { imodel=mmodel[i]
               smulti$search=search$search$ls[[i]]
@@ -234,7 +237,6 @@ if(search$smethod=="auto")
 #SMULTI<<-smulti 
        FIT= fit(x,data,model=imodel,search=smulti,task=task,scale=scale,transform=transform,fdebug=fdebug,...)
 #cat(" <--- done>\n")
- 
        eval[i]=FIT@error
        if(FIT@error==Worst) # individual model did not work
         { ILM=setdiff(ILM,i) # remove individual model
@@ -270,8 +272,7 @@ if(search$smethod=="auto")
     if(isbest(0,1,search$metric)) bestmodelindex=which.min(eval) else bestmodelindex=which.max(eval)
     best=eval[bestmodelindex] 
     bmodel=mmodel[bestmodelindex]
-
-    if(fdebug && !is.null(bmodel) ) { cat(" >> best:",i,"model:",bmodel,"best:",best,"\n") }
+    if(fdebug && !is.logical(eval) && !is.null(bmodel) ) { cat(" >> best:",i,"model:",bmodel,"best:",best,"\n") }
 
     if(model=="auto"){ if(isbest(0,1,search$metric)) decreasing=FALSE else decreasing=TRUE
 
@@ -485,7 +486,9 @@ if(search$smethod=="none") # no search <----------------------------------------
                                                             }
                                  else { objective="binary:logistic"; y=as.numeric(y==levels(y[1])[2])}
                                }
-           else objective="reg:linear"
+           #else objective="reg:linear"
+           else objective="reg:squarederror"
+ 
            fargs[["objective"]]=objective
           }
         if(model=="cv.glmnet" || model=="glmnet") M=suppressWarnings( try( do.call(model,c(list(x=data,y=y),fargs)), silent=TRUE) ) # FIT!!!
@@ -685,7 +688,7 @@ readmpar=function(mpar,model,search,method)
  else if(substr(vmethod,1,5)=="kfold")
  {
   FOLDS=length(mpar) # kfold
-  if( (model=="ksvm"||model=="rvm"||model=="lssvm")&&
+  if( is.character(model) && (model=="ksvm"||model=="rvm"||model=="lssvm") &&
       (is.list(search) && !is.null(search$search$kpar) && search$search$kpar=="automatic")
       )
   { mpar=mpar[[1]]
@@ -753,108 +756,87 @@ cleansearch=function(s)
  s$search$type=NULL
  s$search$type=NULL
 }
-# 
+
+
+
+
 readsearch=function(search,model,task="reg",mpar=NULL,...) # COL is inputs+output
 {
-#print(" >>> readsearch:")
-#print(search)
-#cat(" >> fit: smethod",search$smethod,"method:",search$method,"model:",model,"nr:",nrow(data),"\n")
-#S<<-search;M<<-model;TT<<-task;MP<<-mpar
-#print("---------------------")
-#mpause()
- #search=S;model=M;task=TT;mpar=MP
- #search="heuristic"; model="ksvm"; task="prob";mpar=NULL;args=list()
- args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
- if(is.list(search) && !is.null(search$smethod) && search$smethod=="normal") search$smethod="grid" # compatibility issue
- if(is.list(search) && !is.null(search$search) && is.character(search$search))
-  { search2=readsearch(search$search,model,task,mpar,...)
-    search$search=search2$search;search$smethod=search2$smethod
-    if(is.null(search$convex)) search$convex=0
-    if(is.null(search$method)) search$method=c("holdout",2/3,123) # rminer 2020 change!
-    if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
-  }
- search2=list();smethod="";
- if(is.character(search) && !is.list(model))
- { 
-   if(model=="ksvm" && is.null(args$kernel)) # treat the special rbfdot implicit case
-      search2[["kernel"]]="rbfdot"
-   #if(search=="automatic" && is.null(args$kpar)) { search2$kpar="automatic"; search="heuristic"} # compatibility issue
 
-   if(search=="heuristic"||search=="automatic") 
-   { smethod="none"
-     if(substr(model,1,3)=="mlp") 
-      { if(!is.null(args$size)) search=args$size else search=NA # will use: round((COL-1)/2) in mlp.fit # simple heuristic for hidden nodes
+ args=do.call(list,list(...)) # extra arguments (needed for different kernel?)
+
+ if(is.null(search)) search="heuristic"
+
+ if(is.list(search) && !is.null(search$smethod) && search$smethod=="normal") search$smethod="grid" # compatibility issue
+
+ search2=NULL
+ #if(is.list(search) && !is.null(search$search) && is.character(search$search))
+ # { search2=readsearch(search$search,model,task,mpar,...)
+ #   search$search=search2$search;search$smethod=search2$smethod
+ #   if(is.null(search$convex)) search$convex=0
+ #   if(is.null(search$method)) search$method=c("holdout",2/3,123) # rminer 2020 change!
+ #   if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
+ # }
+ if(is.character(search))
+ { 
+   if(search=="heuristic") # read special args if there?
+    {
+      if(!is.null(args$kernel)) kernel=args$kernel else kernel="rbfdot" 
+      n=1
+      search2=mparheuristic(model,n=n,task=task)
+      smethod="none" 
+      # clean special args if in args:
+      if(!is.list(model))
+       {
+        if(model=="ksvm" && !is.null(args$sigma)) search2$kpar=NULL 
+        if((model=="mlp"||model=="mlpe") && !is.null(args$size)) search2$size=NULL
+        if(model=="xgboost" && !is.null(args$nrounds)) search2$nrounds=NULL
+        if(model=="kknn" && !is.null(args$k)) search2$k=NULL
+       }
+    }
+   else
+    {
+     if(model=="ksvm") 
+     { 
+       if(!is.null(args$kernel)) kernel=args$kernel else kernel="rbfdot" 
+       if(substr(search,1,2)=="UD") 
+          { 
+            search2=mparheuristic(model,n="UD",kernel=kernel,task=task)
+            search2[["kernel"]]="rbfdot"
+            smethod=search
+          }
+       else { n=switch(search,heuristic=1,heuristic5=5,heuristic10=10,1)
+              search2=mparheuristic(model,n=n,kernel=kernel,task=task)
+              if(n==1) smethod="none" else smethod="grid"
+            }
       }
-     else if(model=="ksvm") # special case 
-      { 
-        if( (is.null(args$kernel) || (is.character(args$kernel) && args$kernel=="rbfdot") ) # compatible kernel
-            && is.null(args$kpar) && search!="automatic" ) # no kpar definition or no "automatic"
-             { if(!is.na(search)) search="automatic" else search=2^-7 # 2^-7 # or "automatic" # use automatic heuristic for the kernel parameter
-             }
-        else if(is.null(args$kpar)) search="automatic" # other kernels
-      }
-   }
-   # Manuel JMLR paper:
-   # args$kernel=="polydot", s = {0.001,0.01,0.1}, offset o = 1, degree d = {1,2,3}, C={0.25,0.5,1}  
-   # "rpart", control$cp with 10 values from 0.18 to 0.01: seq(0.01,0.18,length.out=10)
-   # "ctree", mincriterion, tuned with the values 0.1:0.11:0.99, control$mincriterion=seq(0.1,0.98,by=0.11)
-   else if(search=="heuristic5") # simple heuristic
-     { smethod="grid"
-       if(model=="kknn") search=seq(1,9,2)
-       else if(substr(model,1,3)=="mlp") search=seq(0,8,2)
-       else if(model=="ksvm")
-         { if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") search=2^seq(-15,3,4)
-           else {cat("Current rminer version does not have an heuristic5 rule for this kernel:");print(args$kernel);}
-         }
-       else if(model=="randomForest") {search=1:5} 
-     }
-   else if(search=="heuristic10")
-     { smethod="grid"
-       if(model=="kknn") search=seq(1,10,1) 
-       else if(substr(model,1,3)=="mlp") search=seq(0,9,1) 
-       else if(model=="ksvm")
-         { if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") search=2^seq(-15,3,2)
-           else {cat("Current rminer version does not have an heuristic10 rule for this kernel:");print(args$kernel);}
-         }
-       else if(model=="randomForest") {search=1:10}
-     }
-   else if(model=="ksvm")
+     else # non ksvm methods:
      {
-      if(substr(search,1,2)=="UD")
-        {
-         if(is.null(args$kernel) || is.character(args$kernel) && args$kernel=="rbfdot") 
-         { 
-          smethod=search
-          if(task=="reg") { search2$sigma=c(-8,0);search2$C=c(-1,6);search2$epsilon=c(-8,-1) }
-          else { search2$sigma=c(-15,3);search2$C=c(-5,15) } # gama, C, epsilon
-         }
-         else {cat("Current rminer version does not have an UD rule for this kernel:");print(args$kernel);}
-        }
+      n=switch(search,heuristic=1,heuristic5=5,heuristic10=10,1)
+      search2=mparheuristic(model,n=n,task=task)
+      if(n==1) smethod="none" else smethod="grid"
      }
+    }
+   #if(!is.null(search2)) search=list(search=search2,smethod=smethod)
+   if(length(search2)>0) search=list(search=search2,smethod=smethod) else search=list(smethod=smethod)
  }
-if(!is.list(search))
-{
- if(!is.null(search) && (is.na(search)||is.character(search)||is.numeric(search)||is.factor(search)) && !is.list(model))
+ else if(is.numeric(search)) # search is a vector or a single number
  {
-   if(substr(model,1,3)=="mlp") search2[["size"]]=search
-   else if(model=="ksvm") 
-     { if(is.numeric(search) && (is.null(args$kernel) || (is.character(args$kernel) && args$kernel=="rbfdot")) ) search2$sigma=search
-       else if(search=="automatic") search2$kpar=search
-       if(is.null(args$kernel)) # treat the special rbfdot implicit case
-         search2[["kernel"]]="rbfdot"
-     }
-   else if(model=="randomForest" && !is.character(search)) search2[["mtry"]]=search
-   else if(model=="kknn" && !is.character(search)) search2[["k"]]=search
-   if(smethod!="grid" && smethod!="none" && substr(smethod,1,2)!="UD") { if(length(search)<2) smethod="none" else smethod="grid" }
-   if(length(search2)==0) search=list(smethod=smethod) else search=list(smethod=smethod,search=search2,convex=0) 
+  if(length(search)==1) 
+   {
+      search2=mparheuristic(model,n=length(search),task=task,lower=search)
+      smethod="none" 
+   }
+  else{ # n is a vector with 2 or more elements:
+      search2=mparheuristic(model,n=length(search),task=task)
+      smethod="grid"
+   }
+
+  search=list(search=search2,smethod=smethod)
  }
- else if(is.character(search) && search=="heuristic" && is.list(model))  # attention here for AE, SE, WE, ...
- { # model is a list!
-   search=list(smethod="none") 
- }
- else if(is.null(search)) search=list(smethod="none")
-}
- if(!is.null(mpar))
+
+
+ if(!is.null(mpar)) # mpar compatibility issues
  {
   Lmpar=length(mpar)
   if(is.null(search$method) && !is.list(model) ) search$method=getmethod(mpar)# fill method
@@ -884,7 +866,7 @@ if(!is.list(search))
        }
    }
  }
- else # move this up? 
+ else 
    { # fill some search components if missing: 
      if(is.list(search))
        { 
@@ -894,7 +876,7 @@ if(!is.list(search))
               {
                L=vector(length=N)
                for(i in 1:N) L[i]=length(search$search[[i]])
-               LS=prod(L) 
+               if(is.numeric(search$search)) LS=sum(L) else LS=prod(L) 
                if(LS>1) search$smethod="grid" else search$smethod="none" 
               }
           }
@@ -907,7 +889,7 @@ if(!is.list(search))
         if(is.null(search$metric)) { if(task=="reg") search$metric="SAE" else if(task=="class") search$metric="ACC" else search$metric="AUC" }
        }
    }
-#print("--- end:")
+#print(">> search:")
 #print(search)
  return (search)
 }
@@ -937,6 +919,11 @@ midrangesearch=function(midpoint,search,mode="seq")
 
 mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel="rbfdot",task="prob",inputs=NA)
 {
+if(is.list(model)) # for A) type, check for B)?
+{
+  return(NULL) # special case, user defined model$fit and model$predict
+}
+else{ #######################################################################################################################
  LM=length(model)
  if(LM>1) # multiple models
  {
@@ -1056,18 +1043,24 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel=
     }
   else # non heuristic based: =====================
    {
-    if(is.na(lower)) # need to update this
+    if(is.numeric(n) && length(n)>1) { s=n; n=length(s) } # vector!
+    else{ ### n is one
+
+    if(!is.na(n) && n==1 && !is.na(lower)) nlower=TRUE else nlower=FALSE 
+ 
+    if(!nlower && is.na(lower)) #
     { 
      lower=switch(model,kknn=1,randomForest=1,mlp=,mlpe=0,rpart=0.01,ctree=0.1,multinom=0,xgboost=2,NA)
      if(model=="ksvm"||model=="rvm") lower=switch(kernel,rbfdot=-15,vanilladot=-2,polydot=-10,NA)
      else if(model=="lssvm") lower=switch(kernel,rbfdot=-6,vanilladot=-2,polydot=-10,NA)
     }
-    if(is.na(upper)) # need to update this
-    { upper=switch(model,kknn=10,randomForest=10,mlp=,mlpe=9,rpart=0.18,ctree=0.99,multinom=0.1,xgboost=50,NA)
+    if(is.na(upper)) #
+    { upper=switch(model,kknn=9,randomForest=10,mlp=,mlpe=9,rpart=0.18,ctree=0.99,multinom=0.1,xgboost=50,NA)
+      if(model=="mlp"||model=="mlpe") if(upper==9 && !is.na(n) && n==5) upper=8 
       if(model=="ksvm"||model=="rvm"||model=="lssvm") upper=switch(kernel,rbfdot=3,vanilladot=7,polydot=-3,NA)
+      if(model=="randomForest") if(upper==10 && !is.na(n) && n==5) upper=5 
     } 
   
-    # not na(n) 
     if(!is.na(n) && n>1) by=(upper-lower)/(n-1)
 
     if(is.na(n) && is.na(by)) n=1
@@ -1079,7 +1072,7 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel=
         if(model=="ksvm" || model=="rvm" || model=="lssvm") 
           {
              exponential=2 # 2 scale
-             s=exponential ^ seq(lower,upper,by=by)
+             s=exponential ^ seq(lower,upper,by=round(by))
           }
         else s=seq(lower,upper,by=by) # pure linear case
       }
@@ -1088,7 +1081,7 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel=
       s=unique(s) # remove duplicates if any
       n=length(s) 
     }
-
+    } ###
     if(n>1)
      {
       if(model=="kknn") l=list(k=s)
@@ -1122,15 +1115,31 @@ mparheuristic=function(model,n=NA,lower=NA,upper=NA,by=NA,exponential=NA,kernel=
     else  # special case: n=1
     {
      l=NULL
-     if(model=="kknn") l=list(k=1)
-     if(model=="ksvm" || model=="rvm" || model=="lssvm") l=list(kernel=kernel,kpar="automatic") # default heuristic
-     if(substr(model,1,3)=="mlp") l=list(size=NA) # default heuristic
-     if(model=="xgboost") l=list(nrounds=2) # rminer default
+     if( !nlower )
+      {
+       if(model=="kknn") l=list(k=1)
+       if(model=="ksvm" || model=="rvm" || model=="lssvm") l=list(kernel=kernel,kpar="automatic") # default heuristic
+       if(substr(model,1,3)=="mlp") l=list(size=NA) # default heuristic
+       if(model=="xgboost") l=list(nrounds=2) # rminer default
+       #if(model=="randomForest")
+      }
+     else # use lower
+      {
+       if(model=="kknn") l=list(k=lower)
+       if(model=="ksvm" || model=="rvm" || model=="lssvm") 
+         {
+          if(kernel=="rbfdot") l=list(kernel=kernel,sigma=lower) # only works for rbfdot!
+          if(kernel=="polydot") l=list(kernel=kernel,scale=0.001,offset=1,degree=lower) # only works for rbfdot!
+         }
+       if(substr(model,1,3)=="mlp") l=list(size=lower) # default heuristic
+       if(model=="xgboost") l=list(nrounds=lower) # rminer default
+      }
     }
    } # =================
   }
   return(l)
  } #----------------------------------------------------------------------------------------------------------------------
+} #######################################################################################################################
 } # <<< end function
 
 # -------------------------------------------------------------------------

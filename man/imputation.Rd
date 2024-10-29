@@ -66,7 +66,7 @@ print(imputation("hotdeck",d,Value=1))
 require(kknn)
 d=read.table(
    file="http://archive.ics.uci.edu/ml/machine-learning-databases/autos/imports-85.data",
-   sep=",",na.strings="?")
+   sep=",",na.strings="?",stringsAsFactors=TRUE)
 print(summary(d))
 d2=imputation("hotdeck",d,Value=1)
 print(summary(d2))

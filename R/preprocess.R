@@ -253,7 +253,7 @@ delevels<-function(x,levels,label=NULL)
           }
        x=x2
      }
-     else if(length(levels)<3 && levels=="pcp") # pcp
+     else if(length(levels)<3 && levels[1]=="pcp") # pcp
      { # read perc
        if(length(levels)==1) perc=0.1 else perc=as.numeric(levels[2])
        fx=table(x)

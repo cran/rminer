@@ -175,7 +175,6 @@ I5=Importance(M3,sa_psin,method="DSA",Aggregation=3)
 print("Input importances:")
 print(round(I5$imp,digits=2)) # INS 2013 similar results
 
-
 # 2D analysis (check reference for more details), RealL=L=7:
 # need to aggregate results into a matrix of SA measure by using the agg_matrix_imp function.
 # important notes: 

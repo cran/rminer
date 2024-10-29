@@ -23,7 +23,9 @@ mparheuristic(model, n = NA, lower = NA, upper = NA, by = NA, exponential = NA,
                         \item a character vector with several models - see the example section for a demonstration of this option.
                        }
               }
-  \item{n}{number of searches or heuristic (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}). By default, the searches are linear for all models except for SVM several \code{rbfdot} kernel based models (\code{"ksvm"},\code{"rsvm"},\code{"lssvm"}, which can assume \code{2^}search-range; please check the result of this function to confirm if the search is linear or \code{2^}search-range). 
+  \item{n}{number of searches or heuristic or numeric vector (either \code{n} or \code{by} should be used, \code{n} has prevalence over \code{by}). By default, the searches are linear for all models except for SVM several \code{rbfdot} kernel based models (\code{"ksvm"},\code{"rsvm"},\code{"lssvm"}, which can assume \code{2^}search-range; please check the result of this function to confirm if the search is linear or \code{2^}search-range).\cr
+If this argument is 1 then the main hyperparameter of the model is set to the value of \code{lower} (if lower is not NA).\cr
+If this argument is a numeric vector, then the main hyperparameter of the model is set to this vector.\cr
 If this argument is a character type, then it is assumed to be an heuristic. Possible heuristic values are:
 \itemize{
            \item \code{heuristic} - only one model is fit, uses default rminer values, same as \code{mparheuristic(model)}.
@@ -55,7 +57,7 @@ Notes:
            \item \code{multinom_t} - heuristic 167 from Delgado 2014 paper, 10 searches, works only when \code{model=multinom}.
 }
 }
-  \item{lower}{lower bound for the (hyper)parameter (if \code{NA} a default value is assumed).
+  \item{lower}{lower bound for the (hyper)parameter (if \code{NA} a default value is assumed). If \code{n=1} and \code{!is.na(lower)} then lower is the main hyperparameter value for some models (e.g., "kknn", "mlpe", "ksvm", "xgboost").
 }
   \item{upper}{upper bound for the (hyper)parameter (if \code{NA} a default value is assumed).
 }
@@ -155,6 +157,17 @@ s=mparheuristic("mlpe",n=10) # same thing
 print(s) 
 s=mparheuristic("mlpe",n=10,lower=2,upper=20) 
 print(s) 
+
+# numeric (single number or vector) usage of n:
+s=mparheuristic("mlpe",n=NA) #
+print(s) 
+s=mparheuristic("mlpe",n=1,lower=NA) # same thing
+print(s) 
+s=mparheuristic("mlpe",n=1,lower=2) # size=2
+print(s) 
+s=mparheuristic("mlpe",n=1:9) # size=1:9
+print(s) 
+
 
 ## "randomForest", upper should be set to the number of inputs = max mtry
 s=mparheuristic("randomForest",n=10,upper=6)

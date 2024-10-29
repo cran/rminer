@@ -88,7 +88,7 @@ fit(x, data = NULL, model = "default", task = "default",
 							\code{ksvm} -- gaussian kernel parameter (\emph{sigma});
 							\code{randomForest} -- \code{mtry} parameter).\cr 
                This is a very flexible argument that can be used under several options: simpler use, complex tuning of an individual model or multiple models. The simpler use is kept for compatibility issues but it is advised to define this argument via the easier \code{\link{mparheuristic}} function.\cr
-               Valid options for a simpler \code{search} use:
+               Valid options for a simpler \bold{character type} \code{search} use:
               \itemize{
                        \item \code{heuristic} -- simple heuristic, one search parameter (e.g., \emph{size}=inputs/2 for \code{mlp} or 
 \emph{size}=10 if classification and inputs/2>10, \emph{sigma} is set using \code{kpar="automatic"} and \code{kernel="rbfdot"} 
@@ -100,6 +100,9 @@ only for: \code{kknn}; \code{mlp} or \code{mlpe}; \code{ksvm}, with \code{kernel
                        \item \code{heuristic10} -- heuristic with a 10 range grid-search (e.g., \code{seq(1,10,1)} for \code{kknn}, \code{seq(0,9,1)} for \code{mlp} or \code{mlpe}, 
      										 	     \code{2^seq(-15,3,2)} for \code{ksvm}, \code{1:10} for \code{randomRorest})
                        \item \code{UD}, \code{UD1} or \code{UD2} -- uniform design 2-Level with 13 (\code{UD} or \code{UD2}) or 21 (\code{UD1}) searches (only works for \code{ksvm} and \code{kernel="rbfdot"}).
+                      } 
+                Another simpler use of the \code{search} argument is a \bold{numeric type}:
+              \itemize{
                        \item a-\code{\link{vector}} -- numeric vector with all hyperparameter values that will be searched within an internal grid-search (the number of searches is \code{length(search)} when \code{convex=0})
                       }
                       A more complex but advised use of \code{search} is to use a \code{\link{list}}. Non expert users should create this list via the \code{\link{mparheuristic}} function, which is very easy to use. Nevertheless, the fields of the list for a single fit (individual model) are shown here:
@@ -429,7 +432,7 @@ print(M@mpar)
 s=list(search=mparheuristic("ksvm",10)) # advised "heuristic10" usage
 M=fit(Species~.,iris,model="ksvm",search=s,fdebug=TRUE)
 print(M@mpar)
-# same thing, uses older search="heuristic10" that works for fewer rminer models
+# same thing, uses older search="heuristic10"
 M=fit(Species~.,iris,model="ksvm",search="heuristic10",fdebug=TRUE)
 print(M@mpar)
 # identical search under a different and explicit code:
@@ -442,8 +445,6 @@ print(M@mpar)
 M=fit(Species~.,iris,model="ksvm",search="UD",fdebug=TRUE)
 print(M@mpar)
 M=fit(Species~.,iris,model="ksvm",search="UD1",fdebug=TRUE)
-print(M@mpar)
-M=fit(Species~.,iris,model="ksvm",search=2^seq(-15,3,2),fdebug=TRUE)
 print(M@mpar)
 # now the more powerful search argument is used for modeling SVM:
 # grid 3 x 3 search:

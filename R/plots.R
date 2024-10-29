@@ -205,7 +205,9 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
 
  if(graph=="ROC"||graph=="REC"||graph=="LIFT") # multi mining graphs
  {
-  plot(MC[[1]][,1],MC[[1]][,2],type="n",xlab=xlab,ylab=ylab,ylim=c(0,ymax),lwd=2,main=main,panel.first=grid(Grid,Grid))
+  plot(MC[[1]][,1],MC[[1]][,2],type="n",xlab=xlab,ylab=ylab,ylim=c(0,ymax),lwd=2,main=main)
+  #plot(MC[[1]][,1],MC[[1]][,2],type="n",xlab=xlab,ylab=ylab,ylim=c(0,ymax),lwd=2,main=main,panel.first=grid(Grid,Grid))
+  grid(Grid,Grid)
   if(length(col)==1) col=rep(col,N)
   if(length(lty)==1) lty=1:N
   for(j in 1:N)
@@ -301,7 +303,8 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
   #cat("MM:",MM,"\n")
   #cat("leg:",leg,"\n")
   if(col=="black") col="white"
-  Yx=barplot(MM,names.arg=NULL,axes=FALSE,col=col,xlim=c(0,xval),horiz=TRUE,main=main,panel.first=grid(Grid,Grid)) #,ylab="inputs",xlab="relative importance")
+  Yx=barplot(MM,names.arg=NULL,axes=FALSE,col=col,xlim=c(0,xval),horiz=TRUE,main=main) #,ylab="inputs",xlab="relative importance")
+  grid(Grid,Grid)
   Yx=Yx[,1]
   #D1=0.7; D2=2.1;
   #Yx=seq(D1,LMM+D2,length=LMM)
@@ -327,7 +330,8 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
      MIN=min(MIN,y[[j]]$pred[[i]]);MAX=max(MAX,y[[j]]$pred[[i]])
     }
   xlab="Observed"; ylab="Predicted"
-  plot(y$test[[1]],y$pred[[1]],type="n",xlim=c(MIN,MAX),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
+  plot(y$test[[1]],y$pred[[1]],type="n",xlim=c(MIN,MAX),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab)
+  grid(Grid,Grid)
   if(length(col)==1) col=rep(col,N*runs)
   for(j in 1:N) for(i in 1:runs) 
   {
@@ -369,7 +373,8 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
     }
   xlab="Examples"; ylab="Values"
   #plot(XX,y$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
-  plot(XX,y[[1]]$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
+  plot(XX,y[[1]]$test[[1]][XX],type="n",xlim=c(XX[1],XX[length(XX)]),ylim=c(MIN,MAX),main=main,xlab=xlab,ylab=ylab)
+  grid(Grid,Grid)
   if(length(lty)==1) lty=rep(lty,2)
   if(length(col)==1) col=rep(col,runs*N)
   for(j in 1:N) for(i in 1:runs) 
@@ -396,8 +401,8 @@ mgraph=function(y,x=NULL,graph,leg=NULL,xval=-1,PDF="",PTS=-1,size=c(5,5),sort=T
   if(sort) AUX=sort(AUX) 
   MIN=min(AUX);MAX=max(AUX)
   xlab="Examples"; ylab="Residuals"
-  plot(AUX,type="n",ylim=c(MIN,MAX),main=leg,xlab=xlab,ylab=ylab,panel.first=grid(Grid,Grid))
-
+  plot(AUX,type="n",ylim=c(MIN,MAX),main=leg,xlab=xlab,ylab=ylab)
+  grid(Grid,Grid)
   for(j in 1:N) for(i in 1:runs) points(AUX,pch=19,cex=0.8)
   abline(0,0)
  }
@@ -593,14 +598,17 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
     if(is.factor(x)) { 
                                 DIF=0.5;XLIM=c(1-DIF,L+DIF)
                                 if(!is.null(intbar)) YLIM=c(min(y-intbar),max(y+intbar)) else YLIM=range(y)
-                                plot(1,y[1],xlim=XLIM,ylim=YLIM,type="n",main=main,xlab=xlab,ylab=ylab,xaxt="n",yaxt=yaxt,panel.first=grid(Grid,Grid))
+                                plot(1,y[1],xlim=XLIM,ylim=YLIM,type="n",main=main,xlab=xlab,ylab=ylab,xaxt="n",yaxt=yaxt)
+                                grid(Grid,Grid)
                                 x=seq(1,L,length.out=L);
                                 DIF2=0.01
                                 if(showlevels[1]) text(x+DIF/2,y+DIF2,levels,cex=cex)
                                 segments(x-DIF,y,x+DIF,y,lwd=2)
                                 axis(1,x,levels,cex.axis=cex)
                               }
-    else plot(x,y,xlim=XLIM,ylim=YLIM,type="b",yaxt=yaxt,main=main,xlab=xlab,ylab=ylab,lwd=2,pch=pch,panel.first=grid(Grid,Grid))
+    else { plot(x,y,xlim=XLIM,ylim=YLIM,type="b",yaxt=yaxt,main=main,xlab=xlab,ylab=ylab,lwd=2,pch=pch)
+           grid(Grid,Grid)
+         }
     if(yaxt=="n") axis(2,unique(y),ylevels,cex.axis=cex)
     if(!is.null(intbar)) { 
     			  DISP=0.18*min(DIF)
@@ -620,7 +628,8 @@ vecplot=function(I,graph="VEC",leg=NULL,xval=1,sort=FALSE,data=NULL,digits=c(1,1
                    YMIN=min(YMIN,y);YMAX=max(YMAX,y)
                  }
    #plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),ylab=ylab,panel.first=grid(Grid,Grid))
-   plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),xaxt="n",ylab=ylab,panel.first=grid(Grid,Grid))
+   plot(1,1,xlim=c(0,1),ylim=c(YMIN,YMAX),main=main,type="n",yaxt=yaxt,xlab=paste(xlab," (scaled)",sep=""),xaxt="n",ylab=ylab)
+   grid(Grid,Grid)
    if(yaxt=="n") axis(2,unique(y),ylevels)
    yi=1
    for(i in xval)
@@ -949,13 +958,14 @@ forplot=function(file="",ts,test=12,PRED,xlab="lead time",ylab="Values",disp=2,d
  ymax=max(TS,PRED)*MAX
  #cat("min:",ymin,"max:",ymax,"\n")
  iend=start+test
- if(start>1) { plot(ts[LI:L],type="l",lwd=2,ylim=c(ymin,ymax),xlab=xlab,ylab=ylab,main=main,xaxt="n",panel.first = grid(10,10))
+ if(start>1) { plot(ts[LI:L],type="l",lwd=2,ylim=c(ymin,ymax),xlab=xlab,ylab=ylab,main=main,xaxt="n")
+               grid(10,10)
                #AT=axis(1)
                AT=round(seq(start,iend,length=5))
                cat("AT:",AT,"\n")
                axis(1,(AT-start+1),AT)
              }
- else plot(ts[LI:L],type="l",lwd=2,ylim=c(ymin,ymax),xlab=xlab,ylab=ylab,main=main,panel.first=grid(10,10))
+ else plot(ts[LI:L],type="l",lwd=2,ylim=c(ymin,ymax),xlab=xlab,ylab=ylab,main=main);grid(10,10)
  N=NCOL(PRED); LP=NROW(PRED)
  for(i in 1:N)
  {
@@ -997,7 +1007,8 @@ rmboxplot=function(x,MEAN=TRUE,LINE=FALSE,MIN=FALSE,MAX=FALSE,ALL=FALSE,BOXPLOT=
  DIM=0.3
  PCEX=2.0
  #plot(1:n,seq(min(Min),max(Max),length.out=n),ylab="",xlim=c(1-DIM,n+DIM),ylim=c(-0.02,1.025),type="n",xaxt="n")
- plot(1:n,seq(min(Min),max(Max),length.out=n),xlab=xlab,ylab=ylab,xlim=c(1-DIM,n+DIM),type="n",xaxt="n",yaxt="n",main=main,panel.first=grid(Grid,Grid))
+ plot(1:n,seq(min(Min),max(Max),length.out=n),xlab=xlab,ylab=ylab,xlim=c(1-DIM,n+DIM),type="n",xaxt="n",yaxt="n",main=main)
+ grid(Grid,Grid)
 #cat("main:",main,"\n")
  #if(main!="") text(mean(c(1,n)),1.025,main,cex=1.3)
  if(length(xlabels)==1 && xlabels=="") xlabels=1:n

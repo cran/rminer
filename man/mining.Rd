@@ -245,7 +245,6 @@ print(mmetric(M,metric="CONF"))
 ### 3rd example, use of all rminer models: 
 models=c("naive","ctree","rpart","kknn","mlp","mlpe","ksvm","randomForest","bagging",
          "boosting","lda","multinom","naiveBayes","qda")
-models="naiveBayes"
 for(model in models)
 { 
  M=mining(Species~.,iris,Runs=1,method=c("kfold",3,123),model=model)
